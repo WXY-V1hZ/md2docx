@@ -7,16 +7,21 @@ import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import { type Heading } from "mdast";
 import { visit } from "unist-util-visit";
-const fileName = "test.md";
-const md = readFileSync(fileName, "utf-8");
 
-import { addTitle, normalizeHeadings, numberHeadings } from "./utils/preprocess";
+import {
+  addTitle,
+  normalizeHeadings,
+  numberHeadings,
+} from "./utils/preprocess";
+
+const fileName = "base.md";
+const md = readFileSync(fileName, "utf-8");
 
 const processor = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ["yaml"])
   .use(remarkGfm)
-  .use(remarkStringify, { resourceLink: true });
+  .use(remarkStringify, { resourceLink: true, bullet: "-" });
 const ast = processor.parse(md);
 const headings: Heading[] = [];
 visit(ast, "heading", (heading: Heading) => {
