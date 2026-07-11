@@ -45,6 +45,8 @@ bun test
 bun check
 ```
 
+**提交须经用户审核**：在提交 git 之前，必须将修改内容展示给用户审核，经用户确认后方可提交。不要擅自提交。
+
 ---
 
 # 项目结构
@@ -391,7 +393,7 @@ SVG → PNG 转换。
 记住 `fill(value, start)` 第二个参数是起始索引。
 
 ```ts
-counter.fill(0, depth) // 并**不会**填充前 depth 个元素
+counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 ```
 
 ## sharp / librsvg
@@ -399,6 +401,7 @@ counter.fill(0, depth) // 并**不会**填充前 depth 个元素
 它们**不支持** CSS var() 和 color-mix()。在将 SVG 传入 sharp 之前必须调用 `resolveCSSVars()` 内联所有变量。
 
 `resolveCSSVars()` 内部做了：
+
 1. 从 `<svg style="...">` 提取基础变量
 2. 从 `<style>` 块提取派生变量（如 `--_text: var(--fg)`）
 3. 迭代解析多层 `var()` 引用

@@ -1,0 +1,10 @@
+{
+  "figureCaption": {
+    "format": "图 {n}",
+    "separator": "："
+  },
+  "tableCaption": {
+    "format": "表 {n}",
+    "separator": " "
+  }
+}

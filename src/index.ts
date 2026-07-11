@@ -1,8 +1,7 @@
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
-import { writeFileSync } from "fs";
-import { readFileSync } from "fs";
+import { writeFileSync, readFileSync, existsSync } from "fs";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import { type Heading } from "mdast";
@@ -15,9 +14,15 @@ import {
   numberPictures,
   numberTables,
   renderMermaid,
+  type NumberingConfig,
 } from "./preprocess";
 
 const fileName = "base.md";
+
+let numberingConfig: NumberingConfig | undefined;
+if (existsSync("config.json")) {
+  numberingConfig = JSON.parse(readFileSync("config.json", "utf-8")) as NumberingConfig;
+}
 const md = readFileSync(fileName, "utf-8");
 
 const processor = unified()
@@ -34,9 +39,9 @@ visit(ast, "heading", (heading: Heading) => {
 addTitle(fileName, ast, headings);
 normalizeHeadings(headings);
 numberHeadings(headings);
-numberTables(ast);
+numberTables(ast, numberingConfig);
 await renderMermaid(ast, fileName);
-numberPictures(ast);
+numberPictures(ast, numberingConfig);
 
 const outputName = fileName.replace(/\.[^.]*$/, "_formatted.md");
 writeFileSync(outputName, processor.stringify(ast), "utf-8");

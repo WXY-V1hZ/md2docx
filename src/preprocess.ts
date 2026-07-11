@@ -49,24 +49,42 @@ export async function renderMermaid(root: Root, mdPath: string) {
   }
 }
 
-export function numberTables(root: Root) {
+export interface CaptionStyle {
+  format: string;
+  separator: string;
+}
+
+export interface NumberingConfig {
+  figureCaption: CaptionStyle;
+  tableCaption: CaptionStyle;
+}
+
+const DEFAULT_CONFIG: NumberingConfig = {
+  figureCaption: { format: "图 {n}", separator: "：" },
+  tableCaption: { format: "表 {n}", separator: "" },
+};
+
+export function numberTables(root: Root, config?: NumberingConfig) {
+  const {
+    tableCaption: { format, separator },
+  } = config ?? DEFAULT_CONFIG;
   let counter = 0;
   const inserts: { at: number; text: string }[] = [];
   const used = new Set<number>();
-
   for (let i = 0; i < root.children.length; i++) {
     const child = root.children[i]!;
     if (child?.type !== "table") continue;
 
     counter++;
+    const label = format.replace("{n}", String(counter));
 
     const prevIdx = i - 1;
     const prev = prevIdx >= 0 ? root.children[prevIdx] : undefined;
     if (prev && isCaption(prev) && !used.has(prevIdx)) {
       used.add(prevIdx);
-      const existing = stripTableNum(captionText(prev));
+      const existing = stripTableNum(captionText(prev), format);
       const first = prev.children[0] as Text;
-      first.value = `Table: 表 ${counter}${existing ? `：${existing}` : ""}`;
+      first.value = `Table: ${label}${existing ? `${separator}${existing}` : ""}`;
       continue;
     }
 
@@ -74,13 +92,13 @@ export function numberTables(root: Root) {
     const next = nextIdx < root.children.length ? root.children[nextIdx] : undefined;
     if (next && isCaption(next) && !used.has(nextIdx)) {
       used.add(nextIdx);
-      const existing = stripTableNum(captionText(next));
+      const existing = stripTableNum(captionText(next), format);
       const first = next.children[0] as Text;
-      first.value = `Table: 表 ${counter}${existing ? `：${existing}` : ""}`;
+      first.value = `Table: ${label}${existing ? `${separator}${existing}` : ""}`;
       continue;
     }
 
-    inserts.push({ at: i + 1, text: `Table: 表 ${counter}` });
+    inserts.push({ at: i + 1, text: `Table: ${label}` });
   }
 
   for (let j = inserts.length - 1; j >= 0; j--) {
@@ -92,7 +110,10 @@ export function numberTables(root: Root) {
   }
 }
 
-export function numberPictures(root: Root) {
+export function numberPictures(root: Root, config?: NumberingConfig) {
+  const {
+    figureCaption: { format, separator },
+  } = config ?? DEFAULT_CONFIG;
   let counter = 0;
   for (let i = 0; i < root.children.length; i++) {
     const child = root.children[i]!;
@@ -103,9 +124,10 @@ export function numberPictures(root: Root) {
     ) {
       counter++;
       const img = child.children[0] as Image;
-      const cleaned = stripPictureNum(img.title ?? img.alt ?? "");
+      const cleaned = stripPictureNum(img.title ?? img.alt ?? "", format);
       const label = cleaned || fileNameFromUrl(img.url) || "";
-      img.alt = `图 ${counter}${label ? `：${label}` : ""}`;
+      const prefix = format.replace("{n}", String(counter));
+      img.alt = `${prefix}${label ? `${separator}${label}` : ""}`;
     }
   }
 }
@@ -315,12 +337,14 @@ function captionText(node: Paragraph): string {
   return "";
 }
 
-function stripTableNum(text: string): string {
-  return text.replace(/^表\s*\d+[：:]?\s*/, "");
+function stripTableNum(text: string, format: string): string {
+  const escaped = format.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&").replace("{n}", "\\d+");
+  return text.replace(new RegExp(`^${escaped}`), "");
 }
 
-function stripPictureNum(text: string): string {
-  return text.replace(/^图\s*\d+[：:]?\s*/, "");
+function stripPictureNum(text: string, format: string): string {
+  const escaped = format.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&").replace("{n}", "\\d+");
+  return text.replace(new RegExp(`^${escaped}`), "");
 }
 
 /**
