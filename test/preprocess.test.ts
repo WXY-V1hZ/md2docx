@@ -20,10 +20,7 @@ const fixturesDir = import.meta.dirname + "/fixtures";
 
 /** 解析 markdown → AST + headings */
 function parse(md: string) {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ["yaml"])
-    .use(remarkGfm);
+  const processor = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(remarkGfm);
   const root = processor.parse(md) as Root;
   const headings: Heading[] = [];
   visit(root, "heading", (node: Heading) => {

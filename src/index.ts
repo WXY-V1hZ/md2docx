@@ -7,6 +7,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import { type Heading } from "mdast";
 import { visit } from "unist-util-visit";
 
+import { type NumberingConfig } from "./config";
 import {
   addTitle,
   normalizeHeadings,
@@ -14,7 +15,6 @@ import {
   numberPictures,
   numberTables,
   renderMermaid,
-  type NumberingConfig,
 } from "./preprocess";
 
 const fileName = "base.md";

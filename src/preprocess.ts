@@ -3,6 +3,7 @@ import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 import sharp from "sharp";
+import { type NumberingConfig, DEFAULT_CONFIG } from "./config";
 
 export async function renderMermaid(root: Root, mdPath: string) {
   const baseDir = dirname(mdPath);
@@ -49,25 +50,11 @@ export async function renderMermaid(root: Root, mdPath: string) {
   }
 }
 
-export interface CaptionStyle {
-  format: string;
-  separator: string;
-}
-
-export interface NumberingConfig {
-  figureCaption: CaptionStyle;
-  tableCaption: CaptionStyle;
-}
-
-const DEFAULT_CONFIG: NumberingConfig = {
-  figureCaption: { format: "图 {n}", separator: "：" },
-  tableCaption: { format: "表 {n}", separator: "" },
-};
-
 export function numberTables(root: Root, config?: NumberingConfig) {
   const {
-    tableCaption: { format, separator },
+    tableCaption: { enabled, format, separator },
   } = config ?? DEFAULT_CONFIG;
+  if (!enabled) return;
   let counter = 0;
   const inserts: { at: number; text: string }[] = [];
   const used = new Set<number>();
@@ -112,8 +99,9 @@ export function numberTables(root: Root, config?: NumberingConfig) {
 
 export function numberPictures(root: Root, config?: NumberingConfig) {
   const {
-    figureCaption: { format, separator },
+    figureCaption: { enabled, format, separator },
   } = config ?? DEFAULT_CONFIG;
+  if (!enabled) return;
   let counter = 0;
   for (let i = 0; i < root.children.length; i++) {
     const child = root.children[i]!;

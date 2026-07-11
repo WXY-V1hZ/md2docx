@@ -1,10 +1,12 @@
 {
   "figureCaption": {
+    "enabled": true,
     "format": "图 {n}",
     "separator": "："
   },
   "tableCaption": {
+    "enabled": true,
     "format": "表 {n}",
-    "separator": " "
+    "separator": ""
   }
 }
