@@ -30,16 +30,22 @@ export interface TitleConfig {
   strategy: TitleExtractStrategy;
 }
 
-export interface NumberingConfig {
+export interface PandocConfig {
+  enabled: boolean;
+  outputName: string;
+}
+
+export interface AppConfig {
   figureCaption: CaptionStyle;
   tableCaption: CaptionStyle;
   normalizeHeadings: BooleanConfig;
   numberHeadings: HeadingNumberingConfig;
   renderMermaid: MermaidConfig;
   title: TitleConfig;
+  pandoc: PandocConfig;
 }
 
-export const DEFAULT_CONFIG: NumberingConfig = {
+export const DEFAULT_CONFIG: AppConfig = {
   figureCaption: { enabled: true, format: "图 {n}", separator: "：" },
   tableCaption: { enabled: true, format: "表 {n}", separator: "" },
   normalizeHeadings: { enabled: true },
@@ -58,5 +64,9 @@ export const DEFAULT_CONFIG: NumberingConfig = {
   title: {
     enabled: true,
     strategy: "first-h1",
+  },
+  pandoc: {
+    enabled: true,
+    outputName: "{file_name}.docx",
   },
 };

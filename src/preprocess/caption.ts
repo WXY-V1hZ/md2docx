@@ -1,7 +1,7 @@
 import { type Image, type Paragraph, type Root, type Text } from "mdast";
-import { type NumberingConfig, DEFAULT_CONFIG } from "../config";
+import { type AppConfig, DEFAULT_CONFIG } from "../config";
 
-export function numberTables(root: Root, config?: NumberingConfig) {
+export function numberTables(root: Root, config?: AppConfig) {
   const {
     tableCaption: { format, separator },
   } = config ?? DEFAULT_CONFIG;
@@ -47,7 +47,7 @@ export function numberTables(root: Root, config?: NumberingConfig) {
   }
 }
 
-export function numberPictures(root: Root, config?: NumberingConfig) {
+export function numberPictures(root: Root, config?: AppConfig) {
   const {
     figureCaption: { format, separator },
   } = config ?? DEFAULT_CONFIG;

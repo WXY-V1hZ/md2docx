@@ -28,5 +28,9 @@
   "title": {
     "enabled": true,
     "strategy": "first-h1"
+  },
+  "pandoc": {
+    "enabled": true,
+    "outputName": "{file_name}.docx"
   }
 }

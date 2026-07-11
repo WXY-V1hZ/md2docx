@@ -127,6 +127,24 @@
       },
       "required": ["enabled", "outputDir", "theme", "density", "fileName"]
     },
+    "pandoc": {
+      "description": "pandoc 导出配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否将格式化后的 Markdown 通过 pandoc 转换为 docx",
+          "type": "boolean",
+          "default": true
+        },
+        "outputName": {
+          "description": "docx 输出文件名，{file_name} 替换为源文件名",
+          "type": "string",
+          "default": "{file_name}.docx"
+        }
+      },
+      "required": ["enabled", "outputName"]
+    },
     "title": {
       "description": "文档标题提取配置",
       "type": "object",
@@ -153,6 +171,7 @@
     "normalizeHeadings",
     "numberHeadings",
     "renderMermaid",
-    "title"
+    "title",
+    "pandoc"
   ]
 }
