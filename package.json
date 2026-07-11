@@ -2,7 +2,7 @@
   "name": "md2docx",
   "private": true,
   "type": "module",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "scripts": {
     "test": "bun test",
     "check": "bun tsc --noEmit && bun run oxlint && bun run oxfmt"
