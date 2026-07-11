@@ -22,7 +22,7 @@ export function numberTables(root: Root) {
     const prev = prevIdx >= 0 ? root.children[prevIdx] : undefined;
     if (prev && isCaption(prev) && !used.has(prevIdx)) {
       used.add(prevIdx);
-      const existing = captionText(prev);
+      const existing = stripTableNum(captionText(prev));
       const first = prev.children[0] as Text;
       first.value = `Table: 表 ${counter}${existing ? `：${existing}` : ""}`;
       continue;
@@ -33,7 +33,7 @@ export function numberTables(root: Root) {
       nextIdx < root.children.length ? root.children[nextIdx] : undefined;
     if (next && isCaption(next) && !used.has(nextIdx)) {
       used.add(nextIdx);
-      const existing = captionText(next);
+      const existing = stripTableNum(captionText(next));
       const first = next.children[0] as Text;
       first.value = `Table: 表 ${counter}${existing ? `：${existing}` : ""}`;
       continue;
@@ -62,7 +62,8 @@ export function numberPictures(root: Root) {
     ) {
       counter++;
       const img = child.children[0] as Image;
-      const label = (img.title || img.alt || fileNameFromUrl(img.url)) ?? "";
+      const cleaned = stripPictureNum(img.title ?? img.alt ?? "");
+      const label = cleaned || fileNameFromUrl(img.url) || "";
       img.alt = `图 ${counter}${label ? `：${label}` : ""}`;
     }
   }
@@ -178,4 +179,14 @@ function captionText(node: Paragraph): string {
     return first.value.replace(/^Table: /, "");
   }
   return "";
+}
+
+/** 去掉 caption 文字中 "表 n：" 或 "表 n" 前缀 */
+function stripTableNum(text: string): string {
+  return text.replace(/^表\s*\d+[：:]?\s*/, "");
+}
+
+/** 去掉图片 alt/title 中 "图 n：" 或 "图 n" 前缀 */
+function stripPictureNum(text: string): string {
+  return text.replace(/^图\s*\d+[：:]?\s*/, "");
 }
