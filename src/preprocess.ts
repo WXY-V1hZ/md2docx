@@ -3,15 +3,31 @@ import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 import sharp from "sharp";
-import { type NumberingConfig, DEFAULT_CONFIG } from "./config";
+import {
+  type NumberingConfig,
+  DEFAULT_CONFIG,
+  type HeadingNumberingConfig,
+  type TitleConfig,
+} from "./config";
 
-export async function renderMermaid(root: Root, mdPath: string) {
-  const baseDir = dirname(mdPath);
-  const baseName = mdPath.replace(/.*[/\\]/, "").replace(/\.[^.]*$/, "");
-  const outDir = join(baseDir, baseName + "_assets");
+export async function renderMermaid(
+  root: Root,
+  mdPath: string,
+  outputDir: string,
+  theme: string,
+  density: number,
+  fileNameTemplate: string,
+) {
+  const resolvedDir = outputDir.replace(
+    "{file_name}",
+    mdPath.replace(/.*[/\\]/, "").replace(/\.[^.]*$/, ""),
+  );
+  const outDir = join(dirname(mdPath), resolvedDir);
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }
+
+  const mermaidTheme = THEMES[theme as keyof typeof THEMES] ?? THEMES["tokyo-night-light"];
 
   let counter = 0;
   for (let i = 0; i < root.children.length; i++) {
@@ -19,14 +35,14 @@ export async function renderMermaid(root: Root, mdPath: string) {
     if (child?.type !== "code" || child.lang !== "mermaid") continue;
 
     counter++;
-    const pngFile = join(outDir, `mermaid_${counter}.png`);
+    const pngFile = join(outDir, fileNameTemplate.replace("{n}", String(counter)) + ".png");
     const title = getMermaidTitle(child.meta);
 
     try {
-      let svg = renderMermaidSVG(child.value, THEMES["tokyo-night-light"]);
+      let svg = renderMermaidSVG(child.value, mermaidTheme);
       svg = resolveCSSVars(svg);
       const png = await sharp(Buffer.from(svg), {
-        density: 200,
+        density,
       })
         .png()
         .toBuffer();
@@ -52,9 +68,8 @@ export async function renderMermaid(root: Root, mdPath: string) {
 
 export function numberTables(root: Root, config?: NumberingConfig) {
   const {
-    tableCaption: { enabled, format, separator },
+    tableCaption: { format, separator },
   } = config ?? DEFAULT_CONFIG;
-  if (!enabled) return;
   let counter = 0;
   const inserts: { at: number; text: string }[] = [];
   const used = new Set<number>();
@@ -99,9 +114,8 @@ export function numberTables(root: Root, config?: NumberingConfig) {
 
 export function numberPictures(root: Root, config?: NumberingConfig) {
   const {
-    figureCaption: { enabled, format, separator },
+    figureCaption: { format, separator },
   } = config ?? DEFAULT_CONFIG;
-  if (!enabled) return;
   let counter = 0;
   for (let i = 0; i < root.children.length; i++) {
     const child = root.children[i]!;
@@ -120,15 +134,41 @@ export function numberPictures(root: Root, config?: NumberingConfig) {
   }
 }
 
-export function addTitle(fileName: string, root: Root, headings: Heading[]) {
+export function addTitle(fileName: string, root: Root, headings: Heading[], config?: TitleConfig) {
+  const { enabled, strategy } = config ?? DEFAULT_CONFIG.title;
+  if (!enabled || strategy === "none") return;
+
   const hasFrontmatterTitle = root.children.some(
     (c): c is Yaml => c.type === "yaml" && /^title:/m.test(c.value),
   );
   if (hasFrontmatterTitle) return;
 
-  let titleExtracted = false;
+  if (strategy === "filename") {
+    const fallbackTitle = fileName.replace(/\.\w+$/, "");
+    root.children.unshift({ type: "yaml", value: `title: ${fallbackTitle}` });
+    return;
+  }
+
   const depth1 = headings.filter((n) => n.depth === 1);
   const firstDepth1 = depth1[0];
+
+  if (strategy === "single-h1") {
+    if (firstDepth1 != null && depth1.length === 1) {
+      const titleText = firstDepth1.children
+        .filter((c): c is Text => c.type === "text")
+        .map((c) => c.value)
+        .join("");
+
+      const idx = root.children.indexOf(firstDepth1);
+      if (idx !== -1) root.children.splice(idx, 1);
+      headings.splice(headings.indexOf(firstDepth1), 1);
+
+      root.children.unshift({ type: "yaml", value: `title: ${titleText}` });
+      return;
+    }
+  }
+
+  // strategy === "first-h1"：唯一 H1 且在首位才提取，否则 fallback 到文件名
   if (firstDepth1 != null && depth1.length === 1 && firstDepth1 === headings[0]) {
     const titleText = firstDepth1.children
       .filter((c): c is Text => c.type === "text")
@@ -137,14 +177,11 @@ export function addTitle(fileName: string, root: Root, headings: Heading[]) {
 
     const idx = root.children.indexOf(firstDepth1);
     if (idx !== -1) root.children.splice(idx, 1);
-
     headings.splice(headings.indexOf(firstDepth1), 1);
 
     root.children.unshift({ type: "yaml", value: `title: ${titleText}` });
-    titleExtracted = true;
+    return;
   }
-
-  if (titleExtracted) return;
 
   const fallbackTitle = fileName.replace(/\.\w+$/, "");
   root.children.unshift({ type: "yaml", value: `title: ${fallbackTitle}` });
@@ -170,8 +207,9 @@ export function normalizeHeadings(nodes: Heading[]) {
   }
 }
 
-export function numberHeadings(nodes: Heading[]) {
+export function numberHeadings(nodes: Heading[], config?: HeadingNumberingConfig) {
   if (nodes.length === 0) return;
+  const { detectExisting, existingPattern } = config ?? DEFAULT_CONFIG.numberHeadings;
   const counter: number[] = [0, 0, 0, 0, 0, 0];
   for (let i = 0; i <= nodes[0]!.depth - 2; ++i) {
     counter[i] = 1;
@@ -183,7 +221,10 @@ export function numberHeadings(nodes: Heading[]) {
     const prefix = buildPrefix(counter);
     const first = node.children[0];
     if (first?.type === "text") {
-      first.value = first.value ? `${prefix} ${stripHeadingNum(first.value)}` : prefix;
+      const text = detectExisting
+        ? stripHeadingNum(first.value, existingPattern, config?.useBuiltinRules)
+        : first.value;
+      first.value = text ? `${prefix} ${text}` : prefix;
     } else {
       node.children.unshift({
         type: "text",
@@ -354,13 +395,20 @@ const RE_CN_NUM = /^[一二三四五六七八九十百千]+[、.]\s*/;
 const RE_CN_DUN = /^[一二三四五六七八九十百千]+(?:、[一二三四五六七八九十百千]+)+、?\s*/;
 
 /** 去掉 heading 文本中已有的编号前缀 */
-function stripHeadingNum(text: string): string {
-  return text.replace(
-    new RegExp(
-      `^(?:${[RE_CN_DUN.source, RE_CN_PAREN.source, RE_CN_NUM.source, RE_DOT_NUM.source].join(
-        "|",
-      )})`,
-    ),
-    "",
-  );
+function stripHeadingNum(text: string, customPattern?: string, useBuiltinRules?: boolean): string {
+  let result = text;
+  if (customPattern) {
+    result = result.replace(new RegExp(`^${customPattern}`), "");
+  }
+  if (useBuiltinRules !== false) {
+    result = result.replace(
+      new RegExp(
+        `^(?:${[RE_CN_DUN.source, RE_CN_PAREN.source, RE_CN_NUM.source, RE_DOT_NUM.source].join(
+          "|",
+        )})`,
+      ),
+      "",
+    );
+  }
+  return result;
 }

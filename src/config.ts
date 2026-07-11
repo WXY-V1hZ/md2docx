@@ -4,12 +4,59 @@ export interface CaptionStyle {
   separator: string;
 }
 
+export interface MermaidConfig {
+  enabled: boolean;
+  outputDir: string;
+  theme: string;
+  density: number;
+  fileName: string;
+}
+
+export interface BooleanConfig {
+  enabled: boolean;
+}
+
+export interface HeadingNumberingConfig {
+  enabled: boolean;
+  detectExisting: boolean;
+  existingPattern?: string;
+  useBuiltinRules?: boolean;
+}
+
+export type TitleExtractStrategy = "first-h1" | "single-h1" | "filename" | "none";
+
+export interface TitleConfig {
+  enabled: boolean;
+  strategy: TitleExtractStrategy;
+}
+
 export interface NumberingConfig {
   figureCaption: CaptionStyle;
   tableCaption: CaptionStyle;
+  normalizeHeadings: BooleanConfig;
+  numberHeadings: HeadingNumberingConfig;
+  renderMermaid: MermaidConfig;
+  title: TitleConfig;
 }
 
 export const DEFAULT_CONFIG: NumberingConfig = {
   figureCaption: { enabled: true, format: "图 {n}", separator: "：" },
   tableCaption: { enabled: true, format: "表 {n}", separator: "" },
+  normalizeHeadings: { enabled: true },
+  numberHeadings: {
+    enabled: true,
+    detectExisting: true,
+    useBuiltinRules: true,
+  },
+  renderMermaid: {
+    enabled: true,
+    outputDir: "{file_name}_assets",
+    theme: "tokyo-night-light",
+    density: 200,
+    fileName: "mermaid_{n}",
+  },
+  title: {
+    enabled: true,
+    strategy: "first-h1",
+  },
 };

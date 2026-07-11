@@ -7,7 +7,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import { type Heading } from "mdast";
 import { visit } from "unist-util-visit";
 
-import { type NumberingConfig } from "./config";
+import { type NumberingConfig, DEFAULT_CONFIG } from "./config";
 import {
   addTitle,
   normalizeHeadings,
@@ -36,12 +36,33 @@ const headings: Heading[] = [];
 visit(ast, "heading", (heading: Heading) => {
   headings.push(heading);
 });
-addTitle(fileName, ast, headings);
-normalizeHeadings(headings);
-numberHeadings(headings);
-numberTables(ast, numberingConfig);
-await renderMermaid(ast, fileName);
-numberPictures(ast, numberingConfig);
+const cfg = numberingConfig ?? DEFAULT_CONFIG;
+
+addTitle(fileName, ast, headings, cfg.title);
+
+if (cfg.normalizeHeadings.enabled || cfg.numberHeadings.enabled) {
+  normalizeHeadings(headings);
+}
+if (cfg.numberHeadings.enabled) {
+  numberHeadings(headings, cfg.numberHeadings);
+}
+
+if (cfg.tableCaption.enabled) {
+  numberTables(ast, cfg);
+}
+if (cfg.renderMermaid.enabled) {
+  await renderMermaid(
+    ast,
+    fileName,
+    cfg.renderMermaid.outputDir,
+    cfg.renderMermaid.theme,
+    cfg.renderMermaid.density,
+    cfg.renderMermaid.fileName,
+  );
+}
+if (cfg.figureCaption.enabled) {
+  numberPictures(ast, cfg);
+}
 
 const outputName = fileName.replace(/\.[^.]*$/, "_formatted.md");
 writeFileSync(outputName, processor.stringify(ast), "utf-8");

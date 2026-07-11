@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config.schema.json",
+  "title": "md2docx Configuration",
+  "description": "Configuration schema for md2docx Markdown preprocessing tool",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "figureCaption": {
+      "description": "图片编号配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否启用自动图片编号",
+          "type": "boolean",
+          "default": true
+        },
+        "format": {
+          "description": "编号模板，{n} 为序号占位符",
+          "type": "string",
+          "default": "图 {n}"
+        },
+        "separator": {
+          "description": "有标题内容时，编号与标题之间的分隔符",
+          "type": "string",
+          "default": "："
+        }
+      },
+      "required": ["enabled", "format", "separator"]
+    },
+    "tableCaption": {
+      "description": "表格编号配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否启用自动表格编号",
+          "type": "boolean",
+          "default": true
+        },
+        "format": {
+          "description": "编号模板，{n} 为序号占位符",
+          "type": "string",
+          "default": "表 {n}"
+        },
+        "separator": {
+          "description": "有标题内容时，编号与标题之间的分隔符",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["enabled", "format", "separator"]
+    },
+    "normalizeHeadings": {
+      "description": "标题层级归一化配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否将标题层级归一化到从 H1 开始且无跳跃",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": ["enabled"]
+    },
+    "numberHeadings": {
+      "description": "标题自动编号配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否启用标题自动编号（启用时若 normalizeHeadings 未启用，仍会先执行归一化）",
+          "type": "boolean",
+          "default": true
+        },
+        "detectExisting": {
+          "description": "是否检测并剥离标题中已有的编号前缀",
+          "type": "boolean",
+          "default": true
+        },
+        "existingPattern": {
+          "description": "自定义编号检测正则（有值时优先使用；为空则仅用内置规则）",
+          "type": "string",
+          "default": ""
+        },
+        "useBuiltinRules": {
+          "description": "是否使用内置的中文/点分编号检测规则",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": ["enabled", "detectExisting"]
+    },
+    "renderMermaid": {
+      "description": "Mermaid 图表渲染配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否将 Mermaid 代码块渲染为 PNG 图片",
+          "type": "boolean",
+          "default": true
+        },
+        "outputDir": {
+          "description": "PNG 输出目录（相对于 markdown 文件目录），{file_name} 替换为文件名",
+          "type": "string",
+          "default": "{file_name}_assets"
+        },
+        "theme": {
+          "description": "beautiful-mermaid 主题名",
+          "type": "string",
+          "default": "tokyo-night-light"
+        },
+        "density": {
+          "description": "SVG→PNG 渲染密度",
+          "type": "integer",
+          "minimum": 72,
+          "default": 200
+        },
+        "fileName": {
+          "description": "输出 PNG 文件名模板，{n} 为序号占位符",
+          "type": "string",
+          "default": "mermaid_{n}"
+        }
+      },
+      "required": ["enabled", "outputDir", "theme", "density", "fileName"]
+    },
+    "title": {
+      "description": "文档标题提取配置",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "是否启用自动提取文档标题",
+          "type": "boolean",
+          "default": true
+        },
+        "strategy": {
+          "description": "提取策略：first-h1（唯一 H1 且在首位则提取，否则 fallback 到文件名）、single-h1（仅一个 H1 则提取，否则 fallback 到文件名）、filename（始终用文件名）、none（跳过）",
+          "type": "string",
+          "enum": ["first-h1", "single-h1", "filename", "none"],
+          "default": "first-h1"
+        }
+      },
+      "required": ["enabled", "strategy"]
+    }
+  },
+  "required": [
+    "figureCaption",
+    "tableCaption",
+    "normalizeHeadings",
+    "numberHeadings",
+    "renderMermaid",
+    "title"
+  ]
+}
