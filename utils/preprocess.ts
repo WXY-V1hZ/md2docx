@@ -51,6 +51,7 @@ export function normalizeHeadings(nodes: Heading[]) {
 }
 
 export function numberHeadings(nodes: Heading[]) {
+  if (nodes.length === 0) return;
   const counter: number[] = [0, 0, 0, 0, 0, 0];
   for (let i = 0; i <= nodes[0]!.depth - 2; ++i) {
     counter[i] = 1;
