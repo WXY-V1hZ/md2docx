@@ -1,18 +1,21 @@
 {
   "name": "md2docx",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "module": "index.ts",
   "scripts": {
+    "test": "bun test",
     "check": "bun tsc --noEmit && bun run oxlint && bun run oxfmt"
+  },
+  "dependencies": {
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "oxfmt": "^0.58.0",
     "oxlint": "^1.73.0"
-  },
-  "dependencies": {
-    "remark-parse": "^11.0.0",
-    "remark-stringify": "^11.0.0",
-    "unified": "^11.0.5"
   }
 }
