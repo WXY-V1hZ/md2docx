@@ -18,13 +18,15 @@ bun add <pkg>      # 添加依赖
 ## 项目结构
 
 - `index.ts` — 入口文件。读取 `base.md`，用 unified/remark 解析为 Markdown AST，调用预处理函数，将处理后的 AST 输出到 `base_formatted.md`。
-- `preprocess.ts` — 核心预处理逻辑，导出五个函数：
+- `preprocess.ts` — 核心预处理逻辑，导出六个函数：
   - `addTitle()` — 检测是否有 YAML frontmatter title；否且第一个 heading 是唯一 H1 → 将该 H1 提取为 title；否则用文件名作为 fallback title。
   - `normalizeHeadings()` — 将所有 heading 的层级归一化到从 H1 开始，并确保层级连续（无跳跃）。
   - `numberHeadings()` — 给每个 heading 文本前添加数字前缀（如 "1.2.3"）。
   - `numberPictures()` — 给独立成行的图片编号，修改 alt 为 "图 n：xxx"（优先级 title > alt > 文件名）。
   - `numberTables()` — 给表格编号，查找已有 "Table:" 题注并加前缀，无则插入。
-- `base.md` — 综合测试文档，覆盖各种 Markdown 语法特性。
+  - `renderMermaid()` — 将 ```mermaid 代码块渲染为 PNG 图片并替换为 image 节点。使用 beautiful-mermaid（SVG 渲染，Tokyo Night 主题）+ sharp（SVG→PNG）。
+- `base.md` — 综合测试文档，覆盖各种 Markdown 语法特性（含 mermaid 代码块）。
+- `base_assets/` — `renderMermaid()` 生成的 PNG 图片目录。
 - `pandoc_docx_template/` — 捆绑的 [Achuan-2/pandoc_docx_template](https://github.com/Achuan-2/pandoc_docx_template) 仓库，提供中文排版优化的 Word 模板和 pandoc lua 过滤器。
 
 ## 技术栈
@@ -43,7 +45,9 @@ base.md → unified(remark-parse) → AST → addTitle()
                                        → numberHeadings()
                                        → numberPictures()
                                        → numberTables()
+                                       → renderMermaid()
                                      → unified(remark-stringify) → base_formatted.md
+                                     + base_assets/mermaid_1.png, ...
 ```
 
 后续预期会接入 pandoc 命令，将处理后的 Markdown 配合 `pandoc_docx_template/` 中的模板导出为 .docx 文件。
@@ -75,3 +79,8 @@ bun test --watch   # 监听模式
 - `Array.prototype.fill(value, start)` 的第二个参数是**起始索引**，不是结束索引。
   如 `counter.fill(0, d)` 表示从索引 `d` 开始往后填充为 0，而不是填充前 `d` 个元素。
   如果在代码审查中产生困惑，优先信任测试结果而非静态推理。
+- `sharp`/`librsvg` **不支持 SVG 中的 CSS `var()` 和 `color-mix()`**。
+  `beautiful-mermaid` 生成的 SVG 用 CSS 自定义属性定义颜色，传给 `sharp` 前必须用
+  `resolveCSSVars()` 预处理，将所有 `var()` 和 `color-mix()` 展开为具体十六进制色值。
+- `beautiful-mermaid` 依赖 `elkjs`（WASM 布局引擎），在 Bun 中运行时可能不稳定。
+  如果 mermaid 渲染报错，检查 `renderMermaidSVG()` 是否成功返回 SVG。

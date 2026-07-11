@@ -37,3 +37,5 @@ pandoc_docx_template/
 base_formatted.md
 output.docx
 ~$output.docx
+base_assets/
+nul

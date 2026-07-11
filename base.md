@@ -93,8 +93,6 @@ normal code block
 
 ![网络图片](https://wxiny.com/_astro/Pasted%20image%2020260623190651.Dg_vLcW5_Z6MYKV.webp "图片标题")
 
-<!--![本地图片](./test.png)-->
-
 ### 脚注
 
 这是一个带脚注的句子[^1]。
@@ -130,7 +128,7 @@ $$
 
 ### Mermaid
 
-```mermaid
+```mermaid title="流程图"
 graph TD
     A[开始] --> B{判断}
     B -->|是| C[执行操作]
@@ -138,7 +136,7 @@ graph TD
     C --> D
 ```
 
-```mermaid
+```mermaid title="序列图"
 sequenceDiagram
     participant 用户
     participant 系统

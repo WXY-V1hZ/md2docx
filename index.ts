@@ -14,6 +14,7 @@ import {
   numberHeadings,
   numberPictures,
   numberTables,
+  renderMermaid,
 } from "./preprocess";
 
 const fileName = "base.md";
@@ -33,8 +34,9 @@ visit(ast, "heading", (heading: Heading) => {
 addTitle(fileName, ast, headings);
 normalizeHeadings(headings);
 numberHeadings(headings);
-numberPictures(ast);
 numberTables(ast);
+await renderMermaid(ast, fileName);
+numberPictures(ast);
 
 const outputName = fileName.replace(/\.[^.]*$/, "_formatted.md");
 writeFileSync(outputName, processor.stringify(ast), "utf-8");
