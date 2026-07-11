@@ -8,7 +8,13 @@ import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import { type Heading, type Root } from "mdast";
 import { visit } from "unist-util-visit";
-import { addTitle, normalizeHeadings, numberHeadings } from "../utils/preprocess";
+import {
+  addTitle,
+  normalizeHeadings,
+  numberHeadings,
+  numberPictures,
+  numberTables,
+} from "../preprocess";
 
 const fixturesDir = import.meta.dirname + "/fixtures";
 
@@ -27,6 +33,7 @@ function parse(md: string) {
 function serialize(root: Root) {
   return unified()
     .use(remarkFrontmatter, ["yaml"])
+    .use(remarkGfm)
     .use(remarkStringify, { resourceLink: true })
     .stringify(root);
 }
@@ -42,6 +49,8 @@ function runPipeline(input: string): string {
   addTitle("input.md", root, headings);
   normalizeHeadings(headings);
   numberHeadings(headings);
+  numberPictures(root);
+  numberTables(root);
   return serialize(root);
 }
 
