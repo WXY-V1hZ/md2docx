@@ -51,14 +51,19 @@ bun check
 
 # 项目结构
 
-| 文件                  | 职责                                                               |
-| --------------------- | ------------------------------------------------------------------ |
-| index.ts              | 入口点。读取 Markdown，执行预处理流水线，写入格式化后的 Markdown。 |
-| preprocess.ts         | 核心预处理函数。                                                   |
-| base.md               | 全面的 Markdown 测试文档。                                         |
-| base_assets/          | 生成的 Mermaid PNG 图片。                                          |
-| pandoc_docx_template/ | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                             |
-| test/                 | 单元测试。                                                         |
+| 文件 / 目录                 | 职责                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `src/index.ts`              | 入口点。读取 Markdown，执行预处理流水线，写入格式化后的 Markdown。                  |
+| `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
+| `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
+| `src/preprocess/mermaid.ts` | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
+| `src/config.ts`             | 配置类型定义与默认值。                                                              |
+| `config.json`               | 用户配置文件。                                                                      |
+| `config.schema.json`        | JSON Schema，为 config.json 提供 IDE 校验。                                         |
+| `base.md`                   | 全面的 Markdown 测试文档。                                                          |
+| `base_assets/`              | 生成的 Mermaid PNG 图片。                                                           |
+| `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
+| `test/`                     | 单元测试。                                                                          |
 
 ---
 

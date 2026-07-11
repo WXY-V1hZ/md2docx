@@ -8,14 +8,9 @@ import { type Heading } from "mdast";
 import { visit } from "unist-util-visit";
 
 import { type NumberingConfig, DEFAULT_CONFIG } from "./config";
-import {
-  addTitle,
-  normalizeHeadings,
-  numberHeadings,
-  numberPictures,
-  numberTables,
-  renderMermaid,
-} from "./preprocess";
+import { addTitle, normalizeHeadings, numberHeadings } from "./preprocess/title";
+import { numberTables, numberPictures } from "./preprocess/caption";
+import { renderMermaid } from "./preprocess/mermaid";
 
 const fileName = "base.md";
 

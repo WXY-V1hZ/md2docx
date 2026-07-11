@@ -8,13 +8,8 @@ import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import { type Heading, type Root } from "mdast";
 import { visit } from "unist-util-visit";
-import {
-  addTitle,
-  normalizeHeadings,
-  numberHeadings,
-  numberPictures,
-  numberTables,
-} from "../src/preprocess";
+import { addTitle, normalizeHeadings, numberHeadings } from "../src/preprocess/title";
+import { numberTables, numberPictures } from "../src/preprocess/caption";
 
 const fixturesDir = import.meta.dirname + "/fixtures";
 
