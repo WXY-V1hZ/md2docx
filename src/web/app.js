@@ -101,7 +101,7 @@ function createField(groupName, name, fieldSchema) {
     setPath(currentConfig, path, value);
     if (path === "numberHeadings.enabled") {
       enforceHeadingDependency(currentConfig);
-      renderForm();
+      syncHeadingDependencyControls();
     }
     updateView();
   });
@@ -163,6 +163,12 @@ function setPath(source, path, value) {
 }
 function enforceHeadingDependency(config) {
   if (config.numberHeadings.enabled) config.normalizeHeadings.enabled = true;
+}
+function syncHeadingDependencyControls() {
+  const normalizeInput = document.getElementById("normalizeHeadings.enabled");
+  normalizeInput.checked = currentConfig.normalizeHeadings.enabled;
+  normalizeInput.disabled = currentConfig.numberHeadings.enabled;
+  normalizeInput.title = currentConfig.numberHeadings.enabled ? "标题编号开启时无法关闭" : "";
 }
 function setStatus(message, error = false) {
   status.textContent = message;
