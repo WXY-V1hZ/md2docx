@@ -8,27 +8,11 @@
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
-    <header class="masthead">
-      <div>
-        <p class="eyebrow">md → docx / config</p>
-        <h1>把默认规则，<br />调成你的文档习惯。</h1>
-      </div>
-      <p class="intro">
-        修改会写入 <code>config/config.json</code>。所有字段和说明直接来自配置 schema。
-      </p>
-    </header>
-
     <main class="workspace">
+      <nav id="config-index" class="config-index" aria-label="配置索引"></nav>
       <form id="config-form" class="config-sheet" aria-label="默认配置">
         <div class="loading">正在读取配置…</div>
       </form>
-      <aside class="margin-note">
-        <div class="note-heading">
-          <span>实时配置</span>
-          <span id="change-count">未修改</span>
-        </div>
-        <pre id="preview" aria-live="polite">{}</pre>
-      </aside>
     </main>
 
     <footer class="action-bar">

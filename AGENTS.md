@@ -51,24 +51,25 @@ bun check
 
 # 项目结构
 
-| 文件 / 目录                        | 职责                                                                                |
-| ---------------------------------- | ----------------------------------------------------------------------------------- |
-| 文件 / 目录                        | 职责                                                                                |
-| ---------------------------------- | ----------------------------------------------------------------------------------- |
-| `src/index.ts`                     | 入口点。读取 Markdown，执行预处理流水线，通过 pandoc 转换为 DOCX。                  |
-| `src/preprocess/index.ts`          | 预处理流水线封装（preprocess），编排所有步骤。                                      |
-| `src/preprocess/title.ts`          | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
-| `src/preprocess/caption.ts`        | 表格编号（numberTables）、图片编号（numberPictures）。                              |
-| `src/preprocess/mermaid.ts`        | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
-| `src/config.ts`                    | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
-| `src/paths.ts`                     | 路径常量统一管理。                                                                  |
-| `config/config.json`               | 用户配置文件。                                                                      |
-| `config/config.schema.json`        | JSON Schema，为 config.json 提供 IDE 校验。                                         |
-| `base.md`                          | 全面的 Markdown 测试文档。                                                          |
-| `tmp/preprocess/`                  | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
-| `tmp/style/`                       | 样式提取与模板生成的中间产物。                                                      |
-| `pandoc_docx_template/`            | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
-| `test/`                            | 单元测试。                                                                          |
+| 文件 / 目录                 | 职责                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `src/index.ts`              | 入口点。读取 Markdown，执行预处理流水线，通过 pandoc 转换为 DOCX。                  |
+| `src/cli.ts`                | CLI 参数解析，schema 驱动的帮助生成、配置覆盖合并。                                 |
+| `src/web.ts`                | Web 配置编辑器服务端，Bun.serve + API，配置校验与持久化。                           |
+| `src/web/`                  | Web 前端静态文件（index.html, app.css, app.js）。                                   |
+| `src/preprocess/index.ts`   | 预处理流水线封装（preprocess），编排所有步骤。                                      |
+| `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
+| `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
+| `src/preprocess/mermaid.ts` | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
+| `src/config.ts`             | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
+| `src/paths.ts`              | 路径常量统一管理。                                                                  |
+| `config/config.json`        | 用户配置文件。                                                                      |
+| `config/config.schema.json` | JSON Schema，为 config.json 提供 IDE 校验。                                         |
+| `base.md`                   | 全面的 Markdown 测试文档。                                                          |
+| `tmp/preprocess/`           | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
+| `tmp/style/`                | 样式提取与模板生成的中间产物。                                                      |
+| `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
+| `test/`                     | 单元测试。                                                                          |
 
 ---
 
@@ -103,6 +104,65 @@ pandoc → DOCX
 避免预处理步骤之间的耦合。
 
 新功能应优先作为新的预处理步骤实现，而非扩展现有的无关步骤。
+
+---
+
+# CLI
+
+`src/cli.ts` 从 `config/config.schema.json` 自动生成所有 CLI 参数，无需手动维护参数列表。
+
+```bash
+# 基本用法
+bun run src/index.ts <md-path>
+
+# 查看帮助
+bun run src/index.ts -h
+
+# 覆盖任意配置项
+bun run src/index.ts doc.md --figureCaption.enabled false
+
+# Web 配置编辑器
+bun run src/web.ts
+```
+
+# Web 配置编辑器
+
+位于 `src/web.ts`（服务端）和 `src/web/`（前端静态文件）。
+
+## 服务端（`src/web.ts`）
+
+`createWebHandler()` 返回一个 `(request) => Response` 的 fetch 处理器，挂载在 Bun.serve 上。
+
+API 端点：
+
+- `GET /api/config` — 返回 `{ schema, config }`
+- `PUT /api/config` — 校验并保存配置
+- `GET /` — 返回 index.html
+- `GET /app.css` / `GET /app.js` — 静态文件
+
+`startWebEditor()` 启动服务并打开浏览器。
+
+### 服务端校验
+
+`validateWebConfig()` 遍历 schema 中所有配置项的**扁平列表**（`getConfigOptions` 生成），逐一校验类型、枚举、最小值，同时递归检查未知键。
+
+`enforceConfigDependencies()` 在保存时强制配置约束：`numberHeadings.enabled` 开启时自动启用 `normalizeHeadings`。
+
+## 前端（`src/web/`）
+
+| 文件         | 职责                                       |
+| ------------ | ------------------------------------------ |
+| `index.html` | 页面骨架：左侧索引 + 中间表单 + 底部操作栏 |
+| `app.css`    | 样式，含响应式断点（1120px / 560px）       |
+| `app.js`     | 动态渲染表单、变更追踪、保存/撤销          |
+
+### app.js 关键函数
+
+- `renderForm()` — 遍历 schema 分组，渲染索引链接和表单字段
+- `createField()` — 根据 type（boolean/enum/string/integer）渲染对应控件
+- `enforceHeadingDependency()` — 前端实时约束：`numberHeadings.enabled` 开启时禁用 `normalizeHeadings.enabled` 开关
+- `updateView()` — 比较变更、更新按钮状态和状态栏
+- `countChanges()` — 逐字段比对 `originalConfig` 与 `currentConfig`
 
 ---
 

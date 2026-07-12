@@ -111,7 +111,7 @@ describe("CLI 配置处理", () => {
   it("从 schema 生成配置帮助", () => {
     const help = formatHelp(configOptions);
     expect(help).toContain("--figureCaption.enabled <boolean>");
-    expect(help).toContain("是否启用自动图片编号（默认: true）");
+    expect(help).toContain("自动为图片编号（默认: true）");
     expect(help).toContain("--renderMermaid.density <integer>");
     expect(help).not.toContain("--no-figureCaption.enabled");
     expect(help).toContain("--web");

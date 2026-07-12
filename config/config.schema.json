@@ -1,28 +1,28 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config.schema.json",
-  "title": "md2docx Configuration",
-  "description": "Configuration schema for md2docx Markdown preprocessing tool",
+  "title": "md2docx 配置",
+  "description": "md2docx 默认设置",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "figureCaption": {
-      "description": "图片编号配置",
+      "description": "图片编号",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否启用自动图片编号",
+          "description": "自动为图片编号",
           "type": "boolean",
           "default": true
         },
         "format": {
-          "description": "编号模板，{n} 为序号占位符",
+          "description": "编号格式，{n} 代表序号",
           "type": "string",
           "default": "图 {n}"
         },
         "separator": {
-          "description": "有标题内容时，编号与标题之间的分隔符",
+          "description": "编号与图片标题之间的分隔符",
           "type": "string",
           "default": "："
         }
@@ -30,22 +30,22 @@
       "required": ["enabled", "format", "separator"]
     },
     "tableCaption": {
-      "description": "表格编号配置",
+      "description": "表格编号",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否启用自动表格编号",
+          "description": "自动为表格编号",
           "type": "boolean",
           "default": true
         },
         "format": {
-          "description": "编号模板，{n} 为序号占位符",
+          "description": "编号格式，{n} 代表序号",
           "type": "string",
           "default": "表 {n}"
         },
         "separator": {
-          "description": "有标题内容时，编号与标题之间的分隔符",
+          "description": "编号与表格标题之间的分隔符",
           "type": "string",
           "default": ""
         }
@@ -53,12 +53,12 @@
       "required": ["enabled", "format", "separator"]
     },
     "normalizeHeadings": {
-      "description": "标题层级归一化配置",
+      "description": "标题层级",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否将标题层级归一化到从 H1 开始且无跳跃",
+          "description": "自动修正标题层级（标题编号开启时无法关闭）",
           "type": "boolean",
           "default": true
         }
@@ -66,27 +66,27 @@
       "required": ["enabled"]
     },
     "numberHeadings": {
-      "description": "标题自动编号配置",
+      "description": "标题编号",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否启用标题自动编号（启用时若 normalizeHeadings 未启用，仍会先执行归一化）",
+          "description": "自动为标题添加层级编号（同时修正标题层级）",
           "type": "boolean",
           "default": true
         },
         "detectExisting": {
-          "description": "是否检测并剥离标题中已有的编号前缀",
+          "description": "重新编号前移除已有编号",
           "type": "boolean",
           "default": true
         },
         "existingPattern": {
-          "description": "自定义编号检测正则（有值时优先使用；为空则仅用内置规则）",
+          "description": "识别已有编号的正则表达式（可选）",
           "type": "string",
           "default": ""
         },
         "useBuiltinRules": {
-          "description": "是否使用内置的中文/点分编号检测规则",
+          "description": "识别常见的中文和数字编号",
           "type": "boolean",
           "default": true
         }
@@ -94,22 +94,22 @@
       "required": ["enabled", "detectExisting"]
     },
     "renderMermaid": {
-      "description": "Mermaid 图表渲染配置",
+      "description": "Mermaid 图表",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否将 Mermaid 代码块渲染为 PNG 图片",
+          "description": "将 Mermaid 代码块转换为图片",
           "type": "boolean",
           "default": true
         },
         "theme": {
-          "description": "beautiful-mermaid 主题名",
+          "description": "图表主题",
           "type": "string",
           "default": "tokyo-night-light"
         },
         "density": {
-          "description": "SVG→PNG 渲染密度",
+          "description": "图片清晰度（DPI）",
           "type": "integer",
           "minimum": 72,
           "default": 200
@@ -118,17 +118,17 @@
       "required": ["enabled", "theme", "density"]
     },
     "pandoc": {
-      "description": "pandoc 导出配置",
+      "description": "Word 导出",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否将格式化后的 Markdown 通过 pandoc 转换为 docx",
+          "description": "生成 Word 文档",
           "type": "boolean",
           "default": true
         },
         "outputName": {
-          "description": "docx 输出文件名，{file_name} 替换为源文件名",
+          "description": "输出文件名，{file_name} 代表源文件名",
           "type": "string",
           "default": "{file_name}.docx"
         }
@@ -136,19 +136,25 @@
       "required": ["enabled", "outputName"]
     },
     "detectTitle": {
-      "description": "文档标题提取配置",
+      "description": "文档标题",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "description": "是否启用自动提取文档标题",
+          "description": "自动设置文档标题",
           "type": "boolean",
           "default": true
         },
         "strategy": {
-          "description": "提取策略：first-h1（唯一 H1 且在首位则提取，否则 fallback 到文件名）、single-h1（仅一个 H1 则提取，否则 fallback 到文件名）、filename（始终用文件名）、none（跳过）",
+          "description": "标题来源",
           "type": "string",
           "enum": ["first-h1", "single-h1", "filename", "none"],
+          "enumDescriptions": {
+            "first-h1": "开头的一级标题",
+            "single-h1": "文档中唯一的一级标题",
+            "filename": "文件名",
+            "none": "不设置"
+          },
           "default": "first-h1"
         }
       },

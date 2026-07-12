@@ -35,6 +35,7 @@ export function createWebHandler(
       try {
         const schema = await Bun.file(schemaPath).json();
         const config = await request.json();
+        enforceConfigDependencies(config);
         validateWebConfig(config, schema);
         const savedConfig = { $schema: "./config.schema.json", ...config };
         await writeFile(configPath, `${JSON.stringify(savedConfig, null, 2)}\n`, "utf-8");
@@ -65,6 +66,14 @@ export async function startWebEditor(): Promise<void> {
   console.log("按 Ctrl+C 停止服务");
   openBrowser(url);
   await new Promise(() => undefined);
+}
+
+function enforceConfigDependencies(config: unknown): void {
+  if (!isRecord(config)) return;
+  const numberHeadings = config.numberHeadings;
+  const normalizeHeadings = config.normalizeHeadings;
+  if (!isRecord(numberHeadings) || !isRecord(normalizeHeadings)) return;
+  if (numberHeadings.enabled === true) normalizeHeadings.enabled = true;
 }
 
 function validateWebConfig(config: unknown, schema: unknown): void {

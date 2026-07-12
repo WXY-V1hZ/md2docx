@@ -27,6 +27,18 @@ describe("Web 配置编辑器", () => {
     expect((await data.json()).config.figureCaption.enabled).toBe(true);
   });
 
+  it("使用索引导航且不显示配置预览", async () => {
+    const handler = createWebHandler();
+    const page = await handler(new Request("http://localhost/"));
+    const html = await page.text();
+    const script = await (await handler(new Request("http://localhost/app.js"))).text();
+
+    expect(html).toContain('id="config-index"');
+    expect(html).not.toContain("配置预览");
+    expect(script).not.toContain("field-path");
+    expect(script).toContain("enumDescriptions");
+  });
+
   it("校验并保存配置", async () => {
     const directory = mkdtempSync(join(tmpdir(), "md2docx-web-"));
     temporaryDirectories.push(directory);
@@ -36,6 +48,8 @@ describe("Web 配置编辑器", () => {
     const config = JSON.parse(readFileSync(configPath, "utf-8"));
     delete config.$schema;
     config.figureCaption.enabled = false;
+    config.normalizeHeadings.enabled = false;
+    config.numberHeadings.enabled = true;
 
     const response = await handler(
       new Request("http://localhost/api/config", {
@@ -49,6 +63,7 @@ describe("Web 配置编辑器", () => {
     expect(response.status).toBe(200);
     expect(saved.$schema).toBe("./config.schema.json");
     expect(saved.figureCaption.enabled).toBe(false);
+    expect(saved.normalizeHeadings.enabled).toBe(true);
   });
 
   it("拒绝错误类型和未知配置项", async () => {
