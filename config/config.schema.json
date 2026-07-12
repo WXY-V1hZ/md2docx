@@ -47,7 +47,7 @@
         "separator": {
           "description": "编号与表格标题之间的分隔符",
           "type": "string",
-          "default": ""
+          "default": " "
         }
       },
       "required": ["enabled", "format", "separator"]

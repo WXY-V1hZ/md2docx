@@ -8,7 +8,7 @@
   "tableCaption": {
     "enabled": true,
     "format": "表 {n}",
-    "separator": ""
+    "separator": " "
   },
   "normalizeHeadings": {
     "enabled": true
