@@ -102,7 +102,7 @@ export function parseCliArgs(args: string[], configOptions: ConfigOption[]): Cli
     positional.push(arg);
   }
 
-  if (!result.help && !result.web) {
+  if (!result.help && !result.version && !result.web) {
     if (positional.length === 0) throw new Error("缺少 Markdown 文件路径");
     if (positional.length > 1) throw new Error("只能指定一个 Markdown 文件路径");
     result.mdPath = positional[0];
