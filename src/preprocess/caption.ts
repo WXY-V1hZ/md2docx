@@ -1,10 +1,10 @@
 import { type Image, type Paragraph, type Root, type Text } from "mdast";
-import { type AppConfig, DEFAULT_CONFIG } from "../config";
+import { type AppConfig } from "../config";
 
-export function numberTables(root: Root, config?: AppConfig) {
+export function numberTables(root: Root, config: AppConfig) {
   const {
     tableCaption: { format, separator },
-  } = config ?? DEFAULT_CONFIG;
+  } = config;
   let counter = 0;
   const inserts: { at: number; text: string }[] = [];
   const used = new Set<number>();
@@ -47,10 +47,10 @@ export function numberTables(root: Root, config?: AppConfig) {
   }
 }
 
-export function numberPictures(root: Root, config?: AppConfig) {
+export function numberPictures(root: Root, config: AppConfig) {
   const {
     figureCaption: { format, separator },
-  } = config ?? DEFAULT_CONFIG;
+  } = config;
   let counter = 0;
   for (let i = 0; i < root.children.length; i++) {
     const child = root.children[i]!;

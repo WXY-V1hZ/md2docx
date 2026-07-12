@@ -1,8 +1,8 @@
 import { type Heading, type Root, type Text, type Yaml } from "mdast";
-import { type HeadingNumberingConfig, DEFAULT_CONFIG, type TitleConfig } from "../config";
+import { type HeadingNumberingConfig, type TitleConfig } from "../config";
 
-export function addTitle(fileName: string, root: Root, headings: Heading[], config?: TitleConfig) {
-  const { enabled, strategy } = config ?? DEFAULT_CONFIG.title;
+export function addTitle(fileName: string, root: Root, headings: Heading[], config: TitleConfig) {
+  const { enabled, strategy } = config;
   if (!enabled || strategy === "none") return;
 
   const hasFrontmatterTitle = root.children.some(
@@ -74,9 +74,9 @@ export function normalizeHeadings(nodes: Heading[]) {
   }
 }
 
-export function numberHeadings(nodes: Heading[], config?: HeadingNumberingConfig) {
+export function numberHeadings(nodes: Heading[], config: HeadingNumberingConfig) {
   if (nodes.length === 0) return;
-  const { detectExisting, existingPattern } = config ?? DEFAULT_CONFIG.numberHeadings;
+  const { detectExisting, existingPattern } = config;
   const counter: number[] = [0, 0, 0, 0, 0, 0];
   for (let i = 0; i <= nodes[0]!.depth - 2; ++i) {
     counter[i] = 1;

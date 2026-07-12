@@ -1,17 +1,10 @@
-import { writeFileSync, existsSync } from "fs";
+import { writeFileSync } from "fs";
 import { $ } from "bun";
 
-import { type AppConfig, DEFAULT_CONFIG } from "./config";
+import { loadConfig } from "./config";
 import { preprocess } from "./preprocess/index";
 
-let cfg: AppConfig;
-if (existsSync("config.json")) {
-  const raw = JSON.parse(await Bun.file("config.json").text());
-  delete raw.$schema;
-  cfg = raw as AppConfig;
-} else {
-  cfg = DEFAULT_CONFIG;
-}
+const cfg = await loadConfig("config.json");
 
 const inputFile = "base.md";
 const formattedMd = await preprocess(inputFile, cfg);

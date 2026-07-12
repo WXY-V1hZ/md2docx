@@ -60,7 +60,7 @@ bun check
 | `src/preprocess/title.ts`          | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
 | `src/preprocess/caption.ts`        | 表格编号（numberTables）、图片编号（numberPictures）。                              |
 | `src/preprocess/mermaid.ts`        | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
-| `src/config.ts`                    | 配置类型定义（AppConfig）与默认值。                                                 |
+| `src/config.ts`                    | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
 | `config.json`                      | 用户配置文件。                                                                      |
 | `config.schema.json`               | JSON Schema，为 config.json 提供 IDE 校验。                                         |
 | `base.md`                          | 全面的 Markdown 测试文档。                                                          |

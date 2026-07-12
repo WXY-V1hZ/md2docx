@@ -45,28 +45,12 @@ export interface AppConfig {
   pandoc: PandocConfig;
 }
 
-export const DEFAULT_CONFIG: AppConfig = {
-  figureCaption: { enabled: true, format: "图 {n}", separator: "：" },
-  tableCaption: { enabled: true, format: "表 {n}", separator: "" },
-  normalizeHeadings: { enabled: true },
-  numberHeadings: {
-    enabled: true,
-    detectExisting: true,
-    useBuiltinRules: true,
-  },
-  renderMermaid: {
-    enabled: true,
-    outputDir: "{file_name}_assets",
-    theme: "tokyo-night-light",
-    density: 200,
-    fileName: "mermaid_{n}",
-  },
-  title: {
-    enabled: true,
-    strategy: "first-h1",
-  },
-  pandoc: {
-    enabled: true,
-    outputName: "{file_name}.docx",
-  },
-};
+export async function loadConfig(path: string): Promise<AppConfig> {
+  const exists = await Bun.file(path).exists();
+  if (exists) {
+    const raw = JSON.parse(await Bun.file(path).text());
+    delete raw.$schema;
+    return raw as AppConfig;
+  }
+  return JSON.parse(await Bun.file("config.json").text()) as AppConfig;
+}
