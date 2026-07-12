@@ -6,9 +6,7 @@
 
 # 项目
 
-**md2docx** 是一个 Markdown 预处理工具。
-
-在通过 pandoc 将 Markdown 转换为 Word (.docx) 之前，它会执行一系列 AST 变换以提升文档质量。
+**md2docx** 是一个基于 pandoc 的 Markdown 转 Word (.docx) 工具，在转换前执行 AST 变换以提升文档输出质量。
 
 当前预处理包括：
 

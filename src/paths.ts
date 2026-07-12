@@ -1,15 +1,17 @@
-// ── 路径常量 ───────────────────────────────────────────
+import { resolve } from "path";
 
-/** 配置文件路径 */
-export const CONFIG_PATH = "config/config.json";
+const PKG_DIR = resolve(import.meta.dir, "..");
 
-/** 配置 schema 路径 */
-export const CONFIG_SCHEMA_PATH = "config/config.schema.json";
+/** 默认配置文件路径（相对于包安装目录） */
+export const CONFIG_PATH = resolve(PKG_DIR, "config/config.json");
 
-/** 临时文件根目录 */
+/** 默认配置 schema 路径（相对于包安装目录） */
+export const CONFIG_SCHEMA_PATH = resolve(PKG_DIR, "config/config.schema.json");
+
+/** 临时文件根目录（相对于当前工作目录） */
 export const TMP_DIR = "tmp";
 
-/** 预处理模块的输出目录（相对于项目根目录） */
+/** 预处理模块的输出目录（相对于当前工作目录） */
 export function preprocessDir(baseName: string): string {
   return `${TMP_DIR}/preprocess/${baseName}`;
 }
