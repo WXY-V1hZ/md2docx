@@ -40,3 +40,4 @@ base_assets/
 nul
 style.json
 **/mermaid_*.png
+tmp/
