@@ -32,7 +32,7 @@ export async function run(args: string[]): Promise<number> {
       return 0;
     }
 
-    const mdPath = cli.mdPath!;
+    const mdPath = resolve(cli.mdPath!);
     if (!(await Bun.file(mdPath).exists())) throw new Error(`找不到 Markdown 文件：${mdPath}`);
 
     const config = await loadConfig(cli.configPath ?? CONFIG_PATH);
