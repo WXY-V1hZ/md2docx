@@ -132,6 +132,7 @@ export function formatHelp(configOptions: ConfigOption[]): string {
   const lines = [
     "用法:",
     "  md2docx <md-path> [选项]",
+    "  md2docx clean",
     "",
     "选项:",
     "  -o <path>                         输出 docx 路径",
@@ -139,6 +140,9 @@ export function formatHelp(configOptions: ConfigOption[]): string {
     "  --web                             打开默认配置的网页编辑器",
     "  -v, --version                     显示版本号",
     "  -h, --help                        显示帮助",
+    "",
+    "子命令:",
+    "  clean                             清除 tmp/ 缓存",
     "",
     "配置覆盖:",
   ];

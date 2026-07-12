@@ -1,17 +1,41 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { dirname, parse, resolve } from "path";
 import { $ } from "bun";
 
 import { applyConfigOverrides, formatHelp, getConfigOptions, parseCliArgs } from "./cli";
 import { loadConfig } from "./config";
-import { CONFIG_PATH, CONFIG_SCHEMA_PATH, PKG_DIR, formattedMdPath, preprocessDir } from "./paths";
+import {
+  CONFIG_PATH,
+  CONFIG_SCHEMA_PATH,
+  PKG_DIR,
+  TMP_DIR,
+  formattedMdPath,
+  preprocessDir,
+} from "./paths";
 import { preprocess } from "./preprocess/index";
 import { startWebEditor } from "./web";
+import { ensureTemplateDocx } from "./style/generate";
+
+async function cleanCache(): Promise<number> {
+  const resolved = resolve(TMP_DIR);
+  if (existsSync(resolved)) {
+    rmSync(resolved, { recursive: true, force: true });
+    console.log(`已清除缓存：${resolved}`);
+  } else {
+    console.log("缓存目录不存在，无需清理。");
+  }
+  return 0;
+}
 
 export async function run(args: string[]): Promise<number> {
   try {
+    // 检查子命令
+    const subcommand = args[0];
+    if (subcommand === "clean") {
+      return await cleanCache();
+    }
     const schema = JSON.parse(await Bun.file(CONFIG_SCHEMA_PATH).text());
     const configOptions = getConfigOptions(schema);
     const cli = parseCliArgs(args, configOptions);
@@ -46,10 +70,12 @@ export async function run(args: string[]): Promise<number> {
     writeFileSync(mdOutput, formattedMd, "utf-8");
 
     if (cfg.pandoc.enabled) {
+      const templatePath = await ensureTemplateDocx();
       const configuredName = cfg.pandoc.outputName.replaceAll("{file_name}", baseName);
       const docxOutput = resolve(cli.outputPath ?? configuredName);
       mkdirSync(dirname(docxOutput), { recursive: true });
-      const result = await $`pandoc ${mdOutput} -o ${docxOutput}`.nothrow();
+      const result =
+        await $`pandoc ${mdOutput} -o ${docxOutput} --reference-doc=${templatePath}`.nothrow();
       if (result.exitCode !== 0) {
         console.error(`pandoc 转换失败 (exit code ${result.exitCode}):`, result.stderr.toString());
         return 1;

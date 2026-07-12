@@ -38,6 +38,5 @@ base_formatted.md
 **/*.docx
 base_assets/
 nul
-style.json
 **/mermaid_*.png
 tmp/

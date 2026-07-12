@@ -27,11 +27,8 @@ export function formattedMdPath(baseName: string): string {
 /** 样式模块目录 */
 export const STYLE_DIR = `${TMP_DIR}/style`;
 
-/** 参考 docx 文件路径（样式提取的输入） */
-export const STYLE_REF_DOCX = `${STYLE_DIR}/ref.docx`;
-
-/** 样式 JSON 文件路径（提取结果的输出 / 模板生成的输入） */
-export const STYLE_JSON = `${STYLE_DIR}/style.json`;
+/** 样式配置文件（相对于包安装目录），用户维护的样式定义 */
+export const STYLE_CONFIG = resolve(PKG_DIR, "config/style.json");
 
 /** 生成的模板 docx 文件路径 */
-export const STYLE_TEMPLATE_DOCX = `${STYLE_DIR}/template.docx`;
+export const STYLE_TEMPLATE_DOCX = `${STYLE_DIR}/style.docx`;

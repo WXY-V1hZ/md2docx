@@ -1,0 +1,823 @@
+{
+  "default": {
+    "document": {
+      "run": {
+        "size": 24,
+        "sizeComplexScript": 24,
+        "language": {
+          "val": "en-US",
+          "eastAsia": "zh-CN",
+          "bidi": "ar-SA"
+        }
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 200
+        }
+      }
+    }
+  },
+  "paragraphStyles": [
+    {
+      "id": "a",
+      "name": "Normal",
+      "quickFormat": true
+    },
+    {
+      "id": "1",
+      "name": "heading 1",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "10",
+      "quickFormat": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 32,
+        "sizeComplexScript": 40,
+        "color": "000000",
+        "bold": true
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 360,
+          "after": 80
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 0
+      }
+    },
+    {
+      "id": "2",
+      "name": "heading 2",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "20",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 28,
+        "sizeComplexScript": 32,
+        "color": "000000",
+        "bold": true
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 160,
+          "after": 80
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 1
+      }
+    },
+    {
+      "id": "3",
+      "name": "heading 3",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "30",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "sizeComplexScript": 28,
+        "color": "000000",
+        "bold": true
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 160,
+          "after": 80
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 2
+      }
+    },
+    {
+      "id": "4",
+      "name": "heading 4",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "40",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "eastAsia": "宋体"
+        },
+        "color": "000000",
+        "italicsComplexScript": true
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 80,
+          "after": 40
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 3
+      }
+    },
+    {
+      "id": "5",
+      "name": "heading 5",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "50",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "0F4761"
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 80,
+          "after": 40
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 4
+      }
+    },
+    {
+      "id": "6",
+      "name": "heading 6",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "60",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "595959",
+        "italics": true,
+        "italicsComplexScript": true
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 40,
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 5
+      }
+    },
+    {
+      "id": "7",
+      "name": "heading 7",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "70",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "595959"
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 40,
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 6
+      }
+    },
+    {
+      "id": "8",
+      "name": "heading 8",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "80",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "272727",
+        "italics": true,
+        "italicsComplexScript": true
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 7
+      }
+    },
+    {
+      "id": "9",
+      "name": "heading 9",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "90",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "272727"
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true,
+        "outlineLevel": 8
+      }
+    },
+    {
+      "id": "a0",
+      "name": "Body Text",
+      "basedOn": "a",
+      "quickFormat": true,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        }
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 180,
+          "after": 180
+        },
+        "indent": {
+          "firstLine": 482
+        }
+      }
+    },
+    {
+      "id": "FirstParagraph",
+      "name": "First Paragraph",
+      "basedOn": "a0",
+      "next": "a0",
+      "quickFormat": true
+    },
+    {
+      "id": "Compact",
+      "name": "Compact",
+      "basedOn": "a0",
+      "quickFormat": true,
+      "paragraph": {
+        "spacing": {
+          "before": 36,
+          "after": 36
+        },
+        "indent": {
+          "firstLine": 0,
+          "left": 0,
+          "right": 0,
+          "hanging": 0
+        }
+      }
+    },
+    {
+      "id": "a4",
+      "name": "Title",
+      "basedOn": "a",
+      "next": "a0",
+      "link": "a5",
+      "quickFormat": true,
+      "uiPriority": 10,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 44,
+        "sizeComplexScript": 56,
+        "bold": true
+      },
+      "paragraph": {
+        "alignment": "center",
+        "spacing": {
+          "after": 80
+        },
+        "contextualSpacing": true
+      }
+    },
+    {
+      "id": "a6",
+      "name": "Subtitle",
+      "basedOn": "a4",
+      "next": "a0",
+      "link": "a7",
+      "quickFormat": true,
+      "uiPriority": 11,
+      "run": {
+        "size": 28,
+        "sizeComplexScript": 28,
+        "characterSpacing": 15
+      }
+    },
+    {
+      "id": "Author",
+      "name": "Author",
+      "basedOn": "a4",
+      "next": "a0",
+      "quickFormat": true,
+      "run": {
+        "size": 24,
+        "sizeComplexScript": 24
+      },
+      "paragraph": {
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "a8",
+      "name": "Date",
+      "basedOn": "a4",
+      "next": "a0",
+      "quickFormat": true,
+      "run": {
+        "size": 24,
+        "sizeComplexScript": 24
+      },
+      "paragraph": {
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "AbstractTitle",
+      "name": "Abstract Title",
+      "basedOn": "a",
+      "next": "Abstract",
+      "quickFormat": true,
+      "run": {
+        "size": 20,
+        "sizeComplexScript": 20,
+        "bold": true
+      },
+      "paragraph": {
+        "alignment": "center",
+        "spacing": {
+          "before": 300,
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "Abstract",
+      "name": "Abstract",
+      "basedOn": "a",
+      "next": "a0",
+      "quickFormat": true,
+      "run": {
+        "size": 20,
+        "sizeComplexScript": 20
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 100,
+          "after": 300
+        },
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "a9",
+      "name": "Bibliography",
+      "basedOn": "a",
+      "quickFormat": true
+    },
+    {
+      "id": "aa",
+      "name": "Block Text",
+      "basedOn": "a0",
+      "next": "a0",
+      "quickFormat": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "paragraph": {
+        "spacing": {
+          "before": 100,
+          "after": 100
+        },
+        "indent": {
+          "left": 480,
+          "right": 480
+        }
+      }
+    },
+    {
+      "id": "ab",
+      "name": "footnote text",
+      "basedOn": "a",
+      "quickFormat": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9
+    },
+    {
+      "id": "FootnoteBlockText",
+      "name": "Footnote Block Text",
+      "basedOn": "ab",
+      "next": "ab",
+      "quickFormat": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "paragraph": {
+        "spacing": {
+          "before": 100,
+          "after": 100
+        },
+        "indent": {
+          "left": 480,
+          "right": 480
+        }
+      }
+    },
+    {
+      "id": "DefinitionTerm",
+      "name": "Definition Term",
+      "basedOn": "a",
+      "next": "Definition",
+      "run": {
+        "bold": true
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 0
+        },
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "Definition",
+      "name": "Definition",
+      "basedOn": "a"
+    },
+    {
+      "id": "ac",
+      "name": "caption",
+      "basedOn": "a",
+      "link": "ad",
+      "run": {
+        "italics": true
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 120
+        }
+      }
+    },
+    {
+      "id": "TableCaption",
+      "name": "Table Caption",
+      "basedOn": "ac",
+      "paragraph": {
+        "keepNext": true
+      }
+    },
+    {
+      "id": "ImageCaption",
+      "name": "Image Caption",
+      "basedOn": "ac",
+      "quickFormat": true,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        },
+        "size": 18,
+        "italics": false
+      },
+      "paragraph": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "Figure",
+      "name": "Figure",
+      "basedOn": "a"
+    },
+    {
+      "id": "CaptionedFigure",
+      "name": "Captioned Figure",
+      "basedOn": "Figure",
+      "quickFormat": true,
+      "paragraph": {
+        "alignment": "center",
+        "keepNext": true
+      }
+    },
+    {
+      "id": "TOC",
+      "name": "TOC Heading",
+      "basedOn": "1",
+      "next": "a0",
+      "quickFormat": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 39,
+      "run": {
+        "color": "0F4761"
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 240,
+          "line": 259,
+          "lineRule": "auto"
+        },
+        "outlineLevel": 9
+      }
+    },
+    {
+      "id": "SourceCode",
+      "name": "Source Code",
+      "basedOn": "a",
+      "link": "VerbatimChar"
+    },
+    {
+      "id": "af0",
+      "name": "header",
+      "basedOn": "a",
+      "link": "af1",
+      "run": {
+        "size": 18,
+        "sizeComplexScript": 18
+      },
+      "paragraph": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "af2",
+      "name": "footer",
+      "basedOn": "a",
+      "link": "af3",
+      "run": {
+        "size": 18,
+        "sizeComplexScript": 18
+      }
+    }
+  ],
+  "characterStyles": [
+    {
+      "id": "a1",
+      "name": "Default Paragraph Font",
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 1
+    },
+    {
+      "id": "a5",
+      "name": "标题 字符",
+      "basedOn": "a1",
+      "link": "a4",
+      "uiPriority": 10,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 44,
+        "sizeComplexScript": 56,
+        "bold": true
+      }
+    },
+    {
+      "id": "a7",
+      "name": "副标题 字符",
+      "basedOn": "a1",
+      "link": "a6",
+      "uiPriority": 11,
+      "run": {
+        "size": 28,
+        "sizeComplexScript": 28,
+        "color": "595959",
+        "characterSpacing": 15
+      }
+    },
+    {
+      "id": "10",
+      "name": "标题 1 字符",
+      "basedOn": "a1",
+      "link": "1",
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 32,
+        "sizeComplexScript": 40,
+        "color": "000000",
+        "bold": true
+      }
+    },
+    {
+      "id": "20",
+      "name": "标题 2 字符",
+      "basedOn": "a1",
+      "link": "2",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "size": 28,
+        "sizeComplexScript": 32,
+        "color": "000000",
+        "bold": true
+      }
+    },
+    {
+      "id": "30",
+      "name": "标题 3 字符",
+      "basedOn": "a1",
+      "link": "3",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "黑体"
+        },
+        "sizeComplexScript": 28,
+        "color": "000000",
+        "bold": true
+      }
+    },
+    {
+      "id": "40",
+      "name": "标题 4 字符",
+      "basedOn": "a1",
+      "link": "4",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "eastAsia": "宋体"
+        },
+        "color": "000000",
+        "italicsComplexScript": true
+      }
+    },
+    {
+      "id": "50",
+      "name": "标题 5 字符",
+      "basedOn": "a1",
+      "link": "5",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "0F4761"
+      }
+    },
+    {
+      "id": "60",
+      "name": "标题 6 字符",
+      "basedOn": "a1",
+      "link": "6",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "595959",
+        "italics": true,
+        "italicsComplexScript": true
+      }
+    },
+    {
+      "id": "70",
+      "name": "标题 7 字符",
+      "basedOn": "a1",
+      "link": "7",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "595959"
+      }
+    },
+    {
+      "id": "80",
+      "name": "标题 8 字符",
+      "basedOn": "a1",
+      "link": "8",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "272727",
+        "italics": true,
+        "italicsComplexScript": true
+      }
+    },
+    {
+      "id": "90",
+      "name": "标题 9 字符",
+      "basedOn": "a1",
+      "link": "9",
+      "semiHidden": true,
+      "uiPriority": 9,
+      "run": {
+        "color": "272727"
+      }
+    },
+    {
+      "id": "ad",
+      "name": "题注 字符",
+      "basedOn": "a1",
+      "link": "ac"
+    },
+    {
+      "id": "VerbatimChar",
+      "name": "Verbatim Char",
+      "basedOn": "ad",
+      "link": "SourceCode",
+      "run": {
+        "font": {
+          "ascii": "Consolas",
+          "hAnsi": "Consolas"
+        },
+        "size": 22
+      }
+    },
+    {
+      "id": "SectionNumber",
+      "name": "Section Number",
+      "basedOn": "ad"
+    },
+    {
+      "id": "ae",
+      "name": "footnote reference",
+      "basedOn": "ad",
+      "run": {
+        "superScript": true
+      }
+    },
+    {
+      "id": "af",
+      "name": "Hyperlink",
+      "basedOn": "ad",
+      "run": {
+        "color": "156082"
+      }
+    },
+    {
+      "id": "af1",
+      "name": "页眉 字符",
+      "basedOn": "a1",
+      "link": "af0",
+      "run": {
+        "size": 18,
+        "sizeComplexScript": 18
+      }
+    },
+    {
+      "id": "af3",
+      "name": "页脚 字符",
+      "basedOn": "a1",
+      "link": "af2",
+      "run": {
+        "size": 18,
+        "sizeComplexScript": 18
+      }
+    }
+  ]
+}

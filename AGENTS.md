@@ -59,10 +59,13 @@ bun check
 | `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
 | `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
 | `src/preprocess/mermaid.ts` | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
+| `src/style/extract.ts`      | 从 docx 提取样式配置为 JSON。                                                       |
+| `src/style/generate.ts`     | 根据 style.json 用 docx 包生成 pandoc 模板 docx。                                   |
 | `src/config.ts`             | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
 | `src/paths.ts`              | 路径常量统一管理。                                                                  |
 | `config/config.json`        | 用户配置文件。                                                                      |
 | `config/config.schema.json` | JSON Schema，为 config.json 提供 IDE 校验。                                         |
+| `style/style.json`          | 样式配置（从模板 docx 提取或手动维护），驱动模板 docx 生成。                        |
 | `base.md`                   | 全面的 Markdown 测试文档。                                                          |
 | `tmp/preprocess/`           | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
 | `tmp/style/`                | 样式提取与模板生成的中间产物。                                                      |
@@ -121,6 +124,9 @@ bun run src/index.ts doc.md --figureCaption.enabled false
 
 # Web 配置编辑器
 bun run src/web.ts
+
+# 清除缓存
+bun run src/index.ts clean
 ```
 
 # Web 配置编辑器
@@ -497,7 +503,20 @@ counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 3. **中文单级**：`一、` `一.`
 4. **数字点分**：`1.2.3` `1.2.3.`（要求至少两段，避免与版本号冲突）
 
-## 流水线顺序依赖
+# 样式系统
+
+`style/style.json` 定义了 docx 输出的全部样式。它既可通过 `src/style/extract.ts` 从模板 docx 提取，也可手动维护。
+
+`src/style/generate.ts` 读取 `style/style.json`，用 `docx` 包生成空白模板 docx 到 `tmp/style/style.docx`。
+
+在调用 pandoc 生成最终 docx 时，自动以 `--reference-doc=tmp/style/style.docx` 传入，确保输出样式与配置一致。
+
+## 样式继承陷阱
+
+- 基于 `a0`（Body Text）的样式会继承 `firstLine` 首行缩进
+- 若子样式不需要缩进，需在 `indent` 中显式清零（如 `Compact` 样式的表格内容）
+
+# 流水线顺序依赖
 
 - `numberTables()` 必须在 `renderMermaid()` 之前（表格编号插入段落节点，与 mermaid 渲染无关）
 - `renderMermaid()` 必须在 `numberPictures()` 之前：mermaid 代码块被替换为图片节点后，`numberPictures()` 才能为它们编号

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { DOMParser } from "@xmldom/xmldom";
 import { useNamespaces } from "xpath";
 import PizZip from "pizzip";
@@ -371,11 +371,4 @@ export function extractStylesFromDocx(docxPath: string): ExtractedStyles {
   if (characterStyles.length) result.characterStyles = characterStyles;
 
   return result;
-}
-
-if (import.meta.main) {
-  const { STYLE_REF_DOCX, STYLE_JSON } = await import("../paths");
-  const styles = extractStylesFromDocx(STYLE_REF_DOCX);
-  writeFileSync(STYLE_JSON, JSON.stringify(styles, null, 2), "utf-8");
-  console.log(`Styles extracted from ${STYLE_REF_DOCX} to ${STYLE_JSON}`);
 }
