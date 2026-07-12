@@ -2,6 +2,9 @@ import { resolve } from "path";
 
 const PKG_DIR = resolve(import.meta.dir, "..");
 
+/** 包根目录 */
+export { PKG_DIR };
+
 /** 默认配置文件路径（相对于包安装目录） */
 export const CONFIG_PATH = resolve(PKG_DIR, "config/config.json");
 

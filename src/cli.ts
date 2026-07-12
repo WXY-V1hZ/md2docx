@@ -24,6 +24,7 @@ export interface ConfigOption {
 
 export interface CliOptions {
   help: boolean;
+  version: boolean;
   web: boolean;
   mdPath?: string;
   outputPath?: string;
@@ -60,13 +61,17 @@ export function getConfigOptions(schema: SchemaNode): ConfigOption[] {
 
 export function parseCliArgs(args: string[], configOptions: ConfigOption[]): CliOptions {
   const optionsByName = new Map(configOptions.map((option) => [option.path, option]));
-  const result: CliOptions = { help: false, web: false, overrides: new Map() };
+  const result: CliOptions = { help: false, version: false, web: false, overrides: new Map() };
   const positional: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === "-h" || arg === "--help") {
       result.help = true;
+      continue;
+    }
+    if (arg === "-v" || arg === "--version") {
+      result.version = true;
       continue;
     }
     if (arg === "--web") {
@@ -132,6 +137,7 @@ export function formatHelp(configOptions: ConfigOption[]): string {
     "  -o <path>                         输出 docx 路径",
     "  --config <path>                   配置文件路径，默认 config/config.json",
     "  --web                             打开默认配置的网页编辑器",
+    "  -v, --version                     显示版本号",
     "  -h, --help                        显示帮助",
     "",
     "配置覆盖:",

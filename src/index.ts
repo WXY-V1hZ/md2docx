@@ -6,7 +6,7 @@ import { $ } from "bun";
 
 import { applyConfigOverrides, formatHelp, getConfigOptions, parseCliArgs } from "./cli";
 import { loadConfig } from "./config";
-import { CONFIG_PATH, CONFIG_SCHEMA_PATH, formattedMdPath, preprocessDir } from "./paths";
+import { CONFIG_PATH, CONFIG_SCHEMA_PATH, PKG_DIR, formattedMdPath, preprocessDir } from "./paths";
 import { preprocess } from "./preprocess/index";
 import { startWebEditor } from "./web";
 
@@ -16,6 +16,13 @@ export async function run(args: string[]): Promise<number> {
     const configOptions = getConfigOptions(schema);
     const cli = parseCliArgs(args, configOptions);
 
+    if (cli.version) {
+      const { version } = JSON.parse(await Bun.file(resolve(PKG_DIR, "package.json")).text()) as {
+        version: string;
+      };
+      console.log(`@v1hz/md2docx v${version}`);
+      return 0;
+    }
     if (cli.help) {
       console.log(formatHelp(configOptions));
       return 0;
