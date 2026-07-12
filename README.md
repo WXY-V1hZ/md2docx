@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@v1hz/md2docx"><img src="https://img.shields.io/npm/v/@v1hz/md2docx" alt="npm version"></a>
-  <a href="https://github.com/WXY-V1hZ/md2docx"><img src="https://img.shields.io/badge/license-MIT-blue" alt="license"></a>
+  <a href="https://github.com/WXY-V1hZ/md2docx"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="license"></a>
 </p>
 
 ---
@@ -33,7 +33,7 @@
 
 ## 安装
 
-_前置依赖_：[Bun](https://bun.sh) | [Pandoc](https://pandoc.org)
+**前置依赖**：[Bun](https://bun.sh) | [Pandoc](https://pandoc.org)
 
 ```bash
 npm install -g @v1hz/md2docx
@@ -173,4 +173,4 @@ bun run src/index.ts clean
 
 ## 许可
 
-本项目基于 MIT 许可证开源 — 详见 [LICENSE](LICENSE)。
+本项目基于 GNU General Public License v3.0 开源 — 详见 [LICENSE](LICENSE)。
