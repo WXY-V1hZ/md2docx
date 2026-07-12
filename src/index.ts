@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, parse, resolve } from "path";
 import { $ } from "bun";
 
@@ -33,7 +33,7 @@ export async function run(args: string[]): Promise<number> {
     }
 
     const mdPath = resolve(cli.mdPath!);
-    if (!(await Bun.file(mdPath).exists())) throw new Error(`找不到 Markdown 文件：${mdPath}`);
+    if (!existsSync(mdPath)) throw new Error(`找不到 Markdown 文件：${mdPath}`);
 
     const config = await loadConfig(cli.configPath ?? CONFIG_PATH);
     const cfg = applyConfigOverrides(config, cli.overrides);
