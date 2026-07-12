@@ -3,6 +3,9 @@
 /** 配置文件路径 */
 export const CONFIG_PATH = "config/config.json";
 
+/** 配置 schema 路径 */
+export const CONFIG_SCHEMA_PATH = "config/config.schema.json";
+
 /** 临时文件根目录 */
 export const TMP_DIR = "tmp";
 
@@ -14,11 +17,6 @@ export function preprocessDir(baseName: string): string {
 /** 预处理后的 Markdown 文件路径 */
 export function formattedMdPath(baseName: string): string {
   return `${preprocessDir(baseName)}/${baseName}_formatted.md`;
-}
-
-/** 预处理后的 docx 文件路径 */
-export function docxOutputPath(baseName: string): string {
-  return `${preprocessDir(baseName)}/${baseName}.docx`;
 }
 
 /** 样式模块目录 */

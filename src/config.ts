@@ -45,11 +45,8 @@ export interface AppConfig {
 
 export async function loadConfig(path: string): Promise<AppConfig> {
   const exists = await Bun.file(path).exists();
-  if (exists) {
-    const raw = JSON.parse(await Bun.file(path).text());
-    delete raw.$schema;
-    return raw as AppConfig;
-  }
-  const { CONFIG_PATH } = await import("./paths");
-  return JSON.parse(await Bun.file(CONFIG_PATH).text()) as AppConfig;
+  if (!exists) throw new Error(`找不到配置文件：${path}`);
+  const raw = JSON.parse(await Bun.file(path).text()) as Record<string, unknown>;
+  delete raw.$schema;
+  return raw as unknown as AppConfig;
 }
