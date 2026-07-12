@@ -96,21 +96,11 @@ md2docx docs/example.md --figureCaption.enabled false
 
 ## 样式定制
 
-`style/style.json` 定义了 docx 输出的全部样式，包括字体、字号、颜色、缩进、间距等。
-
-### 从模板 docx 提取样式
-
-如果你有一个排版精美的 docx 模板，可以提取其样式：
-
-```bash
-bun run src/style/extract.ts
-```
-
-提取后修改 `style/style.json`，转换时会自动使用这些样式生成输出文档。
+`config/style.json` 定义了 docx 输出的全部样式，包括字体、字号、颜色、缩进、间距等。
 
 ### 手动维护样式
 
-也可直接编辑 `style/style.json`。支持以下样式配置：
+可直接编辑 `style/style.json`。支持以下样式配置：
 
 - **文档默认样式**（`default.document`）：全局字体、字号、段落间距
 - **内置样式覆盖**（`default.heading1` … `default.heading6`、`default.title` 等）

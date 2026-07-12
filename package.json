@@ -27,6 +27,7 @@
     "src",
     "config/config.json",
     "config/config.schema.json",
+    "config/style.json",
     "README.md",
     "LICENSE"
   ],
