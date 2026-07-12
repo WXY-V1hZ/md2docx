@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="md2docx 默认配置编辑器" />
+    <title>md2docx 配置台</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">md → docx / config</p>
+        <h1>把默认规则，<br />调成你的文档习惯。</h1>
+      </div>
+      <p class="intro">
+        修改会写入 <code>config/config.json</code>。所有字段和说明直接来自配置 schema。
+      </p>
+    </header>
+
+    <main class="workspace">
+      <form id="config-form" class="config-sheet" aria-label="默认配置">
+        <div class="loading">正在读取配置…</div>
+      </form>
+      <aside class="margin-note">
+        <div class="note-heading">
+          <span>实时配置</span>
+          <span id="change-count">未修改</span>
+        </div>
+        <pre id="preview" aria-live="polite">{}</pre>
+      </aside>
+    </main>
+
+    <footer class="action-bar">
+      <p id="status" role="status">配置尚未修改</p>
+      <div class="actions">
+        <button id="reset-button" class="secondary" type="button" disabled>撤销修改</button>
+        <button id="save-button" type="submit" form="config-form" disabled>保存默认配置</button>
+      </div>
+    </footer>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

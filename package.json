@@ -1,9 +1,13 @@
 {
   "name": "md2docx",
   "private": true,
+  "bin": {
+    "md2docx": "src/index.ts"
+  },
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
+    "cli": "bun run src/index.ts",
     "test": "bun test",
     "check": "bun tsc --noEmit && bun run oxlint && bun run oxfmt"
   },
