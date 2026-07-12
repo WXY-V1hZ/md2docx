@@ -20,12 +20,10 @@
   },
   "renderMermaid": {
     "enabled": true,
-    "outputDir": "{file_name}_assets",
     "theme": "tokyo-night-light",
-    "density": 200,
-    "fileName": "mermaid_{n}"
+    "density": 200
   },
-  "title": {
+  "detectTitle": {
     "enabled": true,
     "strategy": "first-h1"
   },

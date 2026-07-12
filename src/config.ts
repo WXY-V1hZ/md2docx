@@ -6,10 +6,8 @@ export interface CaptionStyle {
 
 export interface MermaidConfig {
   enabled: boolean;
-  outputDir: string;
   theme: string;
   density: number;
-  fileName: string;
 }
 
 export interface BooleanConfig {
@@ -41,7 +39,7 @@ export interface AppConfig {
   normalizeHeadings: BooleanConfig;
   numberHeadings: HeadingNumberingConfig;
   renderMermaid: MermaidConfig;
-  title: TitleConfig;
+  detectTitle: TitleConfig;
   pandoc: PandocConfig;
 }
 
@@ -52,5 +50,6 @@ export async function loadConfig(path: string): Promise<AppConfig> {
     delete raw.$schema;
     return raw as AppConfig;
   }
-  return JSON.parse(await Bun.file("config.json").text()) as AppConfig;
+  const { CONFIG_PATH } = await import("./paths");
+  return JSON.parse(await Bun.file(CONFIG_PATH).text()) as AppConfig;
 }

@@ -1,22 +1,10 @@
 import { type Root } from "mdast";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
-import { join, dirname } from "path";
+import { join } from "path";
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 import sharp from "sharp";
 
-export async function renderMermaid(
-  root: Root,
-  mdPath: string,
-  outputDir: string,
-  theme: string,
-  density: number,
-  fileNameTemplate: string,
-) {
-  const resolvedDir = outputDir.replace(
-    "{file_name}",
-    mdPath.replace(/.*[/\\]/, "").replace(/\.[^.]*$/, ""),
-  );
-  const outDir = join(dirname(mdPath), resolvedDir);
+export async function renderMermaid(root: Root, outDir: string, theme: string, density: number) {
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }
@@ -29,7 +17,7 @@ export async function renderMermaid(
     if (child?.type !== "code" || child.lang !== "mermaid") continue;
 
     counter++;
-    const pngFile = join(outDir, fileNameTemplate.replace("{n}", String(counter)) + ".png");
+    const pngFile = join(outDir, `mermaid_${counter}.png`);
     const title = getMermaidTitle(child.meta);
 
     try {

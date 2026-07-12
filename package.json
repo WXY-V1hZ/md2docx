@@ -8,13 +8,17 @@
     "check": "bun tsc --noEmit && bun run oxlint && bun run oxfmt"
   },
   "dependencies": {
+    "@xmldom/xmldom": "^0.9.10",
     "beautiful-mermaid": "^1.1.3",
+    "docx": "^9.7.1",
+    "pizzip": "^3.2.0",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
     "sharp": "^0.35.3",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "xpath": "^0.0.34"
   },
   "devDependencies": {
     "oxfmt": "^0.58.0",

@@ -61,10 +61,12 @@ bun check
 | `src/preprocess/caption.ts`        | 表格编号（numberTables）、图片编号（numberPictures）。                              |
 | `src/preprocess/mermaid.ts`        | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
 | `src/config.ts`                    | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
-| `config.json`                      | 用户配置文件。                                                                      |
-| `config.schema.json`               | JSON Schema，为 config.json 提供 IDE 校验。                                         |
+| `src/paths.ts`                     | 路径常量统一管理。                                                                  |
+| `config/config.json`               | 用户配置文件。                                                                      |
+| `config/config.schema.json`        | JSON Schema，为 config.json 提供 IDE 校验。                                         |
 | `base.md`                          | 全面的 Markdown 测试文档。                                                          |
-| `base_assets/`                     | 生成的 Mermaid PNG 图片。                                                           |
+| `tmp/preprocess/`                  | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
+| `tmp/style/`                       | 样式提取与模板生成的中间产物。                                                      |
 | `pandoc_docx_template/`            | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
 | `test/`                            | 单元测试。                                                                          |
 

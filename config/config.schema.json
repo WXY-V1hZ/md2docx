@@ -103,11 +103,6 @@
           "type": "boolean",
           "default": true
         },
-        "outputDir": {
-          "description": "PNG 输出目录（相对于 markdown 文件目录），{file_name} 替换为文件名",
-          "type": "string",
-          "default": "{file_name}_assets"
-        },
         "theme": {
           "description": "beautiful-mermaid 主题名",
           "type": "string",
@@ -118,14 +113,9 @@
           "type": "integer",
           "minimum": 72,
           "default": 200
-        },
-        "fileName": {
-          "description": "输出 PNG 文件名模板，{n} 为序号占位符",
-          "type": "string",
-          "default": "mermaid_{n}"
         }
       },
-      "required": ["enabled", "outputDir", "theme", "density", "fileName"]
+      "required": ["enabled", "theme", "density"]
     },
     "pandoc": {
       "description": "pandoc 导出配置",
@@ -145,7 +135,7 @@
       },
       "required": ["enabled", "outputName"]
     },
-    "title": {
+    "detectTitle": {
       "description": "文档标题提取配置",
       "type": "object",
       "additionalProperties": false,
@@ -171,7 +161,7 @@
     "normalizeHeadings",
     "numberHeadings",
     "renderMermaid",
-    "title",
+    "detectTitle",
     "pandoc"
   ]
 }
