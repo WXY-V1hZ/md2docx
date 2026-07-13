@@ -58,11 +58,6 @@ function helloWorld() {
 }
 ```
 
-```
-normal code block
-普通代码块
-```
-
 ### 表格
 
 | 左对齐  | 居中对齐 |  右对齐 |

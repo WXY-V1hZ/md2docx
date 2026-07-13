@@ -10,6 +10,7 @@ import {
   CONFIG_PATH,
   CONFIG_SCHEMA_PATH,
   PKG_DIR,
+  STYLE_CONFIG,
   TMP_DIR,
   formattedMdPath,
   preprocessDir,
@@ -70,12 +71,14 @@ export async function run(args: string[]): Promise<number> {
     writeFileSync(mdOutput, formattedMd, "utf-8");
 
     if (cfg.pandoc.enabled) {
-      const templatePath = await ensureTemplateDocx();
+      const templatePath = await ensureTemplateDocx(STYLE_CONFIG);
       const configuredName = cfg.pandoc.outputName.replaceAll("{file_name}", baseName);
       const docxOutput = resolve(cli.outputPath ?? configuredName);
       mkdirSync(dirname(docxOutput), { recursive: true });
+      const luaFilter = resolve(PKG_DIR, "config/lua/add-inline-code.lua");
+      const luaFlag = existsSync(luaFilter) ? `--lua-filter=${luaFilter}` : "";
       const result =
-        await $`pandoc ${mdOutput} -o ${docxOutput} --reference-doc=${templatePath}`.nothrow();
+        await $`pandoc ${mdOutput} -o ${docxOutput} --reference-doc=${templatePath} ${luaFlag}`.nothrow();
       if (result.exitCode !== 0) {
         console.error(`pandoc 转换失败 (exit code ${result.exitCode}):`, result.stderr.toString());
         return 1;

@@ -2,11 +2,17 @@
   "default": {
     "document": {
       "run": {
+        "font": {
+          "asciiTheme": "minorHAnsi",
+          "hAnsiTheme": "minorHAnsi",
+          "eastAsiaTheme": "minorEastAsia",
+          "cstheme": "minorBidi"
+        },
         "size": 24,
         "sizeComplexScript": 24,
         "language": {
           "val": "en-US",
-          "eastAsia": "zh-CN",
+          "eastAsia": "en-US",
           "bidi": "ar-SA"
         }
       },
@@ -21,62 +27,71 @@
     {
       "id": "a",
       "name": "Normal",
-      "quickFormat": true
-    },
-    {
-      "id": "1",
-      "name": "heading 1",
-      "basedOn": "a",
-      "next": "a0",
-      "link": "10",
       "quickFormat": true,
-      "uiPriority": 9,
       "run": {
         "font": {
           "ascii": "Times New Roman",
           "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
-        },
-        "size": 32,
-        "sizeComplexScript": 40,
-        "color": "000000",
-        "bold": true
+          "eastAsia": "宋体"
+        }
       },
       "paragraph": {
         "spacing": {
-          "before": 360,
-          "after": 80
+          "after": 0,
+          "line": 360,
+          "lineRule": "auto"
+        }
+      }
+    },
+    {
+      "id": "10",
+      "name": "heading 1",
+      "basedOn": "a",
+      "next": "a0",
+      "quickFormat": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
+        },
+        "size": 36,
+        "sizeComplexScript": 32,
+        "bold": true,
+        "boldComplexScript": true
+      },
+      "paragraph": {
+        "alignment": "center",
+        "spacing": {
+          "before": 480
         },
         "keepNext": true,
         "keepLines": true,
+        "pageBreakBefore": true,
         "outlineLevel": 0
       }
     },
     {
-      "id": "2",
+      "id": "20",
       "name": "heading 2",
       "basedOn": "a",
       "next": "a0",
-      "link": "20",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
         "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
         },
-        "size": 28,
+        "size": 32,
         "sizeComplexScript": 32,
-        "color": "000000",
-        "bold": true
+        "bold": true,
+        "boldComplexScript": true
       },
       "paragraph": {
         "spacing": {
-          "before": 160,
-          "after": 80
+          "before": 300
         },
         "keepNext": true,
         "keepLines": true,
@@ -88,25 +103,22 @@
       "name": "heading 3",
       "basedOn": "a",
       "next": "a0",
-      "link": "30",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
         "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
         },
+        "size": 28,
         "sizeComplexScript": 28,
-        "color": "000000",
-        "bold": true
+        "bold": true,
+        "boldComplexScript": true
       },
       "paragraph": {
         "spacing": {
-          "before": 160,
-          "after": 80
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -118,22 +130,20 @@
       "name": "heading 4",
       "basedOn": "a",
       "next": "a0",
-      "link": "40",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
         "font": {
-          "eastAsia": "宋体"
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
         },
-        "color": "000000",
-        "italicsComplexScript": true
+        "bold": true,
+        "boldComplexScript": true
       },
       "paragraph": {
         "spacing": {
-          "before": 80,
-          "after": 40
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -145,18 +155,20 @@
       "name": "heading 5",
       "basedOn": "a",
       "next": "a0",
-      "link": "50",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
-        "color": "0F4761"
+        "font": {
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
+        },
+        "bold": true,
+        "italicsComplexScript": true
       },
       "paragraph": {
         "spacing": {
-          "before": 80,
-          "after": 40
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -168,20 +180,19 @@
       "name": "heading 6",
       "basedOn": "a",
       "next": "a0",
-      "link": "60",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
-        "color": "595959",
-        "italics": true,
-        "italicsComplexScript": true
+        "font": {
+          "eastAsia": "黑体",
+          "cstheme": "majorBidi"
+        },
+        "bold": true
       },
       "paragraph": {
         "spacing": {
-          "before": 40,
-          "after": 0
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -193,18 +204,19 @@
       "name": "heading 7",
       "basedOn": "a",
       "next": "a0",
-      "link": "70",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
-        "color": "595959"
+        "font": {
+          "eastAsiaTheme": "majorEastAsia",
+          "cstheme": "majorBidi"
+        },
+        "color": "4F81BD"
       },
       "paragraph": {
         "spacing": {
-          "before": 40,
-          "after": 0
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -216,19 +228,21 @@
       "name": "heading 8",
       "basedOn": "a",
       "next": "a0",
-      "link": "80",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
-        "color": "272727",
-        "italics": true,
-        "italicsComplexScript": true
+        "font": {
+          "asciiTheme": "majorHAnsi",
+          "hAnsiTheme": "majorHAnsi",
+          "eastAsiaTheme": "majorEastAsia",
+          "cstheme": "majorBidi"
+        },
+        "color": "4F81BD"
       },
       "paragraph": {
         "spacing": {
-          "after": 0
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -240,17 +254,21 @@
       "name": "heading 9",
       "basedOn": "a",
       "next": "a0",
-      "link": "90",
       "quickFormat": true,
-      "semiHidden": true,
       "unhideWhenUsed": true,
       "uiPriority": 9,
       "run": {
-        "color": "272727"
+        "font": {
+          "asciiTheme": "majorHAnsi",
+          "hAnsiTheme": "majorHAnsi",
+          "eastAsiaTheme": "majorEastAsia",
+          "cstheme": "majorBidi"
+        },
+        "color": "4F81BD"
       },
       "paragraph": {
         "spacing": {
-          "after": 0
+          "before": 200
         },
         "keepNext": true,
         "keepLines": true,
@@ -260,31 +278,32 @@
     {
       "id": "a0",
       "name": "Body Text",
+      "basedOn": "FirstParagraph",
+      "link": "a4",
+      "quickFormat": true
+    },
+    {
+      "id": "FirstParagraph",
+      "name": "First Paragraph",
       "basedOn": "a",
+      "next": "a0",
       "quickFormat": true,
       "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "宋体"
+        "language": {
+          "eastAsia": "zh-CN"
         }
       },
       "paragraph": {
         "spacing": {
           "before": 180,
-          "after": 180
+          "line": 480,
+          "lineRule": "auto"
         },
         "indent": {
-          "firstLine": 482
+          "firstLine": 200,
+          "firstLineChars": 200
         }
       }
-    },
-    {
-      "id": "FirstParagraph",
-      "name": "First Paragraph",
-      "basedOn": "a0",
-      "next": "a0",
-      "quickFormat": true
     },
     {
       "id": "Compact",
@@ -293,104 +312,77 @@
       "quickFormat": true,
       "paragraph": {
         "spacing": {
-          "before": 36,
-          "after": 36
+          "before": 60,
+          "after": 60
         },
         "indent": {
           "firstLine": 0,
-          "left": 0,
-          "right": 0,
-          "hanging": 0
+          "firstLineChars": 0
         }
       }
     },
     {
-      "id": "a4",
+      "id": "a5",
       "name": "Title",
       "basedOn": "a",
       "next": "a0",
-      "link": "a5",
       "quickFormat": true,
-      "uiPriority": 10,
       "run": {
         "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
+          "asciiTheme": "majorHAnsi",
+          "hAnsiTheme": "majorHAnsi",
+          "eastAsiaTheme": "majorEastAsia",
+          "cstheme": "majorBidi"
         },
-        "size": 44,
-        "sizeComplexScript": 56,
-        "bold": true
+        "size": 36,
+        "sizeComplexScript": 36,
+        "bold": true,
+        "boldComplexScript": true
       },
       "paragraph": {
         "alignment": "center",
         "spacing": {
-          "after": 80
+          "before": 480,
+          "after": 240
         },
-        "contextualSpacing": true
+        "keepNext": true,
+        "keepLines": true
       }
     },
     {
       "id": "a6",
       "name": "Subtitle",
-      "basedOn": "a4",
+      "basedOn": "a5",
       "next": "a0",
-      "link": "a7",
       "quickFormat": true,
-      "uiPriority": 11,
       "run": {
-        "size": 28,
-        "sizeComplexScript": 28,
-        "characterSpacing": 15
+        "size": 30,
+        "sizeComplexScript": 30
+      },
+      "paragraph": {
+        "spacing": {
+          "before": 240
+        }
       }
     },
     {
       "id": "Author",
       "name": "Author",
-      "basedOn": "a4",
       "next": "a0",
       "quickFormat": true,
-      "run": {
-        "size": 24,
-        "sizeComplexScript": 24
-      },
-      "paragraph": {
-        "keepNext": true,
-        "keepLines": true
-      }
-    },
-    {
-      "id": "a8",
-      "name": "Date",
-      "basedOn": "a4",
-      "next": "a0",
-      "quickFormat": true,
-      "run": {
-        "size": 24,
-        "sizeComplexScript": 24
-      },
-      "paragraph": {
-        "keepNext": true,
-        "keepLines": true
-      }
-    },
-    {
-      "id": "AbstractTitle",
-      "name": "Abstract Title",
-      "basedOn": "a",
-      "next": "Abstract",
-      "quickFormat": true,
-      "run": {
-        "size": 20,
-        "sizeComplexScript": 20,
-        "bold": true
-      },
       "paragraph": {
         "alignment": "center",
-        "spacing": {
-          "before": 300,
-          "after": 0
-        },
+        "keepNext": true,
+        "keepLines": true
+      }
+    },
+    {
+      "id": "a7",
+      "name": "Date",
+      "next": "a0",
+      "quickFormat": true,
+      "paragraph": {
+        "alignment": "center",
         "keepNext": true,
         "keepLines": true
       }
@@ -407,7 +399,7 @@
       },
       "paragraph": {
         "spacing": {
-          "before": 100,
+          "before": 300,
           "after": 300
         },
         "keepNext": true,
@@ -415,56 +407,59 @@
       }
     },
     {
-      "id": "a9",
+      "id": "a8",
       "name": "Bibliography",
       "basedOn": "a",
-      "quickFormat": true
-    },
-    {
-      "id": "aa",
-      "name": "Block Text",
-      "basedOn": "a0",
-      "next": "a0",
       "quickFormat": true,
-      "unhideWhenUsed": true,
-      "uiPriority": 9,
       "paragraph": {
-        "spacing": {
-          "before": 100,
-          "after": 100
-        },
         "indent": {
-          "left": 480,
-          "right": 480
-        }
+          "left": 200,
+          "hanging": 200,
+          "hangingChars": 200
+        },
+        "tabs": [
+          {
+            "val": "left",
+            "pos": 384
+          }
+        ]
       }
     },
     {
-      "id": "ab",
+      "id": "a9",
+      "name": "Block Text",
+      "basedOn": "a",
+      "quickFormat": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 9,
+      "run": {
+        "font": {
+          "cs": "Times New Roman"
+        },
+        "size": 21,
+        "boldComplexScript": true,
+        "language": {
+          "eastAsia": "zh-CN"
+        }
+      },
+      "paragraph": {
+        "spacing": {
+          "after": 200,
+          "line": 288,
+          "lineRule": "auto",
+          "afterLines": "200"
+        },
+        "widowControl": false,
+        "contextualSpacing": true
+      }
+    },
+    {
+      "id": "aa",
       "name": "footnote text",
       "basedOn": "a",
       "quickFormat": true,
       "unhideWhenUsed": true,
       "uiPriority": 9
-    },
-    {
-      "id": "FootnoteBlockText",
-      "name": "Footnote Block Text",
-      "basedOn": "ab",
-      "next": "ab",
-      "quickFormat": true,
-      "unhideWhenUsed": true,
-      "uiPriority": 9,
-      "paragraph": {
-        "spacing": {
-          "before": 100,
-          "after": 100
-        },
-        "indent": {
-          "left": 480,
-          "right": 480
-        }
-      }
     },
     {
       "id": "DefinitionTerm",
@@ -475,9 +470,6 @@
         "bold": true
       },
       "paragraph": {
-        "spacing": {
-          "after": 0
-        },
         "keepNext": true,
         "keepLines": true
       }
@@ -488,14 +480,12 @@
       "basedOn": "a"
     },
     {
-      "id": "ac",
+      "id": "ab",
       "name": "caption",
       "basedOn": "a",
-      "link": "ad",
-      "run": {
-        "italics": true
-      },
+      "link": "ac",
       "paragraph": {
+        "alignment": "center",
         "spacing": {
           "after": 120
         }
@@ -504,7 +494,7 @@
     {
       "id": "TableCaption",
       "name": "Table Caption",
-      "basedOn": "ac",
+      "basedOn": "ab",
       "paragraph": {
         "keepNext": true
       }
@@ -512,46 +502,35 @@
     {
       "id": "ImageCaption",
       "name": "Image Caption",
-      "basedOn": "ac",
-      "quickFormat": true,
-      "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "宋体"
-        },
-        "size": 18,
-        "italics": false
-      },
+      "basedOn": "ab"
+    },
+    {
+      "id": "Figure",
+      "name": "Figure",
+      "basedOn": "a",
       "paragraph": {
         "alignment": "center"
       }
     },
     {
-      "id": "Figure",
-      "name": "Figure",
-      "basedOn": "a"
-    },
-    {
       "id": "CaptionedFigure",
       "name": "Captioned Figure",
       "basedOn": "Figure",
-      "quickFormat": true,
       "paragraph": {
-        "alignment": "center",
         "keepNext": true
       }
     },
     {
       "id": "TOC",
       "name": "TOC Heading",
-      "basedOn": "1",
+      "basedOn": "10",
       "next": "a0",
       "quickFormat": true,
       "unhideWhenUsed": true,
       "uiPriority": 39,
       "run": {
-        "color": "0F4761"
+        "bold": false,
+        "boldComplexScript": false
       },
       "paragraph": {
         "spacing": {
@@ -566,29 +545,169 @@
       "id": "SourceCode",
       "name": "Source Code",
       "basedOn": "a",
-      "link": "VerbatimChar"
+      "link": "VerbatimChar",
+      "quickFormat": true,
+      "run": {
+        "font": {
+          "ascii": "Consolas",
+          "hAnsi": "Consolas",
+          "cs": "Times New Roman (正文 CS 字体)"
+        },
+        "size": 21,
+        "color": "404040",
+        "language": {
+          "eastAsia": "zh-CN"
+        },
+        "shading": {
+          "val": "pct5",
+          "color": "auto",
+          "fill": "auto"
+        }
+      },
+      "paragraph": {
+        "indent": {
+          "left": 300,
+          "leftChars": 300
+        },
+        "wordWrap": false,
+        "shading": {
+          "val": "clear",
+          "color": "F3F4F4",
+          "fill": "FFFFFF",
+          "themeFill": "background1"
+        },
+        "border": {
+          "top": {
+            "val": "single",
+            "color": "BFBFBF",
+            "sz": 8,
+            "space": 10,
+            "themeColor": "background1",
+            "themeShade": "BF"
+          },
+          "left": {
+            "val": "single",
+            "color": "BFBFBF",
+            "sz": 8,
+            "space": 10,
+            "themeColor": "background1",
+            "themeShade": "BF"
+          },
+          "bottom": {
+            "val": "single",
+            "color": "BFBFBF",
+            "sz": 8,
+            "space": 10,
+            "themeColor": "background1",
+            "themeShade": "BF"
+          },
+          "right": {
+            "val": "single",
+            "color": "BFBFBF",
+            "sz": 8,
+            "space": 10,
+            "themeColor": "background1",
+            "themeShade": "BF"
+          }
+        }
+      }
     },
     {
-      "id": "af0",
+      "id": "af",
       "name": "header",
       "basedOn": "a",
-      "link": "af1",
+      "link": "af0",
       "run": {
         "size": 18,
         "sizeComplexScript": 18
       },
       "paragraph": {
-        "alignment": "center"
+        "alignment": "center",
+        "tabs": [
+          {
+            "val": "center",
+            "pos": 4153
+          },
+          {
+            "val": "right",
+            "pos": 8306
+          }
+        ]
       }
     },
     {
-      "id": "af2",
+      "id": "af1",
       "name": "footer",
       "basedOn": "a",
-      "link": "af3",
+      "link": "af2",
+      "uiPriority": 99,
       "run": {
         "size": 18,
         "sizeComplexScript": 18
+      },
+      "paragraph": {
+        "tabs": [
+          {
+            "val": "center",
+            "pos": 4153
+          },
+          {
+            "val": "right",
+            "pos": 8306
+          }
+        ]
+      }
+    },
+    {
+      "id": "af3",
+      "name": "图片",
+      "basedOn": "FirstParagraph",
+      "quickFormat": true,
+      "run": {
+        "noProof": true
+      },
+      "paragraph": {
+        "alignment": "center",
+        "keepNext": true
+      }
+    },
+    {
+      "id": "Compact10071",
+      "name": "样式 Compact + 10 磅 首行缩进:  0.71 厘米",
+      "basedOn": "Compact",
+      "run": {
+        "font": {
+          "cs": "宋体"
+        },
+        "size": 20,
+        "sizeComplexScript": 20
+      }
+    },
+    {
+      "id": "Compact100710",
+      "name": "样式 Compact + 10 磅 加粗 首行缩进:  0.71 厘米",
+      "basedOn": "Compact",
+      "run": {
+        "font": {
+          "cs": "宋体"
+        },
+        "size": 20,
+        "sizeComplexScript": 20,
+        "boldComplexScript": true
+      }
+    },
+    {
+      "id": "img",
+      "name": "img",
+      "basedOn": "a",
+      "quickFormat": true,
+      "run": {
+        "language": {
+          "eastAsia": "zh-CN"
+        }
+      },
+      "paragraph": {
+        "alignment": "center"
       }
     }
   ],
@@ -601,223 +720,236 @@
       "uiPriority": 1
     },
     {
-      "id": "a5",
-      "name": "标题 字符",
-      "basedOn": "a1",
-      "link": "a4",
-      "uiPriority": 10,
-      "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
-        },
-        "size": 44,
-        "sizeComplexScript": 56,
-        "bold": true
-      }
-    },
-    {
-      "id": "a7",
-      "name": "副标题 字符",
-      "basedOn": "a1",
-      "link": "a6",
-      "uiPriority": 11,
-      "run": {
-        "size": 28,
-        "sizeComplexScript": 28,
-        "color": "595959",
-        "characterSpacing": 15
-      }
-    },
-    {
-      "id": "10",
-      "name": "标题 1 字符",
-      "basedOn": "a1",
-      "link": "1",
-      "uiPriority": 9,
-      "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
-        },
-        "size": 32,
-        "sizeComplexScript": 40,
-        "color": "000000",
-        "bold": true
-      }
-    },
-    {
-      "id": "20",
-      "name": "标题 2 字符",
-      "basedOn": "a1",
-      "link": "2",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
-        },
-        "size": 28,
-        "sizeComplexScript": 32,
-        "color": "000000",
-        "bold": true
-      }
-    },
-    {
-      "id": "30",
-      "name": "标题 3 字符",
-      "basedOn": "a1",
-      "link": "3",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "font": {
-          "ascii": "Times New Roman",
-          "hAnsi": "Times New Roman",
-          "eastAsia": "黑体"
-        },
-        "sizeComplexScript": 28,
-        "color": "000000",
-        "bold": true
-      }
-    },
-    {
-      "id": "40",
-      "name": "标题 4 字符",
-      "basedOn": "a1",
-      "link": "4",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "font": {
-          "eastAsia": "宋体"
-        },
-        "color": "000000",
-        "italicsComplexScript": true
-      }
-    },
-    {
-      "id": "50",
-      "name": "标题 5 字符",
-      "basedOn": "a1",
-      "link": "5",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "color": "0F4761"
-      }
-    },
-    {
-      "id": "60",
-      "name": "标题 6 字符",
-      "basedOn": "a1",
-      "link": "6",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "color": "595959",
-        "italics": true,
-        "italicsComplexScript": true
-      }
-    },
-    {
-      "id": "70",
-      "name": "标题 7 字符",
-      "basedOn": "a1",
-      "link": "7",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "color": "595959"
-      }
-    },
-    {
-      "id": "80",
-      "name": "标题 8 字符",
-      "basedOn": "a1",
-      "link": "8",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "color": "272727",
-        "italics": true,
-        "italicsComplexScript": true
-      }
-    },
-    {
-      "id": "90",
-      "name": "标题 9 字符",
-      "basedOn": "a1",
-      "link": "9",
-      "semiHidden": true,
-      "uiPriority": 9,
-      "run": {
-        "color": "272727"
-      }
-    },
-    {
-      "id": "ad",
+      "id": "ac",
       "name": "题注 字符",
       "basedOn": "a1",
-      "link": "ac"
+      "link": "ab",
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        }
+      }
     },
     {
       "id": "VerbatimChar",
       "name": "Verbatim Char",
-      "basedOn": "ad",
+      "basedOn": "ac",
       "link": "SourceCode",
       "run": {
         "font": {
           "ascii": "Consolas",
-          "hAnsi": "Consolas"
+          "hAnsi": "Consolas",
+          "cs": "Times New Roman (正文 CS 字体)",
+          "eastAsia": "宋体"
         },
-        "size": 22
+        "size": 21,
+        "color": "404040",
+        "language": {
+          "eastAsia": "zh-CN"
+        },
+        "shading": {
+          "val": "clear",
+          "color": "F3F4F4",
+          "fill": "FFFFFF",
+          "themeFill": "background1"
+        }
       }
     },
     {
-      "id": "SectionNumber",
-      "name": "Section Number",
-      "basedOn": "ad"
-    },
-    {
-      "id": "ae",
+      "id": "ad",
       "name": "footnote reference",
-      "basedOn": "ad",
+      "basedOn": "ac",
       "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        },
         "superScript": true
       }
     },
     {
-      "id": "af",
+      "id": "ae",
       "name": "Hyperlink",
-      "basedOn": "ad",
+      "basedOn": "ac",
       "run": {
-        "color": "156082"
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        },
+        "color": "0070C0"
       }
     },
     {
-      "id": "af1",
+      "id": "a4",
+      "name": "正文文本 字符",
+      "basedOn": "a1",
+      "link": "a0",
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        },
+        "language": {
+          "eastAsia": "zh-CN"
+        }
+      }
+    },
+    {
+      "id": "af0",
       "name": "页眉 字符",
       "basedOn": "a1",
-      "link": "af0",
+      "link": "af",
       "run": {
         "size": 18,
         "sizeComplexScript": 18
       }
     },
     {
-      "id": "af3",
+      "id": "af2",
       "name": "页脚 字符",
       "basedOn": "a1",
-      "link": "af2",
+      "link": "af1",
+      "uiPriority": 99,
       "run": {
         "size": 18,
         "sizeComplexScript": 18
       }
+    },
+    {
+      "id": "af4",
+      "name": "line number",
+      "basedOn": "a1"
+    },
+    {
+      "id": "InlineCode",
+      "name": "Inline Code",
+      "basedOn": "a1",
+      "quickFormat": true,
+      "uiPriority": 1,
+      "run": {
+        "font": {
+          "ascii": "Consolas",
+          "hAnsi": "Consolas",
+          "cs": "Times New Roman (正文 CS 字体)",
+          "eastAsia": "宋体"
+        },
+        "size": 21,
+        "color": "404040",
+        "language": {
+          "eastAsia": "zh-CN"
+        },
+        "shading": {
+          "val": "clear",
+          "color": "F3F4F4",
+          "fill": "F2F2F2",
+          "themeFill": "background1",
+          "themeFillShade": "F2"
+        },
+        "border": {
+          "val": "none",
+          "color": "auto",
+          "sz": 0,
+          "space": 0
+        }
+      }
     }
-  ]
+  ],
+  "tableStyles": [
+    {
+      "id": "a2",
+      "name": "Normal Table",
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "uiPriority": 99,
+      "table": {
+        "indent": {
+          "width": 0,
+          "type": "dxa"
+        },
+        "cellMargin": {
+          "top": 0,
+          "left": 108,
+          "bottom": 0,
+          "right": 108
+        }
+      }
+    },
+    {
+      "id": "Table",
+      "name": "Table",
+      "quickFormat": true,
+      "semiHidden": true,
+      "unhideWhenUsed": true,
+      "table": {
+        "alignment": "center",
+        "indent": {
+          "width": 0,
+          "type": "dxa"
+        },
+        "borders": {
+          "top": {
+            "val": "single",
+            "color": "auto",
+            "sz": 12,
+            "space": 0
+          },
+          "bottom": {
+            "val": "single",
+            "color": "auto",
+            "sz": 12,
+            "space": 0
+          }
+        },
+        "cellMargin": {
+          "top": 0,
+          "left": 108,
+          "bottom": 0,
+          "right": 108
+        }
+      },
+      "tableStyleParts": [
+        {
+          "type": "firstRow",
+          "run": {
+            "font": {
+              "eastAsia": "宋体"
+            },
+            "bold": true,
+            "italics": false
+          },
+          "cell": {
+            "borders": {
+              "bottom": {
+                "val": "single",
+                "color": "auto",
+                "sz": 4,
+                "space": 0
+              }
+            }
+          }
+        }
+      ],
+      "run": {
+        "font": {
+          "ascii": "Times New Roman",
+          "hAnsi": "Times New Roman",
+          "eastAsia": "宋体"
+        },
+        "size": 20,
+        "sizeComplexScript": 20,
+        "language": {
+          "eastAsia": "zh-CN"
+        }
+      },
+      "paragraph": {
+        "alignment": "center"
+      }
+    }
+  ],
+  "tableStylesXml": "<w:style w:type=\"table\" w:customStyle=\"1\" w:styleId=\"Table\"><w:name w:val=\"Table\"/><w:semiHidden/><w:unhideWhenUsed/><w:qFormat/><w:rsid w:val=\"004F42FD\"/><w:pPr><w:jc w:val=\"center\"/></w:pPr><w:rPr><w:rFonts w:ascii=\"Times New Roman\" w:eastAsia=\"宋体\" w:hAnsi=\"Times New Roman\"/><w:sz w:val=\"20\"/><w:szCs w:val=\"20\"/><w:lang w:eastAsia=\"zh-CN\"/></w:rPr><w:tblPr><w:jc w:val=\"center\"/><w:tblInd w:w=\"0\" w:type=\"dxa\"/><w:tblBorders><w:top w:val=\"single\" w:sz=\"12\" w:space=\"0\" w:color=\"auto\"/><w:bottom w:val=\"single\" w:sz=\"12\" w:space=\"0\" w:color=\"auto\"/></w:tblBorders><w:tblCellMar><w:top w:w=\"0\" w:type=\"dxa\"/><w:left w:w=\"108\" w:type=\"dxa\"/><w:bottom w:w=\"0\" w:type=\"dxa\"/><w:right w:w=\"108\" w:type=\"dxa\"/></w:tblCellMar></w:tblPr><w:trPr><w:jc w:val=\"center\"/></w:trPr><w:tcPr><w:vAlign w:val=\"center\"/></w:tcPr><w:tblStylePr w:type=\"firstRow\"><w:rPr><w:rFonts w:eastAsia=\"宋体\"/><w:b/><w:i w:val=\"0\"/></w:rPr><w:tblPr/><w:tcPr><w:tcBorders><w:bottom w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"auto\"/></w:tcBorders></w:tcPr></w:tblStylePr></w:style>"
 }
