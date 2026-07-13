@@ -65,8 +65,9 @@ bun check
 | `src/paths.ts`              | 路径常量统一管理。                                                                  |
 | `config/config.json`        | 用户配置文件。                                                                      |
 | `config/config.schema.json` | JSON Schema，为 config.json 提供 IDE 校验。                                         |
-| `style/style.json`          | 样式配置（从模板 docx 提取或手动维护），驱动模板 docx 生成。                        |
-| `base.md`                   | 全面的 Markdown 测试文档。                                                          |
+| `config/style.json`         | 样式配置（从模板 docx 提取或手动维护），驱动模板 docx 生成。                        |
+| `config/lua/`               | pandoc Lua filter，用于行内代码样式映射等。                                         |
+| `docs/example.md`           | 全面的 Markdown 测试文档。                                                          |
 | `tmp/preprocess/`           | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
 | `tmp/style/`                | 样式提取与模板生成的中间产物。                                                      |
 | `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
@@ -96,6 +97,8 @@ renderMermaid()
 numberPictures()
     ↓
 序列化 Markdown
+    ↓
+生成样式模板 docx
     ↓
 pandoc → DOCX
 ```
@@ -505,9 +508,9 @@ counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 
 # 样式系统
 
-`style/style.json` 定义了 docx 输出的全部样式。它既可通过 `src/style/extract.ts` 从模板 docx 提取，也可手动维护。
+`config/style.json` 定义了 docx 输出的全部样式。它既可通过 `src/style/extract.ts` 从模板 docx 提取，也可手动维护。
 
-`src/style/generate.ts` 读取 `style/style.json`，用 `docx` 包生成空白模板 docx 到 `tmp/style/style.docx`。
+`src/style/generate.ts` 读取 `config/style.json`，用 `docx` 包生成空白模板 docx 到 `tmp/style/style.docx`。
 
 在调用 pandoc 生成最终 docx 时，自动以 `--reference-doc=tmp/style/style.docx` 传入，确保输出样式与配置一致。
 
@@ -520,6 +523,12 @@ counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 
 - `numberTables()` 必须在 `renderMermaid()` 之前（表格编号插入段落节点，与 mermaid 渲染无关）
 - `renderMermaid()` 必须在 `numberPictures()` 之前：mermaid 代码块被替换为图片节点后，`numberPictures()` 才能为它们编号
+
+# Pandoc Lua filter
+
+`config/lua/add-inline-code.lua` 是一个 pandoc Lua filter，用于将行内代码映射到 Inline Code 字符样式。
+
+pandoc 调用时自动以 `--lua-filter=config/lua/add-inline-code.lua` 传入。
 
 ---
 
