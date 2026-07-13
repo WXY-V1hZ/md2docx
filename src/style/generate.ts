@@ -8,7 +8,10 @@ import { STYLE_TEMPLATE_DOCX } from "../paths";
  *
  * @param styleJsonPath - 样式 JSON 文件路径（如 config/style.json）
  */
-export async function generateTemplateDocx(styleJsonPath: string): Promise<void> {
+export async function generateTemplateDocx(
+  styleJsonPath: string,
+  outputPath: string = STYLE_TEMPLATE_DOCX,
+): Promise<void> {
   const raw = JSON.parse(readFileSync(styleJsonPath, "utf-8")) as Record<string, unknown>;
   const tableStylesXml = raw.tableStylesXml as string | undefined;
   // 移除 tableStylesXml，docx 包不识别它
@@ -19,7 +22,7 @@ export async function generateTemplateDocx(styleJsonPath: string): Promise<void>
     sections: [],
   });
   const buf = await Packer.toBuffer(doc);
-  mkdirSync(dirname(STYLE_TEMPLATE_DOCX), { recursive: true });
+  mkdirSync(dirname(outputPath), { recursive: true });
 
   // 如果有表格样式 XML，注入到生成的 docx 中
   if (tableStylesXml) {
@@ -32,12 +35,12 @@ export async function generateTemplateDocx(styleJsonPath: string): Promise<void>
       const injectedXml = originalXml.replace("</w:styles>", tableStylesXml + "</w:styles>");
       zip.file("word/styles.xml", injectedXml);
       const modifiedBuf = zip.generate({ type: "nodebuffer" }) as Buffer;
-      await Bun.write(STYLE_TEMPLATE_DOCX, modifiedBuf);
+      await Bun.write(outputPath, modifiedBuf);
       return;
     }
   }
 
-  await Bun.write(STYLE_TEMPLATE_DOCX, buf);
+  await Bun.write(outputPath, buf);
 }
 
 let _generatePromise: Promise<void> | null = null;

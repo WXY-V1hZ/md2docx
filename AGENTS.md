@@ -71,6 +71,7 @@ bun check
 | `tmp/preprocess/`           | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
 | `tmp/style/`                | 样式提取与模板生成的中间产物。                                                      |
 | `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
+| `push.sh`                   | 发布脚本：npm version → git push → npm publish。                                    |
 | `test/`                     | 单元测试。                                                                          |
 
 ---
@@ -144,6 +145,9 @@ API 端点：
 
 - `GET /api/config` — 返回 `{ schema, config }`
 - `PUT /api/config` — 校验并保存配置
+- `GET /api/styles` — 返回 `{ styles, catalog, revision }`
+- `PUT /api/styles` — 校验并保存样式，重建 Word 模板
+- `POST /api/styles/preview` — 生成真实 DOCX 校样并下载
 - `GET /` — 返回 index.html
 - `GET /app.css` / `GET /app.js` — 静态文件
 
@@ -165,11 +169,14 @@ API 端点：
 
 ### app.js 关键函数
 
-- `renderForm()` — 遍历 schema 分组，渲染索引链接和表单字段
-- `createField()` — 根据 type（boolean/enum/string/integer）渲染对应控件
-- `enforceHeadingDependency()` — 前端实时约束：`numberHeadings.enabled` 开启时禁用 `normalizeHeadings.enabled` 开关
+- `apiFetch()` — 公共 fetch 封装，统一处理 JSON 请求与错误
+- `renderConfigForm()` — 遍历 schema 分组，渲染配置表单和索引链接
+- `createConfigField()` — 根据 type（boolean/enum/string/integer）渲染配置控件
+- `renderStyleIndex()` — 按分类渲染样式导航目录
+- `renderStyleEditor()` — 渲染选中样式的属性编辑面板
+- `enforceHeadingDependency()` — 前端实时约束：`numberHeadings.enabled` 开启时自动启用 `normalizeHeadings`
 - `updateView()` — 比较变更、更新按钮状态和状态栏
-- `countChanges()` — 逐字段比对 `originalConfig` 与 `currentConfig`
+- `updateProof()` — 将当前样式实时应用到预览面板
 
 ---
 
