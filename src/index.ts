@@ -16,7 +16,6 @@ import {
   preprocessDir,
 } from "./paths";
 import { preprocess } from "./preprocess/index";
-import { startWebEditor } from "./web";
 import { ensureTemplateDocx } from "./style/generate";
 
 async function cleanCache(): Promise<number> {
@@ -50,10 +49,6 @@ export async function run(args: string[]): Promise<number> {
     }
     if (cli.help) {
       console.log(formatHelp(configOptions));
-      return 0;
-    }
-    if (cli.web) {
-      await startWebEditor();
       return 0;
     }
 

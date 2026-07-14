@@ -53,8 +53,6 @@ bun check
 | --------------------------- | ----------------------------------------------------------------------------------- |
 | `src/index.ts`              | 入口点。读取 Markdown，执行预处理流水线，通过 pandoc 转换为 DOCX。                  |
 | `src/cli.ts`                | CLI 参数解析，schema 驱动的帮助生成、配置覆盖合并。                                 |
-| `src/web.ts`                | Web 配置编辑器服务端，Bun.serve + API，配置校验与持久化。                           |
-| `src/web/`                  | Web 前端静态文件（index.html, app.css, app.js）。                                   |
 | `src/preprocess/index.ts`   | 预处理流水线封装（preprocess），编排所有步骤。                                      |
 | `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
 | `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
@@ -126,57 +124,9 @@ bun run src/index.ts -h
 # 覆盖任意配置项
 bun run src/index.ts doc.md --figureCaption.enabled false
 
-# Web 配置编辑器
-bun run src/web.ts
-
 # 清除缓存
 bun run src/index.ts clean
 ```
-
-# Web 配置编辑器
-
-位于 `src/web.ts`（服务端）和 `src/web/`（前端静态文件）。
-
-## 服务端（`src/web.ts`）
-
-`createWebHandler()` 返回一个 `(request) => Response` 的 fetch 处理器，挂载在 Bun.serve 上。
-
-API 端点：
-
-- `GET /api/config` — 返回 `{ schema, config }`
-- `PUT /api/config` — 校验并保存配置
-- `GET /api/styles` — 返回 `{ styles, catalog, revision }`
-- `PUT /api/styles` — 校验并保存样式，重建 Word 模板
-- `POST /api/styles/preview` — 生成真实 DOCX 校样并下载
-- `GET /` — 返回 index.html
-- `GET /app.css` / `GET /app.js` — 静态文件
-
-`startWebEditor()` 启动服务并打开浏览器。
-
-### 服务端校验
-
-`validateWebConfig()` 遍历 schema 中所有配置项的**扁平列表**（`getConfigOptions` 生成），逐一校验类型、枚举、最小值，同时递归检查未知键。
-
-`enforceConfigDependencies()` 在保存时强制配置约束：`numberHeadings.enabled` 开启时自动启用 `normalizeHeadings`。
-
-## 前端（`src/web/`）
-
-| 文件         | 职责                                       |
-| ------------ | ------------------------------------------ |
-| `index.html` | 页面骨架：左侧索引 + 中间表单 + 底部操作栏 |
-| `app.css`    | 样式，含响应式断点（1120px / 560px）       |
-| `app.js`     | 动态渲染表单、变更追踪、保存/撤销          |
-
-### app.js 关键函数
-
-- `apiFetch()` — 公共 fetch 封装，统一处理 JSON 请求与错误
-- `renderConfigForm()` — 遍历 schema 分组，渲染配置表单和索引链接
-- `createConfigField()` — 根据 type（boolean/enum/string/integer）渲染配置控件
-- `renderStyleIndex()` — 按分类渲染样式导航目录
-- `renderStyleEditor()` — 渲染选中样式的属性编辑面板
-- `enforceHeadingDependency()` — 前端实时约束：`numberHeadings.enabled` 开启时自动启用 `normalizeHeadings`
-- `updateView()` — 比较变更、更新按钮状态和状态栏
-- `updateProof()` — 将当前样式实时应用到预览面板
 
 ---
 

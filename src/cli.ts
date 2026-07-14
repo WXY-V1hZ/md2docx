@@ -25,7 +25,6 @@ export interface ConfigOption {
 export interface CliOptions {
   help: boolean;
   version: boolean;
-  web: boolean;
   mdPath?: string;
   outputPath?: string;
   configPath?: string;
@@ -61,7 +60,7 @@ export function getConfigOptions(schema: SchemaNode): ConfigOption[] {
 
 export function parseCliArgs(args: string[], configOptions: ConfigOption[]): CliOptions {
   const optionsByName = new Map(configOptions.map((option) => [option.path, option]));
-  const result: CliOptions = { help: false, version: false, web: false, overrides: new Map() };
+  const result: CliOptions = { help: false, version: false, overrides: new Map() };
   const positional: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -72,10 +71,6 @@ export function parseCliArgs(args: string[], configOptions: ConfigOption[]): Cli
     }
     if (arg === "-v" || arg === "--version") {
       result.version = true;
-      continue;
-    }
-    if (arg === "--web") {
-      result.web = true;
       continue;
     }
     if (arg === "-o" || arg === "--config") {
@@ -102,7 +97,7 @@ export function parseCliArgs(args: string[], configOptions: ConfigOption[]): Cli
     positional.push(arg);
   }
 
-  if (!result.help && !result.version && !result.web) {
+  if (!result.help && !result.version) {
     if (positional.length === 0) throw new Error("缺少 Markdown 文件路径");
     if (positional.length > 1) throw new Error("只能指定一个 Markdown 文件路径");
     result.mdPath = positional[0];
@@ -137,7 +132,6 @@ export function formatHelp(configOptions: ConfigOption[]): string {
     "选项:",
     "  -o <path>                         输出 docx 路径",
     "  --config <path>                   配置文件路径，默认 config/config.json",
-    "  --web                             打开默认配置的网页编辑器",
     "  -v, --version                     显示版本号",
     "  -h, --help                        显示帮助",
     "",

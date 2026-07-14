@@ -52,12 +52,6 @@ describe("CLI 参数解析", () => {
     expect(parseCliArgs(["--help"], configOptions).help).toBe(true);
   });
 
-  it("网页模式不要求 Markdown 路径", () => {
-    const result = parseCliArgs(["--web"], configOptions);
-    expect(result.web).toBe(true);
-    expect(result.mdPath).toBeUndefined();
-  });
-
   it("拒绝未知参数", () => {
     expect(() => parseCliArgs(["report.md", "--unknown", "value"], configOptions)).toThrow(
       "未知参数：--unknown",
@@ -114,6 +108,5 @@ describe("CLI 配置处理", () => {
     expect(help).toContain("自动为图片编号（默认: true）");
     expect(help).toContain("--renderMermaid.density <integer>");
     expect(help).not.toContain("--no-figureCaption.enabled");
-    expect(help).toContain("--web");
   });
 });
