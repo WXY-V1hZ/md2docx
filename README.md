@@ -37,7 +37,7 @@
 
 ```bash
 npm install -g @v1hz/md2docx
-md2docx docs/example.md
+md2docx --file docs/example.md
 ```
 
 也可通过 `npx @v1hz/md2docx` 直接运行。
@@ -45,34 +45,54 @@ md2docx docs/example.md
 ## 快速开始
 
 ```bash
-# 处理 Markdown 并生成 Word 文档
-md2docx docs/example.md
+# 转换 Markdown 为 Word
+md2docx --file docs/example.md
 
-# 只预处理，不调用 pandoc
-md2docx docs/example.md --pandoc.enabled false
+# 使用自定义配置、样式和输出路径
+md2docx -f docs/example.md -c config.json -s style.json -o output/example.docx
 
-# 指定输出路径
-md2docx docs/example.md -o output/example.docx
+# 只执行 Markdown 预处理
+md2docx format --file docs/example.md
 
-# 打开 web 网页自定义配置
-md2docx --web
+# 导出可编辑的默认配置和样式
+md2docx export config
+md2docx export style
 
-# 使用自定义配置文件
-md2docx docs/example.md --config ./my-config.json
-
-# 清除缓存（预处理中间产物、样式模板等）
-md2docx clean
+# 从现有 Word 文档提取样式
+md2docx export style --file template.docx
 ```
+
+所有写文件命令默认拒绝覆盖已有文件。确认覆盖时传入 `--force`。
+不传入任何参数时显示顶层帮助，行为与 `md2docx --help` 相同。
+
+## CLI
+
+```text
+md2docx -f <markdown> [选项]
+md2docx format -f <markdown> [选项]
+md2docx export config [选项]
+md2docx export style [选项]
+```
+
+`--file` 在顶层转换和 `format` 命令中必填；在 `export style` 中可选，不提供时导出内置默认样式，提供 DOCX 时从该文档提取样式。
+
+| 参数                  | 说明                           |
+| --------------------- | ------------------------------ |
+| `-f, --file <path>`   | 输入文件                       |
+| `-c, --config <path>` | 自定义配置文件                 |
+| `-s, --style <path>`  | 自定义样式文件（仅 Word 转换） |
+| `-o, --output <path>` | 完整输出文件路径               |
+| `--force`             | 覆盖已有输出                   |
+| `-h, --help`          | 显示当前命令帮助               |
+| `-v, --version`       | 显示版本号                     |
+
+默认输出分别为 `<源文件名>.docx`、`<源文件名>_formatted.md`、`config.json` 和
+`style.json`。从 DOCX 提取样式时，默认输出 `<DOCX 文件名>_style.json`。
 
 ## 配置
 
-配置文件位于 `config/config.json`，通过 JSON Schema 提供 IDE 校验。
-
-所有配置项均可通过命令行覆盖：
-
-```bash
-md2docx docs/example.md --figureCaption.enabled false
-```
+配置文件位于 `config/config.json`，通过 JSON Schema 提供 IDE 校验。使用
+`md2docx export config` 导出副本，修改后通过 `--config` 指定；CLI 不提供单个配置项覆盖。
 
 | 配置项                           | 说明                                                         | 默认值                |
 | -------------------------------- | ------------------------------------------------------------ | --------------------- |
@@ -91,8 +111,6 @@ md2docx docs/example.md --figureCaption.enabled false
 | `renderMermaid.enabled`          | 渲染 Mermaid 图表为 PNG                                      | `true`                |
 | `renderMermaid.theme`            | 图表主题                                                     | `"tokyo-night-light"` |
 | `renderMermaid.density`          | 图片清晰度（DPI，最小 72）                                   | `200`                 |
-| `pandoc.enabled`                 | 生成 Word 文档                                               | `true`                |
-| `pandoc.outputName`              | 输出文件名，`{file_name}` 代表源文件名                       | `"{file_name}.docx"`  |
 
 ## 样式定制
 
@@ -103,7 +121,7 @@ md2docx docs/example.md --figureCaption.enabled false
 如果你有一个排版精美的 docx 模板，可以提取其样式：
 
 ```bash
-bun run src/style/extract.ts
+md2docx export style --file template.docx
 ```
 
 提取后修改 `config/style.json`，转换时会自动使用这些样式生成输出文档。
@@ -155,7 +173,7 @@ pandoc → DOCX         ← 以 --reference-doc 传入样式模板
 git clone https://github.com/WXY-V1hZ/md2docx.git
 cd md2docx
 bun install
-bun run src/index.ts docs/example.md
+bun run src/index.ts --file docs/example.md
 ```
 
 ### 命令
@@ -167,8 +185,8 @@ bun test
 # 类型检查 + 代码检查 + 格式检查
 bun check
 
-# 清除缓存
-bun run src/index.ts clean
+# 查看 CLI 帮助
+bun run src/index.ts --help
 ```
 
 ## 许可

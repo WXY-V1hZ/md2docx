@@ -30,5 +30,7 @@ export const STYLE_DIR = `${TMP_DIR}/style`;
 /** 样式配置文件（相对于包安装目录），用户维护的样式定义 */
 export const STYLE_CONFIG = resolve(PKG_DIR, "config/style.json");
 
-/** 生成的模板 docx 文件路径 */
-export const STYLE_TEMPLATE_DOCX = `${STYLE_DIR}/style.docx`;
+/** 根据样式内容哈希生成模板 docx 缓存路径 */
+export function styleTemplateDocx(hash: string): string {
+  return `${STYLE_DIR}/${hash}.docx`;
+}

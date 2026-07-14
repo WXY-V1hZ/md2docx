@@ -1,112 +1,154 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "fs";
+import { Command, CommanderError } from "commander";
 
-import { applyConfigOverrides, formatHelp, getConfigOptions, parseCliArgs } from "../src/cli";
-import { type AppConfig } from "../src/config";
-import { CONFIG_PATH, CONFIG_SCHEMA_PATH } from "../src/paths";
+import {
+  type CliActions,
+  type ConvertOptions,
+  type ExportConfigOptions,
+  type ExportStyleOptions,
+  type FormatOptions,
+  createProgram,
+} from "../src/cli";
 
-const schema = JSON.parse(readFileSync(CONFIG_SCHEMA_PATH, "utf-8"));
-const configOptions = getConfigOptions(schema);
+interface Calls {
+  convert: ConvertOptions[];
+  format: FormatOptions[];
+  exportConfig: ExportConfigOptions[];
+  exportStyle: ExportStyleOptions[];
+}
 
-describe("CLI 参数解析", () => {
-  it("解析最简调用", () => {
-    const result = parseCliArgs(["report.md"], configOptions);
-    expect(result.mdPath).toBe("report.md");
-    expect(result.overrides.size).toBe(0);
-  });
+function setup() {
+  const calls: Calls = { convert: [], format: [], exportConfig: [], exportStyle: [] };
+  const output: string[] = [];
+  const actions: CliActions = {
+    convert: async (options) => void calls.convert.push(options),
+    format: async (options) => void calls.format.push(options),
+    exportConfig: async (options) => void calls.exportConfig.push(options),
+    exportStyle: async (options) => void calls.exportStyle.push(options),
+  };
+  const program = createProgram("1.2.3", actions);
+  function configure(command: Command): void {
+    command.exitOverride();
+    command.configureOutput({
+      writeOut: (text) => void output.push(text),
+      writeErr: (text) => void output.push(text),
+    });
+    for (const child of command.commands) configure(child);
+  }
+  configure(program);
+  return { program, calls, output };
+}
 
-  it("解析固定参数和多种配置覆盖", () => {
-    const result = parseCliArgs(
-      [
-        "report.md",
-        "-o",
-        "out/report.docx",
-        "--config",
-        "custom.json",
-        "--renderMermaid.density",
-        "300",
-        "--figureCaption.enabled",
-        "false",
-        "--detectTitle.strategy",
-        "filename",
-      ],
-      configOptions,
+describe("CLI 命令解析", () => {
+  it("解析顶层转换参数", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(
+      ["-f", "report.md", "-c", "config.json", "-s", "style.json", "-o", "report.docx", "--force"],
+      { from: "user" },
     );
 
-    expect(result.outputPath).toBe("out/report.docx");
-    expect(result.configPath).toBe("custom.json");
-    expect(result.overrides.get("renderMermaid.density")).toBe(300);
-    expect(result.overrides.get("figureCaption.enabled")).toBe(false);
-    expect(result.overrides.get("detectTitle.strategy")).toBe("filename");
-  });
-
-  it("重复配置参数以后一个为准", () => {
-    const result = parseCliArgs(
-      ["report.md", "--renderMermaid.density", "200", "--renderMermaid.density", "400"],
-      configOptions,
-    );
-    expect(result.overrides.get("renderMermaid.density")).toBe(400);
-  });
-
-  it("帮助模式不要求 Markdown 路径", () => {
-    expect(parseCliArgs(["--help"], configOptions).help).toBe(true);
-  });
-
-  it("拒绝未知参数", () => {
-    expect(() => parseCliArgs(["report.md", "--unknown", "value"], configOptions)).toThrow(
-      "未知参数：--unknown",
-    );
-  });
-
-  it("拒绝缺少参数值", () => {
-    expect(() => parseCliArgs(["report.md", "--renderMermaid.theme"], configOptions)).toThrow(
-      "--renderMermaid.theme 缺少值",
-    );
-  });
-
-  it("拒绝错误的 boolean 值", () => {
-    expect(() =>
-      parseCliArgs(["report.md", "--figureCaption.enabled", "yes"], configOptions),
-    ).toThrow("需要 boolean");
-  });
-
-  it("拒绝不符合 schema 的整数和枚举", () => {
-    expect(() =>
-      parseCliArgs(["report.md", "--renderMermaid.density", "71"], configOptions),
-    ).toThrow("不能小于 72");
-    expect(() =>
-      parseCliArgs(["report.md", "--detectTitle.strategy", "invalid"], configOptions),
-    ).toThrow("必须是以下值之一");
-  });
-
-  it("拒绝缺少或多余的位置参数", () => {
-    expect(() => parseCliArgs([], configOptions)).toThrow("缺少 Markdown 文件路径");
-    expect(() => parseCliArgs(["one.md", "two.md"], configOptions)).toThrow(
-      "只能指定一个 Markdown 文件路径",
-    );
-  });
-});
-
-describe("CLI 配置处理", () => {
-  it("只覆盖目标配置并保留相邻字段", () => {
-    const config = JSON.parse(readFileSync(CONFIG_PATH, "utf-8")) as AppConfig;
-    const overrides = new Map<string, unknown>([
-      ["figureCaption.enabled", false],
-      ["renderMermaid.density", 300],
+    expect(calls.convert).toEqual([
+      {
+        file: "report.md",
+        config: "config.json",
+        style: "style.json",
+        output: "report.docx",
+        force: true,
+      },
     ]);
-    const result = applyConfigOverrides(config, overrides);
-
-    expect(result.figureCaption.enabled).toBe(false);
-    expect(result.figureCaption.format).toBe(config.figureCaption.format);
-    expect(result.renderMermaid.density).toBe(300);
-    expect(config.figureCaption.enabled).toBe(true);
   });
 
-  it("从 schema 生成配置帮助", () => {
-    const help = formatHelp(configOptions);
-    expect(help).toContain("--figureCaption.enabled <boolean>");
-    expect(help).toContain("自动为图片编号（默认: true）");
-    expect(help).toContain("--renderMermaid.density <integer>");
-    expect(help).not.toContain("--no-figureCaption.enabled");
+  it("解析 format 子命令", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(
+      ["format", "--file", "report.md", "--config", "config.json", "--force"],
+      { from: "user" },
+    );
+
+    expect(calls.format).toEqual([{ file: "report.md", config: "config.json", force: true }]);
+  });
+
+  it("解析 export config 子命令", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(["export", "config", "-o", "custom.json", "--force"], {
+      from: "user",
+    });
+
+    expect(calls.exportConfig).toEqual([{ output: "custom.json", force: true }]);
+  });
+
+  it("解析 export style 的可选 DOCX 文件", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(
+      ["export", "style", "--file", "template.docx", "--output", "style.json"],
+      { from: "user" },
+    );
+
+    expect(calls.exportStyle).toEqual([{ file: "template.docx", output: "style.json" }]);
+  });
+
+  it("无参数时显示顶层帮助", async () => {
+    const { program, output } = setup();
+    try {
+      await program.parseAsync([], { from: "user" });
+    } catch (error) {
+      expect(error).toBeInstanceOf(CommanderError);
+      expect((error as CommanderError).code).toBe("commander.help");
+      expect((error as CommanderError).exitCode).toBe(0);
+    }
+    expect(output.join("")).toContain("Usage: md2docx");
+  });
+
+  it("format 缺少 --file 时失败", async () => {
+    const { program } = setup();
+    expect(program.parseAsync(["format"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingMandatoryOptionValue",
+    });
+  });
+
+  it("拒绝旧版动态配置参数", async () => {
+    const { program } = setup();
+    expect(
+      program.parseAsync(["-f", "report.md", "--figureCaption.enabled", "false"], {
+        from: "user",
+      }),
+    ).rejects.toMatchObject({ code: "commander.unknownOption" });
+  });
+
+  it("拒绝旧版 Markdown 位置参数", async () => {
+    const { program } = setup();
+    expect(program.parseAsync(["report.md"], { from: "user" })).rejects.toThrow(
+      "too many arguments",
+    );
+  });
+
+  it("各层级均提供帮助", async () => {
+    for (const args of [
+      ["--help"],
+      ["export", "--help"],
+      ["export", "config", "--help"],
+      ["export", "style", "--help"],
+      ["format", "--help"],
+    ]) {
+      const { program, output } = setup();
+      try {
+        await program.parseAsync(args, { from: "user" });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CommanderError);
+        expect((error as CommanderError).code).toBe("commander.helpDisplayed");
+      }
+      expect(output.join("")).toContain("Usage:");
+    }
+  });
+
+  it("显示版本号", async () => {
+    const { program, output } = setup();
+    try {
+      await program.parseAsync(["--version"], { from: "user" });
+    } catch (error) {
+      expect(error).toBeInstanceOf(CommanderError);
+      expect((error as CommanderError).code).toBe("commander.version");
+    }
+    expect(output.join("")).toContain("1.2.3");
   });
 });

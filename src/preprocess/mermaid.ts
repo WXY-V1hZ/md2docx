@@ -4,7 +4,13 @@ import { join } from "path";
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 import sharp from "sharp";
 
-export async function renderMermaid(root: Root, outDir: string, theme: string, density: number) {
+export async function renderMermaid(
+  root: Root,
+  outDir: string,
+  theme: string,
+  density: number,
+  assetUrlDir: string = outDir,
+) {
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }
@@ -17,7 +23,8 @@ export async function renderMermaid(root: Root, outDir: string, theme: string, d
     if (child?.type !== "code" || child.lang !== "mermaid") continue;
 
     counter++;
-    const pngFile = join(outDir, `mermaid_${counter}.png`);
+    const fileName = `mermaid_${counter}.png`;
+    const pngFile = join(outDir, fileName);
     const title = getMermaidTitle(child.meta);
 
     try {
@@ -39,7 +46,7 @@ export async function renderMermaid(root: Root, outDir: string, theme: string, d
       children: [
         {
           type: "image",
-          url: pngFile,
+          url: join(assetUrlDir, fileName).replaceAll("\\", "/"),
           title: title ?? undefined,
           alt: title ?? "",
         },

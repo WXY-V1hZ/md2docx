@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { DOMParser } from "@xmldom/xmldom";
 import { useNamespaces } from "xpath";
 import PizZip from "pizzip";
@@ -642,12 +642,4 @@ export function extractStylesFromDocx(docxPath: string): ExtractedStyles {
   if (tableXmlFragments) result.tableStylesXml = tableXmlFragments;
 
   return result;
-}
-
-if (import.meta.main) {
-  const result = extractStylesFromDocx("test.docx");
-  writeFileSync("config/style.json", JSON.stringify(result, null, 2));
-  console.log(
-    `Extracted ${result.paragraphStyles?.length ?? 0} paragraph, ${result.characterStyles?.length ?? 0} character, ${result.tableStyles?.length ?? 0} table styles`,
-  );
 }

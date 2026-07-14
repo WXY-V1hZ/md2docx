@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config.schema.json",
+  "$id": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/config.schema.json",
   "title": "md2docx 配置",
   "description": "md2docx 默认设置",
   "type": "object",
@@ -117,24 +117,6 @@
       },
       "required": ["enabled", "theme", "density"]
     },
-    "pandoc": {
-      "description": "Word 导出",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "description": "生成 Word 文档",
-          "type": "boolean",
-          "default": true
-        },
-        "outputName": {
-          "description": "输出文件名，{file_name} 代表源文件名",
-          "type": "string",
-          "default": "{file_name}.docx"
-        }
-      },
-      "required": ["enabled", "outputName"]
-    },
     "detectTitle": {
       "description": "文档标题",
       "type": "object",
@@ -167,7 +149,6 @@
     "normalizeHeadings",
     "numberHeadings",
     "renderMermaid",
-    "detectTitle",
-    "pandoc"
+    "detectTitle"
   ]
 }

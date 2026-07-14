@@ -11,7 +11,12 @@ import { addTitle, normalizeHeadings, numberHeadings } from "./title";
 import { numberTables, numberPictures } from "./caption";
 import { renderMermaid } from "./mermaid";
 
-export async function preprocess(mdPath: string, cfg: AppConfig, outDir: string): Promise<string> {
+export async function preprocess(
+  mdPath: string,
+  cfg: AppConfig,
+  outDir: string,
+  assetUrlDir: string = outDir,
+): Promise<string> {
   const md = await Bun.file(mdPath).text();
 
   const processor = unified()
@@ -39,7 +44,13 @@ export async function preprocess(mdPath: string, cfg: AppConfig, outDir: string)
     numberTables(ast, cfg);
   }
   if (cfg.renderMermaid.enabled) {
-    await renderMermaid(ast, outDir, cfg.renderMermaid.theme, cfg.renderMermaid.density);
+    await renderMermaid(
+      ast,
+      outDir,
+      cfg.renderMermaid.theme,
+      cfg.renderMermaid.density,
+      assetUrlDir,
+    );
   }
   if (cfg.figureCaption.enabled) {
     numberPictures(ast, cfg);

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-此文件为 Claude Code 在本仓库中工作时提供指导。
+此文件为 Coding Agent 在本仓库中工作时提供指导。
 
 ---
 
@@ -29,7 +29,7 @@ bun test --watch          # 监视模式
 
 bun check                 # 类型检查 (tsc --noEmit) + 代码检查 (oxlint) + 格式检查 (oxfmt)
 
-bun run index.ts          # 处理 base.md，输出 base_formatted.md
+bun run src/index.ts -f base.md # 将 base.md 转换为 base.docx
 bun add <package>         # 安装依赖
 ```
 
@@ -52,7 +52,8 @@ bun check
 | 文件 / 目录                 | 职责                                                                                |
 | --------------------------- | ----------------------------------------------------------------------------------- |
 | `src/index.ts`              | 入口点。读取 Markdown，执行预处理流水线，通过 pandoc 转换为 DOCX。                  |
-| `src/cli.ts`                | CLI 参数解析，schema 驱动的帮助生成、配置覆盖合并。                                 |
+| `src/cli.ts`                | 基于 Commander 的 CLI 命令树、参数与帮助定义。                                      |
+| `src/commands/`             | 转换、格式化与配置/样式导出命令的执行逻辑。                                         |
 | `src/preprocess/index.ts`   | 预处理流水线封装（preprocess），编排所有步骤。                                      |
 | `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
 | `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
@@ -112,20 +113,39 @@ pandoc → DOCX
 
 # CLI
 
-`src/cli.ts` 从 `config/config.schema.json` 自动生成所有 CLI 参数，无需手动维护参数列表。
-
 ```bash
-# 基本用法
-bun run src/index.ts <md-path>
+# 转换为 DOCX
+bun run src/index.ts --file <md-path>
+
+# 只格式化 Markdown
+bun run src/index.ts format --file <md-path>
+
+# 导出默认配置或样式
+bun run src/index.ts export config
+bun run src/index.ts export style
 
 # 查看帮助
 bun run src/index.ts -h
 
-# 覆盖任意配置项
-bun run src/index.ts doc.md --figureCaption.enabled false
+# 使用自定义配置和样式
+bun run src/index.ts -f doc.md -c config.json -s style.json
 
-# 清除缓存
-bun run src/index.ts clean
+# 覆盖已有输出
+bun run src/index.ts -f doc.md --force
+```
+
+CLI 不支持单个配置项覆盖。配置应导出为 JSON、直接编辑，并通过 `--config` 指定。
+
+顶层转换和 `format` 的 `--file` 必填；`export style` 的 `--file` 可选。CLI 无参数运行时显示顶层帮助并以状态码 0 退出。所有写文件命令默认拒绝覆盖已有文件，只有显式传入 `--force` 才允许覆盖。
+
+默认输出规则：
+
+```text
+md2docx -f report.md                  → ./report.docx
+md2docx format -f report.md           → ./report_formatted.md
+md2docx export config                 → ./config.json
+md2docx export style                  → ./style.json
+md2docx export style -f template.docx → ./template_style.json
 ```
 
 ---
@@ -465,11 +485,11 @@ counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 
 # 样式系统
 
-`config/style.json` 定义了 docx 输出的全部样式。它既可通过 `src/style/extract.ts` 从模板 docx 提取，也可手动维护。
+`config/style.json` 定义了 docx 输出的全部样式。它既可通过 `md2docx export style --file <docx>` 从模板 docx 提取，也可手动维护。
 
-`src/style/generate.ts` 读取 `config/style.json`，用 `docx` 包生成空白模板 docx 到 `tmp/style/style.docx`。
+`src/style/generate.ts` 读取 `config/style.json`，用 `docx` 包生成空白模板 docx。
 
-在调用 pandoc 生成最终 docx 时，自动以 `--reference-doc=tmp/style/style.docx` 传入，确保输出样式与配置一致。
+模板按照样式内容哈希缓存到 `tmp/style/`。调用 pandoc 时自动作为 reference docx 传入，确保不同样式不会复用错误缓存。
 
 ## 样式继承陷阱
 

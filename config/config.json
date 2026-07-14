@@ -1,5 +1,5 @@
 {
-  "$schema": "./config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/config.schema.json",
   "figureCaption": {
     "enabled": true,
     "format": "图 {n}",
@@ -26,9 +26,5 @@
   "detectTitle": {
     "enabled": true,
     "strategy": "first-h1"
-  },
-  "pandoc": {
-    "enabled": true,
-    "outputName": "{file_name}.docx"
   }
 }

@@ -1,7 +1,8 @@
 import { readFileSync, mkdirSync } from "fs";
+import { createHash } from "node:crypto";
 import { Document, Packer } from "docx";
 import { dirname } from "path";
-import { STYLE_TEMPLATE_DOCX } from "../paths";
+import { styleTemplateDocx } from "../paths";
 
 /**
  * 根据样式 JSON 文件生成模板 docx。
@@ -10,7 +11,7 @@ import { STYLE_TEMPLATE_DOCX } from "../paths";
  */
 export async function generateTemplateDocx(
   styleJsonPath: string,
-  outputPath: string = STYLE_TEMPLATE_DOCX,
+  outputPath: string,
 ): Promise<void> {
   const raw = JSON.parse(readFileSync(styleJsonPath, "utf-8")) as Record<string, unknown>;
   const tableStylesXml = raw.tableStylesXml as string | undefined;
@@ -43,7 +44,7 @@ export async function generateTemplateDocx(
   await Bun.write(outputPath, buf);
 }
 
-let _generatePromise: Promise<void> | null = null;
+const generatePromises = new Map<string, Promise<void>>();
 
 /**
  * 获取模板 docx 路径。如果模板不存在，则自动生成。
@@ -51,15 +52,20 @@ let _generatePromise: Promise<void> | null = null;
  * @param styleJsonPath - 样式 JSON 文件路径（如 config/style.json）
  */
 export async function ensureTemplateDocx(styleJsonPath: string): Promise<string> {
-  const exists = await Bun.file(STYLE_TEMPLATE_DOCX).exists();
+  const raw = readFileSync(styleJsonPath);
+  const hash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
+  const outputPath = styleTemplateDocx(hash);
+  const exists = await Bun.file(outputPath).exists();
   if (!exists) {
-    if (_generatePromise === null) {
-      _generatePromise = generateTemplateDocx(styleJsonPath).catch((e) => {
-        _generatePromise = null;
-        throw e;
+    let promise = generatePromises.get(outputPath);
+    if (!promise) {
+      promise = generateTemplateDocx(styleJsonPath, outputPath).catch((error) => {
+        generatePromises.delete(outputPath);
+        throw error;
       });
+      generatePromises.set(outputPath, promise);
     }
-    await _generatePromise;
+    await promise;
   }
-  return STYLE_TEMPLATE_DOCX;
+  return outputPath;
 }
