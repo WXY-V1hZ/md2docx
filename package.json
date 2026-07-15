@@ -1,6 +1,6 @@
 {
   "name": "@v1hz/md2docx",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "基于 pandoc 的 Markdown 转 Word 工具，自动格式化 Markdown，支持自定义样式，AI 友好，用户友好。",
   "keywords": [
     "converter",
