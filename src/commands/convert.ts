@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../cli";
@@ -31,20 +32,31 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const templatePath = await ensureTemplateDocx(stylePath);
   const luaFilter = resolve(PKG_DIR, "config/lua/add-inline-code.lua");
   const pandocArgs = [
-    "pandoc",
     markdownOutput,
     "-o",
     output,
     `--reference-doc=${templatePath}`,
     ...(existsSync(luaFilter) ? [`--lua-filter=${luaFilter}`] : []),
   ];
-  const process = Bun.spawn(pandocArgs, { stdout: "pipe", stderr: "pipe" });
-  const [exitCode, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stderr).text(),
-  ]);
+  const { exitCode, stderr } = await runProcess("pandoc", pandocArgs);
   if (exitCode !== 0) {
     throw new Error(`pandoc 转换失败 (exit code ${exitCode})：${stderr.trim()}`);
   }
   console.log(`已生成：${output}`);
+}
+
+function runProcess(
+  command: string,
+  args: string[],
+): Promise<{ exitCode: number; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
+    let stderr = "";
+    child.stderr.setEncoding("utf-8");
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.once("error", reject);
+    child.once("close", (exitCode) => resolve({ exitCode: exitCode ?? 1, stderr }));
+  });
 }

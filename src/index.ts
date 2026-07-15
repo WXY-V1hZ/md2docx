@@ -1,6 +1,10 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { CommanderError } from "commander";
+import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createProgram } from "./cli";
 import { convertMarkdown } from "./commands/convert";
@@ -9,7 +13,9 @@ import { formatMarkdown } from "./commands/format";
 import { PKG_DIR } from "./paths";
 
 export async function run(args: string[]): Promise<number> {
-  const { version } = (await Bun.file(`${PKG_DIR}/package.json`).json()) as { version: string };
+  const { version } = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf-8")) as {
+    version: string;
+  };
   const program = createProgram(version, {
     convert: convertMarkdown,
     format: formatMarkdown,
@@ -30,6 +36,7 @@ export async function run(args: string[]): Promise<number> {
   }
 }
 
-if (import.meta.main) {
-  process.exitCode = await run(Bun.argv.slice(2));
+const entryPath = process.argv[1];
+if (entryPath && realpathSync(entryPath) === realpathSync(fileURLToPath(import.meta.url))) {
+  process.exitCode = await run(process.argv.slice(2));
 }

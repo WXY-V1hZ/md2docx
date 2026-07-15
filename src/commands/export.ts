@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { copyFile } from "node:fs/promises";
 import { parse } from "node:path";
 
 import { type ExportConfigOptions, type ExportStyleOptions } from "../cli";
@@ -9,7 +10,7 @@ import { extractStylesFromDocx } from "../style/extract";
 export async function exportConfig(options: ExportConfigOptions): Promise<void> {
   const output = resolveOutputPath(options.output, "config.json", [".json"], "配置输出文件");
   prepareOutput(output, options.force ?? false);
-  await Bun.write(output, Bun.file(CONFIG_PATH));
+  await copyFile(CONFIG_PATH, output);
   console.log(`已导出配置：${output}`);
 }
 

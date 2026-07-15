@@ -1,3 +1,5 @@
+import { access, readFile } from "node:fs/promises";
+
 export interface CaptionStyle {
   enabled: boolean;
   format: string;
@@ -38,11 +40,14 @@ export interface AppConfig {
 }
 
 export async function loadConfig(path: string): Promise<AppConfig> {
-  const exists = await Bun.file(path).exists();
-  if (!exists) throw new Error(`找不到配置文件：${path}`);
+  try {
+    await access(path);
+  } catch {
+    throw new Error(`找不到配置文件：${path}`);
+  }
   let raw: unknown;
   try {
-    raw = JSON.parse(await Bun.file(path).text());
+    raw = JSON.parse(await readFile(path, "utf-8"));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`配置文件不是有效的 JSON：${path}\n${message}`);

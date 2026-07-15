@@ -1,6 +1,7 @@
-import { resolve } from "path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const PKG_DIR = resolve(import.meta.dir, "..");
+const PKG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** 包根目录 */
 export { PKG_DIR };

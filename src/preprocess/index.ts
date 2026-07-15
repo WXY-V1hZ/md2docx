@@ -1,4 +1,5 @@
 import { type Heading } from "mdast";
+import { readFile } from "node:fs/promises";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
@@ -17,7 +18,7 @@ export async function preprocess(
   outDir: string,
   assetUrlDir: string = outDir,
 ): Promise<string> {
-  const md = await Bun.file(mdPath).text();
+  const md = await readFile(mdPath, "utf-8");
 
   const processor = unified()
     .use(remarkParse)

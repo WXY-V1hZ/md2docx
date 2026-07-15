@@ -1,4 +1,5 @@
-import { readFileSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { Document, Packer } from "docx";
 import { dirname } from "path";
@@ -36,12 +37,12 @@ export async function generateTemplateDocx(
       const injectedXml = originalXml.replace("</w:styles>", tableStylesXml + "</w:styles>");
       zip.file("word/styles.xml", injectedXml);
       const modifiedBuf = zip.generate({ type: "nodebuffer" }) as Buffer;
-      await Bun.write(outputPath, modifiedBuf);
+      await writeFile(outputPath, modifiedBuf);
       return;
     }
   }
 
-  await Bun.write(outputPath, buf);
+  await writeFile(outputPath, buf);
 }
 
 const generatePromises = new Map<string, Promise<void>>();
@@ -55,8 +56,7 @@ export async function ensureTemplateDocx(styleJsonPath: string): Promise<string>
   const raw = readFileSync(styleJsonPath);
   const hash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
   const outputPath = styleTemplateDocx(hash);
-  const exists = await Bun.file(outputPath).exists();
-  if (!exists) {
+  if (!existsSync(outputPath)) {
     let promise = generatePromises.get(outputPath);
     if (!promise) {
       promise = generateTemplateDocx(styleJsonPath, outputPath).catch((error) => {

@@ -33,7 +33,7 @@
 
 ## 安装
 
-**前置依赖**：[Bun](https://bun.sh) | [Pandoc](https://pandoc.org)
+**前置依赖**：[Node.js 22.12+](https://nodejs.org) | [Pandoc](https://pandoc.org)
 
 ```bash
 npm install -g @v1hz/md2docx
@@ -168,6 +168,8 @@ pandoc → DOCX         ← 以 --reference-doc 传入样式模板
 ## 开发
 
 ### 从源码运行
+
+从源码开发需要安装 Bun；发布后的 CLI 使用 Node.js 运行，不依赖 Bun。
 
 ```bash
 git clone https://github.com/WXY-V1hZ/md2docx.git
