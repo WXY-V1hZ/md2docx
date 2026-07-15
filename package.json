@@ -25,10 +25,7 @@
   },
   "files": [
     "dist",
-    "config/config.json",
-    "config/config.schema.json",
-    "config/style.json",
-    "config/lua",
+    "config",
     "README.md",
     "LICENSE"
   ],

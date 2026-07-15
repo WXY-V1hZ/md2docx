@@ -1,87 +1,243 @@
 # AGENTS.md
 
-此文件为 Coding Agent 在本仓库中工作时提供指导。
+本文档是 Coding Agent 在本仓库中工作的实现指南。它描述当前行为、架构约束、测试要求和发布边界。文档中的“规划”不等于已实现功能；修改用户可见行为时必须同步更新本文件与 `README.md`。
 
 ---
 
-# 项目
+# 项目概览
 
-**md2docx** 是一个基于 pandoc 的 Markdown 转 Word (.docx) 工具，在转换前执行 AST 变换以提升文档输出质量。
+**md2docx** 是一个基于 Pandoc 的 Markdown → Word（DOCX）CLI。程序先解析 Markdown AST，执行结构化预处理，再生成 Pandoc reference DOCX，最后调用 Pandoc 输出文档。
 
 当前预处理包括：
 
-- 提取 YAML frontmatter 标题
+- 从 YAML frontmatter、H1 或文件名确定文档标题
 - 规范化标题层级
-- 为标题编号
-- 为图片编号
-- 为表格编号
-- 将 Mermaid 图表渲染为 PNG
+- 为标题添加多级编号
+- 为表格添加题注
+- 将 Mermaid 渲染为 PNG
+- 为独立图片添加题注
 
-最终生成的 Markdown 将通过 pandoc 转换为 DOCX。
+当前有两种构建产物：
+
+| 产物           | 运行时                                            | Pandoc                    |
+| -------------- | ------------------------------------------------- | ------------------------- |
+| npm CLI        | Node.js 22.12+                                    | 外部安装，必须位于 `PATH` |
+| 平台单文件程序 | 内置 Bun、项目代码、配置、样式、Lua 和 resvg WASM | 外部安装，必须位于 `PATH` |
+
+单文件程序不依赖 Node.js、Bun 或 Sharp，但当前并非完全零依赖程序。便携 ZIP 捆绑 Pandoc 仍是规划，尚未实现。
 
 ---
 
-# 开发命令
+# 必须遵守的工作流
 
-```bash
-bun test                  # 运行所有测试
-bun test --watch          # 监视模式
+实施变更时：
 
-bun check                 # 类型检查 (tsc --noEmit) + 代码检查 (oxlint) + 格式检查 (oxfmt)
-bun run build             # 构建 npm 使用的 Node.js 版本
-bun run build:exe         # 构建当前平台的单文件可执行程序
+1. 阅读相关实现、测试、README 和本文件。
+2. 只修改任务需要的代码，不重构无关模块。
+3. 更新或添加测试，覆盖正常路径和边界情况。
+4. 运行 `bun test`。
+5. 运行 `bun check`。
+6. 使用 `git status`、`git diff` 和 `git diff --check` 审查结果。
+7. 向用户展示修改并等待审核。
 
-bun run src/index.ts -f base.md # 将 base.md 转换为 base.docx
-bun add <package>         # 安装依赖
-```
-
-- **oxlint** 配置在 `.oxlintrc.json`（`correctness: error`，插件：typescript/unicorn/oxc）
-- **oxfmt** 配置在 `.oxfmtrc.json`
-
-提交前必须两个命令都通过：
+提交前必须通过：
 
 ```bash
 bun test
 bun check
 ```
 
-**提交须经用户审核**：在提交 git 之前，必须将修改内容展示给用户审核，经用户确认后方可提交。不要擅自提交。
+**禁止擅自提交。** 用户明确审核并同意之前，不得执行 git commit。不得覆盖、回滚或整理用户已有的暂存及未暂存修改。
+
+---
+
+# 开发命令
+
+```bash
+bun install
+
+bun test                         # 运行全部测试
+bun test --watch                 # 监视模式
+bun check                        # tsc + oxlint + oxfmt
+
+bun run src/index.ts report.md   # 从源码转换
+bun run src/index.ts -f report.md --force
+bun run src/index.ts format -f report.md
+
+bun run build                    # npm/Node 构建
+bun run build:exe                # 当前平台单文件构建
+```
+
+工具配置：
+
+- TypeScript 严格模式：`tsconfig.json`
+- oxlint：`.oxlintrc.json`
+- oxfmt：`.oxfmtrc.json`
+- 包管理与运行时：Bun
+
+`build` 和 `build:exe` 都会先运行 `clean:dist`，两种产物不会同时保留在 `dist/`。
 
 ---
 
 # 项目结构
 
-| 文件 / 目录                 | 职责                                                                                |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `src/index.ts`              | 入口点。读取 Markdown，执行预处理流水线，通过 pandoc 转换为 DOCX。                  |
-| `src/cli.ts`                | 基于 Commander 的 CLI 命令树、参数与帮助定义。                                      |
-| `src/commands/`             | 转换、格式化与配置/样式导出命令的执行逻辑。                                         |
-| `src/preprocess/index.ts`   | 预处理流水线封装（preprocess），编排所有步骤。                                      |
-| `src/preprocess/title.ts`   | 标题提取（addTitle）、标题归一化（normalizeHeadings）、标题编号（numberHeadings）。 |
-| `src/preprocess/caption.ts` | 表格编号（numberTables）、图片编号（numberPictures）。                              |
-| `src/preprocess/mermaid.ts` | Mermaid → PNG 渲染（renderMermaid）及 SVG CSS 变量内联。                            |
-| `src/style/extract.ts`      | 从 docx 提取样式配置为 JSON。                                                       |
-| `src/style/generate.ts`     | 根据 style.json 用 docx 包生成 pandoc 模板 docx。                                   |
-| `src/config.ts`             | 配置类型定义（AppConfig）与 loadConfig 加载函数。                                   |
-| `src/paths.ts`              | 路径常量统一管理。                                                                  |
-| `config/config.json`        | 用户配置文件。                                                                      |
-| `config/config.schema.json` | JSON Schema，为 config.json 提供 IDE 校验。                                         |
-| `config/style.json`         | 样式配置（从模板 docx 提取或手动维护），驱动模板 docx 生成。                        |
-| `config/lua/`               | pandoc Lua filter，用于行内代码样式映射等。                                         |
-| `docs/example.md`           | 全面的 Markdown 测试文档。                                                          |
-| `~/.md2docx/preprocess/`    | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
-| `~/.md2docx/style/`         | 样式提取与模板生成的中间产物。                                                      |
-| `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
-| `push.sh`                   | 发布脚本：npm version → git push → npm publish。                                    |
-| `test/`                     | 单元测试。                                                                          |
+| 文件 / 目录                              | 职责                                                    |
+| ---------------------------------------- | ------------------------------------------------------- |
+| `src/index.ts`                           | 入口、版本读取、CLI action 绑定和主模块检测             |
+| `src/cli.ts`                             | Commander 命令树、参数、帮助与位置参数规则              |
+| `src/commands/convert.ts`                | 完整 Markdown → DOCX 流程和 Pandoc 子进程调用           |
+| `src/commands/format.ts`                 | 只执行 Markdown 预处理并写出 Markdown                   |
+| `src/commands/export.ts`                 | 导出内置配置/样式，或从 DOCX 提取样式                   |
+| `src/commands/clean.ts`                  | 安全删除 `~/.md2docx/`                                  |
+| `src/preprocess/index.ts`                | 预处理流水线编排                                        |
+| `src/preprocess/title.ts`                | 标题提取、标题归一化、标题编号                          |
+| `src/preprocess/caption.ts`              | 表格和图片编号                                          |
+| `src/preprocess/mermaid.ts`              | Mermaid → SVG → PNG、字体加载、CSS 解析、PNG DPI 元数据 |
+| `src/style/extract.ts`                   | 从 DOCX 提取样式 JSON                                   |
+| `src/style/generate.ts`                  | 用 `docx` 生成 reference DOCX，并注入表格样式 XML       |
+| `src/config.ts`                          | `AppConfig` 类型、JSON 加载与校验                       |
+| `src/output.ts`                          | 输入、输出路径和覆盖策略                                |
+| `src/paths.ts`                           | `~/.md2docx`、预处理目录和样式缓存路径                  |
+| `src/resources.ts`                       | 内嵌默认配置、样式和 Lua filter，并按需写入运行时目录   |
+| `src/assets.d.ts`                        | Bun `text` / `file` 资源导入类型声明                    |
+| `config/config.json`                     | 内置默认配置                                            |
+| `config/config.schema.json`              | 配置 JSON Schema                                        |
+| `config/style.json`                      | 内置默认 Word 样式                                      |
+| `config/lua/add-inline-code.lua`         | Pandoc 行内代码字符样式 filter                          |
+| `docs/example.md`                        | 综合转换样例                                            |
+| `test/fixtures/`                         | AST 流水线输入/期望 Markdown                            |
+| `test/mermaid.test.ts`                   | CSS fallback 和 PNG DPI 等纯逻辑测试                    |
+| `test/mermaid-render-comparison.test.ts` | Sharp 与 resvg 人工对比；输出到 `tmp/render-compare/`   |
+| `~/.md2docx/`                            | 用户运行时中间文件、内嵌资源和样式缓存，不属于仓库      |
+| `dist/`                                  | 构建产物；被 git 忽略                                   |
+
+`pandoc_docx_template/` 是历史/实验目录时应谨慎处理，不要假设它参与当前运行时流程。当前 reference DOCX 由 `src/style/generate.ts` 动态生成。
 
 ---
 
-# 处理流水线
+# CLI 契约
 
-项目遵循单向处理流水线。
+## 命令
 
+```text
+md2docx <markdown>
+md2docx -f <markdown> [转换选项]
+md2docx format -f <markdown> [选项]
+md2docx export config [选项]
+md2docx export style [选项]
+md2docx clean
 ```
+
+## 顶层转换
+
+只有单独提供 Markdown 路径时才能使用位置参数：
+
+```text
+md2docx report.md                 合法
+md2docx report.md --force         非法
+md2docx -f report.md --force      合法
+```
+
+一旦出现 `--config`、`--style`、`--output` 或 `--force`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
+
+顶层选项：
+
+- `-f, --file <path>`：Markdown 输入
+- `-c, --config <path>`：配置 JSON
+- `-s, --style <path>`：样式 JSON
+- `-o, --output <path>`：DOCX 输出
+- `--force`：允许覆盖
+
+## format
+
+`format` 的 `--file` 必填；支持 `--config`、`--output` 和 `--force`，不接受样式。它不生成 reference DOCX，也不调用 Pandoc。
+
+## export
+
+- `export config` 导出内嵌默认配置。
+- `export style` 不带 `--file` 时导出内嵌默认样式。
+- `export style --file template.docx` 从 DOCX 提取样式。
+- 两者都支持 `--output` 和 `--force`。
+
+## clean
+
+`clean` 删除整个 `~/.md2docx/`，包括：
+
+- 预处理 Markdown
+- Mermaid PNG
+- 物化的默认配置、样式和 Lua filter
+- reference DOCX 缓存
+- 未来如存放于该目录中的其他可重建缓存
+
+安全要求：
+
+- 删除前必须确认目标严格等于 `<home>/.md2docx`。
+- 必须确认目标父目录严格等于用户主目录。
+- 目标为符号链接时只 unlink 链接，不递归跟随。
+- 目录不存在时幂等成功。
+- 禁止扩展为任意路径清理命令。
+
+npm uninstall 生命周期脚本不应用来删除用户主目录数据。卸载清理由用户显式执行 `md2docx clean`。
+
+## 帮助、错误和覆盖
+
+- CLI 无参数时显示顶层帮助并以 0 退出。
+- 子命令缺少必填参数时返回非 0。
+- 所有写文件命令默认拒绝覆盖。
+- 只有显式 `--force` 才能覆盖。
+- 错误消息应指出字段、文件或命令上下文。
+
+## 默认输出
+
+```text
+md2docx report.md                     → ./report.docx
+md2docx -f report.md                  → ./report.docx
+md2docx format -f report.md           → ./report_formatted.md
+md2docx export config                 → ./config.json
+md2docx export style                  → ./style.json
+md2docx export style -f template.docx → ./template_style.json
+```
+
+---
+
+# 运行时目录与资源
+
+所有中间文件统一写入：
+
+```text
+~/.md2docx/
+├── preprocess/
+│   └── <basename>-<12位路径哈希>/
+│       ├── <basename>_formatted.md
+│       └── mermaid_*.png
+├── resources/
+│   ├── config.json
+│   ├── style.json
+│   └── add-inline-code.lua
+└── style/
+    └── <16位样式哈希>.docx
+```
+
+路径规则：
+
+- 预处理目录由输入文件名和绝对路径 SHA-256 前 12 位组成。
+- Windows 哈希前将绝对路径转为小写，避免大小写导致重复缓存。
+- 同名但不同目录的输入必须隔离。
+- 禁止恢复在当前工作目录创建 `tmp/` 的旧行为。
+
+资源规则：
+
+- 默认配置、样式和 Lua filter 以文本形式打入 bundle/EXE。
+- 外部程序 Pandoc 无法直接读取 Bun 虚拟文件，因此调用前物化到 `resources/`。
+- 内容未变化时不重复写入。
+- npm 构建的 resvg WASM 是 `dist/index_bg.wasm` 相邻资源。
+- EXE 构建将 resvg WASM 嵌入单文件。
+
+---
+
+# 预处理流水线
+
+```text
 Markdown
     ↓
 解析 AST
@@ -100,359 +256,351 @@ numberPictures()
     ↓
 序列化 Markdown
     ↓
-生成样式模板 docx
+生成/复用 reference DOCX
     ↓
-pandoc → DOCX
+Pandoc + Lua filter
+    ↓
+DOCX
 ```
 
-每个预处理步骤职责单一。
+顺序约束：
 
-避免预处理步骤之间的耦合。
-
-新功能应优先作为新的预处理步骤实现，而非扩展现有的无关步骤。
+- `numberTables()` 必须位于 `renderMermaid()` 之前。
+- `renderMermaid()` 必须位于 `numberPictures()` 之前，否则 Mermaid 图片不会编号。
+- 每个步骤保持单一职责，避免步骤间隐式读写私有状态。
+- 新功能优先作为独立预处理步骤实现。
 
 ---
 
-# CLI
-
-```bash
-# 转换为 DOCX
-bun run src/index.ts <md-path>
-
-# 只格式化 Markdown
-bun run src/index.ts format --file <md-path>
-
-# 导出默认配置或样式
-bun run src/index.ts export config
-bun run src/index.ts export style
-
-# 清除中间文件和样式缓存
-bun run src/index.ts clean
-
-# 查看帮助
-bun run src/index.ts -h
-
-# 使用自定义配置和样式
-bun run src/index.ts -f doc.md -c config.json -s style.json
-
-# 覆盖已有输出
-bun run src/index.ts -f doc.md --force
-```
-
-CLI 不支持单个配置项覆盖。配置应导出为 JSON、直接编辑，并通过 `--config` 指定。
-
-顶层转换仅提供 Markdown 路径时可省略 `--file`；一旦使用其他转换选项，就必须通过 `--file` 指定输入。`format` 的 `--file` 必填；`export style` 的 `--file` 可选。CLI 无参数运行时显示顶层帮助并以状态码 0 退出。所有写文件命令默认拒绝覆盖已有文件，只有显式传入 `--force` 才允许覆盖。
-
-`clean` 删除用户主目录下的整个 `~/.md2docx/`，包括预处理中间文件与样式模板缓存；目标路径必须严格校验，禁止清理其他目录。
-
-默认输出规则：
-
-```text
-md2docx report.md                     → ./report.docx
-md2docx -f report.md                  → ./report.docx
-md2docx format -f report.md           → ./report_formatted.md
-md2docx export config                 → ./config.json
-md2docx export style                  → ./style.json
-md2docx export style -f template.docx → ./template_style.json
-```
-
----
-
-# 核心函数
+# 核心行为
 
 ## preprocess()
 
-位于 `src/preprocess/index.ts`，编排所有预处理步骤，输入 Markdown 文件路径，返回格式化后的 Markdown 字符串。
-
----
+`src/preprocess/index.ts` 读取 Markdown，构建 AST，按配置执行流水线并返回序列化字符串。`format` 和完整转换复用该函数。
 
 ## addTitle()
 
-职责：
-
-- 检测 YAML frontmatter。
-- 如果没有标题：
-  - 如果第一个标题是唯一的 H1，则将其提取为标题。
-  - 否则使用文件名作为回退。
-
----
+- 保留已有 YAML title。
+- 无 title 时按配置策略查找 H1。
+- 无合适 H1 时回退到输入文件名。
+- 只使用文件名，不把完整路径写入标题。
 
 ## normalizeHeadings()
 
-职责：
-
-- 将最小标题深度规范化为 H1。
+- 将文档中最浅标题映射为 H1。
 - 消除标题层级跳跃。
-
-示例：
-
-```
-H3
-H4
-H6
-```
-
-变为
-
-```
-H1
-H2
-H3
-```
-
----
+- 尽量保留原节点、元数据和位置信息。
 
 ## numberHeadings()
 
-添加层级编号。
-
-示例：
-
-```
-1
-1.1
-1.2
-2
-2.1
-```
-
----
-
-## numberPictures()
-
-处理**独立图片**（段落中仅有一个图片节点，行内混排的图片不编号）。
-
-标题优先级（title → alt → 文件名）：
-
-结果：
-
-```
-图 1：xxx
-图 2：xxx
-```
-
-编号在 `renderMermaid()` 之后执行，确保 Mermaid 生成的图片也被编号。
-
----
+- 生成层级编号，如 `1`、`1.1`、`1.1.1`。
+- 可识别并剥离已有中文或数字编号。
+- 编号剥离规则顺序不可随意调整：顿号多级、中文括号、中文单级、数字点分。
+- 数字点分至少要求两段，避免把版本号误判为标题编号。
 
 ## numberTables()
 
-对于每个表格：
+- 识别现有表格题注。
+- 按配置生成编号和分隔符。
+- 无题注时插入新题注节点。
 
-- 检测以 "Table:" 开头的现有标题
-- 添加编号
+## numberPictures()
 
-否则：
-
-- 插入新标题
+- 只处理段落中唯一的图片节点。
+- 行内混排图片不编号。
+- 标题优先级：image title → alt → 文件名。
+- Mermaid 图片在渲染后进入同一编号流程。
 
 ---
 
-## renderMermaid()
+# Mermaid 渲染
 
-职责：
+## 流程
 
-```
+```text
 Mermaid
-    ↓
-beautiful-mermaid
-    ↓
-SVG
-    ↓
-resolveCSSVars()
-    ↓
-resvg-wasm
-    ↓
-PNG
+→ beautiful-mermaid
+→ SVG
+→ resolveCSSVars()
+→ resvg-wasm
+→ setPngDensity()
+→ PNG
 ```
 
-生成的图片存储在：
+运行时禁止重新引入 Sharp。`@resvg/resvg-wasm` 避免原生 `.node`/DLL 阻碍 Bun 单文件构建。
 
+## CSS 兼容
+
+beautiful-mermaid 的 SVG 包含 CSS 自定义属性，而 resvg 不能完整解释这些表达式。`resolveCSSVars()` 必须在渲染前执行，并支持：
+
+- `var(--name)`
+- `var(--name, fallback)`
+- fallback 内嵌套 `var()`
+- 循环引用防护
+- `color-mix(in srgb, #hex pct%, #hex)`
+- `#RGB` 与 `#RRGGBB`
+
+不要退回只匹配 `/var\(--name\)/` 的简单正则。带 fallback 的变量控制节点填充、边框、生命线和消息文本；解析失败会造成“只剩 Alice/John 文本”等不完整图像。
+
+## DPI
+
+- `fitTo.zoom = density / 72` 控制像素尺寸。
+- resvg 默认写出的 PNG DPI 元数据不符合配置，因此必须通过 `setPngDensity()` 写入/替换 `pHYs` 块。
+- pHYs 使用 `round(dpi / 0.0254)` pixels per metre。
+- 修改 PNG chunk 时必须重新计算 CRC32。
+- 像素尺寸和 DPI 元数据都应与 Sharp 基线一致。
+
+## 字体
+
+resvg WASM 不会自动获得完整系统字体。当前候选：
+
+- Windows：微软雅黑、微软雅黑粗体、Arial、Consolas
+- macOS：PingFang、Helvetica、Menlo
+- Linux：Noto Sans CJK、DejaVu Sans、DejaVu Sans Mono 和用户本地 Noto 字体
+
+字体内容按进程缓存，只加载一次。调整字体时必须覆盖中文和等宽字符场景，并考虑字体文件不存在的容错行为。
+
+## 错误处理
+
+单个 Mermaid 节点失败时：
+
+- 输出包含序号的错误信息。
+- 保留该代码块并继续处理后续图表。
+- 不得因为单图失败中断整个文档预处理。
+
+---
+
+# 样式系统
+
+`config/style.json` 同时支持内置默认样式、手工维护和从 DOCX 提取。
+
+转换流程：
+
+1. 读取样式 JSON。
+2. 对内容计算 SHA-256 前 16 位。
+3. 在 `~/.md2docx/style/<hash>.docx` 查找缓存。
+4. 缓存不存在时用 `docx` 生成 reference DOCX。
+5. 如包含 `tableStylesXml`，使用 PizZip 注入 `word/styles.xml`。
+6. 将 reference DOCX 传给 Pandoc。
+
+并发生成同一模板时使用 Promise map 去重。失败后必须删除失败 Promise，允许下次重试。
+
+`docx` 必须按需动态导入。顶层导入会在新版 Node.js 中过早访问 Web Storage，并可能产生 ``--localstorage-file` was provided without a valid path` 警告，即使用户只运行 `md2docx -v`。
+
+样式继承陷阱：基于 `a0`（Body Text）的样式会继承 `firstLine`。不需要缩进的子样式必须显式将 indent 清零。
+
+---
+
+# Pandoc 集成
+
+当前 `src/commands/convert.ts` 直接执行：
+
+```text
+pandoc <formatted.md>
+  -o <output.docx>
+  --reference-doc=<cached-template.docx>
+  --lua-filter=<materialized-filter.lua>
 ```
-base_assets/
+
+当前行为：
+
+- 只通过系统 `PATH` 查找 `pandoc`。
+- `format`、`export` 和 `clean` 不需要 Pandoc。
+- Pandoc 非 0 退出时返回 exit code 和 stderr。
+- Pandoc 启动失败时让错误向上层传播，不要伪装成转换成功。
+
+## 便携发行版规划（未实现）
+
+目标查找优先级：
+
+1. 显式 CLI 配置或 `MD2DOCX_PANDOC` 环境变量。
+2. md2docx 可执行文件旁的 `bin/pandoc` 或 `bin/pandoc.exe`。
+3. 系统 `PATH`。
+
+推荐发布 ZIP，而非把 Pandoc 塞进 npm 包：
+
+```text
+md2docx-<platform>-<arch>/
+├── md2docx[.exe]
+├── bin/
+│   └── pandoc[.exe]
+├── LICENSE
+└── THIRD_PARTY_LICENSES/
+    └── pandoc-COPYRIGHT
 ```
 
-Markdown 代码块被替换为图片节点。
+实现前不得修改 README 宣称 EXE 已内置 Pandoc。若未来选择把 Pandoc 嵌入单个 EXE，必须先释放到真实文件系统再 spawn，并处理版本目录、原子写入、哈希验证、Unix 执行权限、并发启动和 `clean` 后重建。
+
+Pandoc 是 GPL-2.0-or-later。再分发官方二进制时必须包含版权和许可证声明，并提供对应源码获取信息。此处只是仓库分发要求，不替代法律审查。
 
 ---
 
-# 编码规范
+# 构建与发布
 
-- 使用 TypeScript 严格模式。
-- 避免使用 `any`。
-- 优先使用精确的类型。
-- 除非原地修改明显更简单，否则优先使用不可变数据。
-- 尽可能重用现有工具函数。
-- 避免引入不必要的依赖。
-- 保持实现简洁。
-- 与现有编码风格保持一致。
+## npm 构建
 
-不要重构无关代码。
+```bash
+bun run build
+```
+
+期望输出：
+
+```text
+dist/
+├── index.js
+└── index_bg.wasm
+```
+
+约束：
+
+- Node 目标必须捆绑 JS 依赖，不能恢复 `--packages=external`，否则全局包会缺少运行时依赖。
+- resvg WASM 使用 file loader 输出为相邻文件。
+- 内置 JSON/Lua 使用 text loader，不能依赖源码目录在安装后存在。
+- `prepack` 自动运行 `bun run build`。
+- 构建前删除 `dist/`，防止旧 EXE 或资源进入 tarball。
+- 发布前必须执行 `npm pack --dry-run` 审查文件清单。
+
+## 单文件构建
+
+```bash
+bun run build:exe
+```
+
+Windows 输出 `dist/md2docx.exe`。跨平台发布必须为每个 OS/CPU 构建并测试，不得把 Windows EXE 标记为通用产物。
+
+单文件构建必须验证：
+
+- `-v` 和 `--help`
+- 在仓库外的工作目录运行
+- 位置参数转换
+- Mermaid 中文渲染
+- 默认配置、样式和 Lua 资源物化
+- `export config` / `export style`
+- 隔离 HOME 下的 `clean`
+- Pandoc 不存在时的错误
+
+不要在测试中对真实用户的 `~/.md2docx` 执行 `clean`；使用临时 HOME/USERPROFILE。
+
+## 发布渠道
+
+- npm：发布 Node CLI，保持跨平台和较小包体；不含 EXE/Pandoc。
+- GitHub Releases：发布平台 EXE；未来发布带 Pandoc 的便携 ZIP。
+- 不建议主 npm 包携带百兆级平台二进制。
+- 如果未来通过 npm 分发平台二进制，应拆分 `win32-x64`、`linux-x64`、`darwin-arm64` 等平台包，并由薄主包选择；不得把所有平台塞入一个包。
+
+## npm 版本不可覆盖
+
+npm 已发布版本不可重新发布。若 `npm publish` 返回 `Cannot publish over previously published version`，必须提升版本后重新发布，不能重复使用相同版本号或移动已有 tag 冒充新产物。
+
+## 发布前清单
+
+```bash
+bun test
+bun check
+bun run build
+node dist/index.js -v
+npm pack --dry-run
+git status
+```
+
+还应从临时目录运行一次真实 DOCX 转换。只有用户审核并明确同意后才能提交、打 tag、push 或 publish。
 
 ---
 
-# AST 修改规则
+# 依赖边界
 
-仅修改需要变更的节点。
+## 运行时依赖
 
-不要重建整个 AST。
+- `unified` / `remark-*`：Markdown AST
+- `beautiful-mermaid`：Mermaid → SVG
+- `@resvg/resvg-wasm`：SVG → PNG
+- `docx`：生成 reference DOCX
+- `pizzip`：注入表格样式 XML
+- `commander`：CLI
+- `@xmldom/xmldom` / `xpath`：DOCX XML 样式提取
 
-尽可能：
+## 开发依赖
 
-- 保留节点标识。
-- 保留元数据。
-- 保留位置信息。
+Sharp 只用于 `test/mermaid-render-comparison.test.ts` 生成旧渲染基线、读取 PNG 和计算像素差。禁止从生产代码导入 Sharp，禁止将它重新加入 `dependencies`。
 
-避免不必要的内存分配。
-
----
-
-# 性能
-
-每个预处理步骤理想情况下应只遍历 AST 一次。
-
-避免：
-
-- 多次不必要的 `visit()` 调用。
-- 重复的树扫描。
-- 二次算法。
-
-优先使用线性时间实现。
-
----
-
-# 错误处理
-
-预处理应具备容错能力。
-
-单个节点失败不应导致整个文档处理中断。
-
-要求：
-
-- 尽可能继续处理。
-- 生成有意义的错误信息。
-- 不要静默吞没异常。
-
-示例：
-
-如果某个 Mermaid 图表渲染失败：
-
-- 继续渲染其余图表。
-- 报告该失败。
+不要重新实现依赖已经可靠提供的 Markdown 解析、DOCX 打包或 SVG 栅格化能力。可以为兼容层实现必要的 CSS 展开和 PNG 元数据修正。
 
 ---
 
 # 测试
 
-测试位于 `test/`。运行：
+## 测试类别
 
-```bash
-bun test
+- `test/preprocess.test.ts`：自动发现 fixture 并比较完整 AST 流水线输出，不含 Mermaid 栅格化。
+- `test/cli.test.ts`：Commander 参数、帮助、版本和非法组合。
+- `test/commands.test.ts`：export、format、clean、配置错误和覆盖策略。
+- `test/paths.test.ts`：主目录缓存和同名输入隔离。
+- `test/mermaid.test.ts`：CSS fallback、颜色和 PNG pHYs 等确定性逻辑。
+- `test/mermaid-render-comparison.test.ts`：Sharp/resvg 视觉回归数据。
+
+## fixture
+
+每个 fixture 位于：
+
+```text
+test/fixtures/<名称>/
+├── input.md
+└── expected.md
 ```
 
-每个测试用例是一个 fixture 目录：`test/fixtures/<名称>/` 下包含 `input.md`（输入）和 `expected.md`（预期输出）。测试自动发现所有 fixture 目录并逐一运行完整流水线比对。添加新测试只需新建 fixture 目录及两个 `.md` 文件。
+测试描述使用中文。新 AST 行为优先添加 fixture；文件系统、CLI 或二进制行为使用独立测试。
 
-辅助工具（在 `test/preprocess.test.ts` 中）：
+## Mermaid 对比
 
-- `parse(md)` — 解析 Markdown → `{ processor, root, headings }`
-- `serialize(root)` — AST → Markdown 字符串
-- `runPipeline(input)` — 执行完整流水线（不含 renderMermaid）
+对比测试覆盖流程图、时序图和类图，分别使用 72 与 200 DPI，并输出：
 
-测试指南：
+- 像素尺寸
+- 文件大小
+- 差异像素比例
+- 平均色差
+- 人工检查 PNG
 
-- 使用 `describe` 对测试进行分组。
-- 测试描述应使用中文编写。
-- 优先测试纯函数，避免文件系统 IO（renderMermaid 测试需单独验证）。
+输出位于仓库忽略的 `tmp/render-compare/`。它不是用户运行时缓存，不由 `md2docx clean` 管理。
 
-每个新功能都必须包含 fixture 测试，覆盖边界情况。
+不同渲染器的抗锯齿不可能逐像素完全一致。少量差异可接受，但节点、边框、生命线、箭头或文本缺失绝不能归类为抗锯齿差异。当前参考差异应低于 5%。
 
----
-
-# 测试覆盖
-
-始终包含边界情况。
-
-典型情况包括：
+## 必测边界
 
 - 空文档
-- 无标题
-- 单个标题
-- 多个 H1
-- 嵌套标题
-- 仅有图片
-- 仅有表格
-- Mermaid 代码块
-- 存在 YAML
-- 缺少 YAML
+- 无标题、单 H1、多个 H1
+- 标题不在首节点
+- 标题层级跳跃
+- 已有中文/数字编号
+- YAML 存在、缺少和特殊字符转义
+- 仅图片、行内图片、无标题图片
+- 仅表格、已有表题
+- Mermaid 中文、fallback CSS 和多个图表中单图失败
+- 72/200 DPI 元数据
+- 同名文件来自不同绝对路径
+- 输出存在与 `--force`
+- clean 目录不存在、正常目录、符号链接和危险路径拒绝
+- Node 构建与 EXE 在仓库外运行
 
 ---
 
-# 命名约定
+# 编码与 AST 规范
 
-函数：
+- TypeScript 严格模式，避免 `any`。
+- 优先精确类型和清晰的错误上下文。
+- 除非原地修改明显更简单，否则优先不可变数据。
+- 不创建泛化的 `utils.ts`、`common.ts`、`helper.ts` 或 `shared.ts`。
+- 共享逻辑只有在多个模块真实复用时才提取。
+- 不引入与任务无关的依赖或目录。
+- 每个预处理步骤理想情况下只遍历 AST 一次。
+- 避免重复 `visit()`、重复解析和二次算法。
+- 仅修改必要节点，尽量保留节点标识、元数据和位置信息。
+- 单节点失败应尽可能局部处理，不静默吞错。
 
-```
-addTitle
-numberTables
-renderMermaid
-```
+命名：
 
-变量：
-
-```
-camelCase
-```
-
-常量：
-
-```
-UPPER_CASE
-```
-
-类型：
-
-```
-PascalCase
-```
-
----
-
-# 仓库约定
-
-除非必要，不要引入新目录。
-
-避免创建诸如以下通用工具文件：
-
-```
-utils.ts
-common.ts
-helper.ts
-shared.ts
-```
-
-仅在模块被多个组件复用时才提取共享模块。
-
----
-
-# 依赖
-
-## unified
-
-Markdown 解析。
-
-## remark
-
-Markdown AST 变换。
-
-## beautiful-mermaid
-
-Mermaid → SVG 渲染。
-
-## @resvg/resvg-wasm
-
-使用 WebAssembly 执行 SVG → PNG 转换，避免原生模块阻碍 Bun 单文件可执行程序打包。
-
-不要重新实现这些库已提供的功能。
+- 函数和变量：`camelCase`
+- 常量：`UPPER_CASE`
+- 类型和接口：`PascalCase`
 
 ---
 
@@ -460,103 +608,60 @@ Mermaid → SVG 渲染。
 
 ## Array.fill()
 
-记住 `fill(value, start)` 第二个参数是起始索引。
+`fill(value, start)` 的第二个参数是起始索引，不是填充数量：
 
 ```ts
-counter.fill(0, depth); // 并**不会**填充前 depth 个元素
+counter.fill(0, depth);
 ```
 
-## resvg
+## CSS var() fallback
 
-它**不支持** CSS var() 和 color-mix()。在将 SVG 传入 resvg 之前必须调用 `resolveCSSVars()` 内联所有变量。
+`var(--muted, color-mix(...))` 不能用只识别简单右括号的正则正确解析。解析嵌套函数时必须平衡括号，并只在顶层逗号处分离变量名与 fallback。
 
-`resolveCSSVars()` 内部做了：
+## PNG pHYs
 
-1. 从 `<svg style="...">` 提取基础变量
-2. 从 `<style>` 块提取派生变量（如 `--_text: var(--fg)`）
-3. 迭代解析多层 `var()` 引用
-4. 解析 `color-mix(in srgb, #RRGGBB pct%, #RRGGBB)` 为混合后的十六进制颜色
-5. 全局替换所有剩余的 `var()` 引用
+只缩放像素不会改变 PNG 物理 DPI。修改或插入 pHYs 时必须保持 PNG chunk 结构有效，并为 `pHYs + data` 重新计算 CRC32。
 
-## beautiful-mermaid
+## beautiful-mermaid / ELK
 
-使用 `elkjs` WASM 布局引擎，在 Bun 下偶尔会失败。如果 Mermaid 渲染失败，先检查 `renderMermaidSVG()` 是否成功生成了 SVG。
+beautiful-mermaid 使用 ELK WASM 布局，在 Bun 下可能偶发失败。先分别检查 `renderMermaidSVG()` 和 resvg 阶段，不要把布局失败误判为 PNG 编码失败。
 
-## numberHeadings 的中文编号剥离
+## 字体与透明背景
 
-`stripHeadingNum()` 按优先级匹配以下前缀模式并剥离，顺序很重要：
+透明 PNG 在深色图片查看器中可能显示黑色背景，这不等于图片真的填充为黑色。判断颜色时检查 alpha 或在白色背景中查看。文本缺失时先区分字体缺失和无效 fill/stroke。
 
-1. **顿号多级**：`一、二、三、`（最后一个是顿号变体，必须最先测试）
-2. **中文括号**：`（一）` `(一)`
-3. **中文单级**：`一、` `一.`
-4. **数字点分**：`1.2.3` `1.2.3.`（要求至少两段，避免与版本号冲突）
+## Node Web Storage 警告
 
-# 样式系统
+不要在入口顶层导入 `docx`。按需动态导入可避免版本/帮助命令触发 Node 的 localStorage 警告。
 
-`config/style.json` 定义了 docx 输出的全部样式。它既可通过 `md2docx export style --file <docx>` 从模板 docx 提取，也可手动维护。
+## Bun 虚拟资源
 
-`src/style/generate.ts` 读取 `config/style.json`，用 `docx` 包生成空白模板 docx。
+编译 EXE 内的 file/text 资源可能位于 Bun 虚拟路径。Bun 自身可以读取，但 Pandoc 等外部进程不能；外部程序需要的内容必须物化到真实文件系统。
 
-模板按照样式内容哈希缓存到 `~/.md2docx/style/`。调用 pandoc 时自动作为 reference docx 传入，确保不同样式不会复用错误缓存。
+## Windows 路径
 
-## 样式继承陷阱
-
-- 基于 `a0`（Body Text）的样式会继承 `firstLine` 首行缩进
-- 若子样式不需要缩进，需在 `indent` 中显式清零（如 `Compact` 样式的表格内容）
-
-# 流水线顺序依赖
-
-- `numberTables()` 必须在 `renderMermaid()` 之前（表格编号插入段落节点，与 mermaid 渲染无关）
-- `renderMermaid()` 必须在 `numberPictures()` 之前：mermaid 代码块被替换为图片节点后，`numberPictures()` 才能为它们编号
-
-# Pandoc Lua filter
-
-`config/lua/add-inline-code.lua` 是一个 pandoc Lua filter，用于将行内代码映射到 Inline Code 字符样式。
-
-pandoc 调用时自动以 `--lua-filter=config/lua/add-inline-code.lua` 传入。
-
----
-
-# 开发工作流
-
-实施变更时：
-
-1. 理解现有实现。
-2. 审查相关测试。
-3. 实现功能。
-4. 更新或添加测试。
-5. 运行：
-
-```bash
-bun test
-```
-
-6. 运行：
-
-```bash
-bun check
-```
-
-7. 审查变更：
-
-```bash
-git status
-```
-
-只有所有检查都通过后才可提交变更。
+- 哈希路径前应规范化大小写。
+- 传给 Markdown 的图片 URL 使用 `/`。
+- spawn 使用参数数组，不拼接 shell 字符串。
+- 子进程设置 `windowsHide: true`。
 
 ---
 
 # 未来功能
 
-未来的预处理可能包括：
+可能的预处理扩展：
 
 - 交叉引用
-- 脚注
+- 脚注增强
 - 目录
 - 公式编号
 - 引文处理
-- 调用 pandoc
-- DOCX 样式定制
 
-未来功能应遵循现有的预处理流水线架构。
+可能的分发扩展：
+
+- 程序旁便携 Pandoc 查找
+- 多平台 GitHub Release 自动构建
+- 包含 Pandoc 许可证与源码信息的便携 ZIP
+- 可选 `MD2DOCX_PANDOC` 或 `--pandoc` 路径
+
+未来功能必须遵守现有单向流水线、平台隔离、许可证和测试要求。
