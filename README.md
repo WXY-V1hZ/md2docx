@@ -27,7 +27,7 @@
 | Word 样式         | 根据 JSON 样式生成 Pandoc reference DOCX，也可从现有 DOCX 提取样式 |
 | Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                      |
 | 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`        |
-| Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的平台可执行文件        |
+| Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件   |
 
 ## 安装方式
 
@@ -178,6 +178,8 @@ md2docx export style -f template.docx → ./template_style.json
 
 输出 DOCX 和显式导出的配置、样式仍写到用户指定位置或当前工作目录，不会写入缓存目录。
 
+虽然 Pandoc 实际读取的是缓存中的格式化 Markdown，但本地相对资源始终优先相对于**原始 Markdown 所在目录**解析；找不到时再搜索命令运行目录。例如 `C:/docs/example.md` 中的 `./pictures/test.png` 会解析为 `C:/docs/pictures/test.png`，与从哪个目录执行 `md2docx` 无关。绝对路径、HTTP(S) URL 和 Mermaid 生成的缓存图片不受影响。
+
 ## 配置
 
 内置配置来自 `config/config.json`，并由 `config/config.schema.json` 提供 JSON Schema。推荐先导出再编辑：
@@ -320,13 +322,13 @@ dist/
 
 依赖会打包进 `index.js`，resvg WASM 作为相邻资源输出。`prepack` 会自动执行此构建。
 
-### 平台可执行文件
+### Windows 可执行文件
 
 ```bash
 bun run build:exe
 ```
 
-Windows 输出为 `dist/md2docx.exe`。该程序只适用于构建目标对应的操作系统和 CPU 架构。
+Windows 输出为 `dist/md2docx.exe`。
 
 `build` 和 `build:exe` 都会先删除整个 `dist/`，因此两种产物不会同时保留。尤其不要依赖手工生成的 EXE 参与 `npm publish`：发布时 `prepack` 会重新生成 npm 所需的 `index.js` 和 WASM。
 
@@ -349,6 +351,23 @@ pandoc --version
 ```bash
 md2docx -f report.md --force
 ```
+
+### 从其他目录转换时图片缺失
+
+相对图片路径应以原始 Markdown 文件为基准：
+
+```text
+docs/
+├── example.md
+└── pictures/
+    └── test.png
+```
+
+```markdown
+![](./pictures/test.png)
+```
+
+新版会把原始文档目录和命令运行目录传给 Pandoc 的 `--resource-path`，并优先搜索原始文档目录。如果仍然缺图，请检查路径大小写、文件是否存在，以及图片语法中是否包含错误的 URL 编码。
 
 ## 许可
 

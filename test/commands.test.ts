@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { exportConfig, exportStyle } from "../src/commands/export";
 import { formatMarkdown } from "../src/commands/format";
 import { cleanIntermediateFiles } from "../src/commands/clean";
+import { buildPandocResourcePathArgs } from "../src/commands/convert";
 import { loadConfig } from "../src/config";
 
 const tempDirs: string[] = [];
@@ -127,5 +128,26 @@ describe("配置校验", () => {
     writeFileSync(config, "{", "utf-8");
 
     expect(loadConfig(config)).rejects.toThrow("不是有效的 JSON");
+  });
+});
+
+describe("Pandoc 资源路径", () => {
+  it("优先从原始 Markdown 目录解析相对资源", () => {
+    const root = createTempDir();
+    const workingDir = join(root, "working");
+    const sourceDir = join(root, "docs");
+    const input = join(sourceDir, "example.md");
+
+    expect(buildPandocResourcePathArgs(input, workingDir)).toEqual([
+      `--resource-path=${workingDir}`,
+      `--resource-path=${sourceDir}`,
+    ]);
+  });
+
+  it("源目录与工作目录相同时不重复添加", () => {
+    const sourceDir = createTempDir();
+    const input = join(sourceDir, "example.md");
+
+    expect(buildPandocResourcePathArgs(input, sourceDir)).toEqual([`--resource-path=${sourceDir}`]);
   });
 });

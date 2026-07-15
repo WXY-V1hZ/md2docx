@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { parse } from "node:path";
+import { dirname, parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../cli";
 import { loadConfig } from "../config";
@@ -40,6 +40,7 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
     markdownOutput,
     "-o",
     output,
+    ...buildPandocResourcePathArgs(input),
     `--reference-doc=${templatePath}`,
     ...(existsSync(luaFilter) ? [`--lua-filter=${luaFilter}`] : []),
   ];
@@ -48,6 +49,20 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
     throw new Error(`pandoc 转换失败 (exit code ${exitCode})：${stderr.trim()}`);
   }
   console.log(`已生成：${output}`);
+}
+
+/**
+ * Pandoc 从缓存 Markdown 读取内容，因此需要显式保留原文档和调用目录的资源搜索语义。
+ * 后出现的 --resource-path 优先级更高，原始 Markdown 目录必须放在最后。
+ */
+export function buildPandocResourcePathArgs(
+  inputPath: string,
+  workingDirectory: string = process.cwd(),
+): string[] {
+  const workingDir = resolve(workingDirectory);
+  const sourceDir = dirname(resolve(inputPath));
+  const searchDirs = workingDir === sourceDir ? [sourceDir] : [workingDir, sourceDir];
+  return searchDirs.map((directory) => `--resource-path=${directory}`);
 }
 
 function runProcess(

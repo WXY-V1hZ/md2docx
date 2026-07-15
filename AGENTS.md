@@ -19,10 +19,10 @@
 
 当前有两种构建产物：
 
-| 产物           | 运行时                                            | Pandoc                    |
-| -------------- | ------------------------------------------------- | ------------------------- |
-| npm CLI        | Node.js 22.12+                                    | 外部安装，必须位于 `PATH` |
-| 平台单文件程序 | 内置 Bun、项目代码、配置、样式、Lua 和 resvg WASM | 外部安装，必须位于 `PATH` |
+| 产物               | 运行时                                            | Pandoc                    |
+| ------------------ | ------------------------------------------------- | ------------------------- |
+| npm CLI            | Node.js 22.12+                                    | 外部安装，必须位于 `PATH` |
+| Windows 单文件程序 | 内置 Bun、项目代码、配置、样式、Lua 和 resvg WASM | 外部安装，必须位于 `PATH` |
 
 单文件程序不依赖 Node.js、Bun 或 Sharp，但当前并非完全零依赖程序。便携 ZIP 捆绑 Pandoc 仍是规划，尚未实现。
 
@@ -65,7 +65,7 @@ bun run src/index.ts -f report.md --force
 bun run src/index.ts format -f report.md
 
 bun run build                    # npm/Node 构建
-bun run build:exe                # 当前平台单文件构建
+bun run build:exe                # Windows 单文件构建（含程序图标）
 ```
 
 工具配置：
@@ -104,6 +104,7 @@ bun run build:exe                # 当前平台单文件构建
 | `config/config.schema.json`              | 配置 JSON Schema                                        |
 | `config/style.json`                      | 内置默认 Word 样式                                      |
 | `config/lua/add-inline-code.lua`         | Pandoc 行内代码字符样式 filter                          |
+| `assets/logo.svg`                        | Logo 矢量源文件，也是 README 展示资源                   |
 | `docs/example.md`                        | 综合转换样例                                            |
 | `test/fixtures/`                         | AST 流水线输入/期望 Markdown                            |
 | `test/mermaid.test.ts`                   | CSS fallback 和 PNG DPI 等纯逻辑测试                    |
@@ -398,6 +399,8 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 ```text
 pandoc <formatted.md>
   -o <output.docx>
+  --resource-path=<调用目录>
+  --resource-path=<原始 Markdown 目录>
   --reference-doc=<cached-template.docx>
   --lua-filter=<materialized-filter.lua>
 ```
@@ -405,6 +408,11 @@ pandoc <formatted.md>
 当前行为：
 
 - 只通过系统 `PATH` 查找 `pandoc`。
+- Pandoc 默认读取 `~/.md2docx` 中的格式化 Markdown，因此必须显式传入资源搜索路径，不能依赖缓存文件的位置或子进程默认 cwd。
+- 使用两个独立的 `--resource-path`：先传调用目录，后传原始 Markdown 目录。Pandoc 对后出现的资源路径赋予更高搜索优先级，因此相对图片首先按源文档目录解析。
+- 源目录与调用目录相同时只传一次，避免重复参数。
+- 不要把原始图片 URL 全部改写为绝对路径；这会破坏 `format` 输出的可移植性。也不要为了资源解析把格式化 Markdown 写回源目录。
+- 绝对资源路径、HTTP(S) URL 和 Mermaid 的绝对缓存路径应保持原行为。
 - `format`、`export` 和 `clean` 不需要 Pandoc。
 - Pandoc 非 0 退出时返回 exit code 和 stderr。
 - Pandoc 启动失败时让错误向上层传播，不要伪装成转换成功。
@@ -577,6 +585,9 @@ test/fixtures/<名称>/
 - Mermaid 中文、fallback CSS 和多个图表中单图失败
 - 72/200 DPI 元数据
 - 同名文件来自不同绝对路径
+- 从不同 cwd 转换时，`./images/a.png` 和 `../shared/a.png` 相对于原始 Markdown 目录解析
+- 原始 Markdown 目录与 cwd 中存在同名资源时优先使用原始目录
+- 绝对图片、HTTP(S) 图片和 Mermaid 缓存图片不受 resource path 影响
 - 输出存在与 `--force`
 - clean 目录不存在、正常目录、符号链接和危险路径拒绝
 - Node 构建与 EXE 在仓库外运行
