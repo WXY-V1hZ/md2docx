@@ -41,7 +41,7 @@ export function createProgram(version: string, actions: CliActions): Command {
     .description("将 Markdown 转换为 Word 文档")
     .version(version, "-v, --version", "显示版本号")
     .helpOption("-h, --help", "显示帮助")
-    .addHelpCommand(false)
+    .helpCommand(false)
     .showHelpAfterError("使用 --help 查看帮助")
     .showSuggestionAfterError()
     .enablePositionalOptions()
@@ -50,9 +50,9 @@ export function createProgram(version: string, actions: CliActions): Command {
     .option("-s, --style <path>", "自定义样式文件")
     .option("-o, --output <path>", "输出 DOCX 文件")
     .option("--force", "覆盖已有文件")
-    .action(async function (options: ConvertOptions) {
+    .action(function (this: Command, options: ConvertOptions) {
       if (!options.file) this.help();
-      await actions.convert(options);
+      void actions.convert(options);
     });
   program.exitOverride();
 
@@ -60,8 +60,8 @@ export function createProgram(version: string, actions: CliActions): Command {
     .command("export")
     .description("导出默认配置或样式")
     .helpOption("-h, --help", "显示帮助")
-    .addHelpCommand(false)
-    .action(function () {
+    .helpCommand(false)
+    .action(function (this: Command) {
       this.help({ error: true });
     });
   exportCommand.exitOverride();
