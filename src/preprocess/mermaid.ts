@@ -1,5 +1,5 @@
 import { type Root } from "mdast";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 import sharp from "sharp";
@@ -11,10 +11,6 @@ export async function renderMermaid(
   density: number,
   assetUrlDir: string = outDir,
 ) {
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir, { recursive: true });
-  }
-
   const mermaidTheme = THEMES[theme as keyof typeof THEMES] ?? THEMES["tokyo-night-light"];
 
   let counter = 0;
@@ -35,6 +31,7 @@ export async function renderMermaid(
       })
         .png()
         .toBuffer();
+      mkdirSync(outDir, { recursive: true });
       writeFileSync(pngFile, png);
     } catch (err) {
       console.error(`mermaid 渲染失败 (#${counter}):`, err);

@@ -60,8 +60,20 @@ describe("format 命令", () => {
     await formatMarkdown({ file: input, output });
 
     expect(existsSync(output)).toBe(true);
-    expect(readFileSync(output, "utf-8")).toContain("title: 标题");
-    expect(existsSync(join(dir, "result_assets"))).toBe(true);
+    expect(readFileSync(output, "utf-8")).toContain('title: "标题"');
+    expect(existsSync(join(dir, "result_assets"))).toBe(false);
+  });
+
+  it("标题回退只使用文件名", async () => {
+    const dir = createTempDir();
+    const input = join(dir, "报告.md");
+    const output = join(dir, "result.md");
+    writeFileSync(input, "正文\n", "utf-8");
+
+    await formatMarkdown({ file: input, output });
+
+    expect(readFileSync(output, "utf-8")).toContain('title: "报告"');
+    expect(readFileSync(output, "utf-8")).not.toContain(dir);
   });
 
   it("拒绝错误的输出扩展名", async () => {

@@ -1,4 +1,5 @@
-import { type Heading, type Root, type Text, type Yaml } from "mdast";
+import { type Heading, type Root, type Yaml } from "mdast";
+import { parse } from "node:path";
 import { type HeadingNumberingConfig, type TitleConfig } from "../config";
 
 export function addTitle(fileName: string, root: Root, headings: Heading[], config: TitleConfig) {
@@ -11,8 +12,7 @@ export function addTitle(fileName: string, root: Root, headings: Heading[], conf
   if (hasFrontmatterTitle) return;
 
   if (strategy === "filename") {
-    const fallbackTitle = fileName.replace(/\.\w+$/, "");
-    root.children.unshift({ type: "yaml", value: `title: ${fallbackTitle}` });
+    addYamlTitle(root, fallbackTitle(fileName));
     return;
   }
 
@@ -21,37 +21,55 @@ export function addTitle(fileName: string, root: Root, headings: Heading[], conf
 
   if (strategy === "single-h1") {
     if (firstDepth1 != null && depth1.length === 1) {
-      const titleText = firstDepth1.children
-        .filter((c): c is Text => c.type === "text")
-        .map((c) => c.value)
-        .join("");
-
-      const idx = root.children.indexOf(firstDepth1);
-      if (idx !== -1) root.children.splice(idx, 1);
-      headings.splice(headings.indexOf(firstDepth1), 1);
-
-      root.children.unshift({ type: "yaml", value: `title: ${titleText}` });
+      extractHeadingAsTitle(root, headings, firstDepth1);
       return;
     }
   }
 
   // strategy === "first-h1"
   if (firstDepth1 != null && depth1.length === 1 && firstDepth1 === headings[0]) {
-    const titleText = firstDepth1.children
-      .filter((c): c is Text => c.type === "text")
-      .map((c) => c.value)
-      .join("");
-
-    const idx = root.children.indexOf(firstDepth1);
-    if (idx !== -1) root.children.splice(idx, 1);
-    headings.splice(headings.indexOf(firstDepth1), 1);
-
-    root.children.unshift({ type: "yaml", value: `title: ${titleText}` });
+    extractHeadingAsTitle(root, headings, firstDepth1);
     return;
   }
 
-  const fallbackTitle = fileName.replace(/\.\w+$/, "");
-  root.children.unshift({ type: "yaml", value: `title: ${fallbackTitle}` });
+  addYamlTitle(root, fallbackTitle(fileName));
+}
+
+function extractHeadingAsTitle(root: Root, headings: Heading[], heading: Heading): void {
+  const title = textContent(heading);
+  const rootIndex = root.children.indexOf(heading);
+  if (rootIndex !== -1) root.children.splice(rootIndex, 1);
+  const headingIndex = headings.indexOf(heading);
+  if (headingIndex !== -1) headings.splice(headingIndex, 1);
+  addYamlTitle(root, title);
+}
+
+function textContent(node: unknown): string {
+  if (node === null || typeof node !== "object") return "";
+  const value = node as {
+    type?: string;
+    value?: unknown;
+    alt?: unknown;
+    children?: unknown[];
+  };
+  if ((value.type === "text" || value.type === "inlineCode") && typeof value.value === "string") {
+    return value.value;
+  }
+  if (
+    (value.type === "image" || value.type === "imageReference") &&
+    typeof value.alt === "string"
+  ) {
+    return value.alt;
+  }
+  return value.children?.map(textContent).join("") ?? "";
+}
+
+function fallbackTitle(fileName: string): string {
+  return parse(fileName).name;
+}
+
+function addYamlTitle(root: Root, title: string): void {
+  root.children.unshift({ type: "yaml", value: `title: ${JSON.stringify(title)}` });
 }
 
 export function normalizeHeadings(nodes: Heading[]) {
