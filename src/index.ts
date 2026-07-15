@@ -1,26 +1,23 @@
 #!/usr/bin/env node
 
 import { CommanderError } from "commander";
-import { realpathSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import packageJson from "../package.json" with { type: "json" };
 
 import { createProgram } from "./cli";
+import { cleanIntermediateFiles } from "./commands/clean";
 import { convertMarkdown } from "./commands/convert";
 import { exportConfig, exportStyle } from "./commands/export";
 import { formatMarkdown } from "./commands/format";
-import { PKG_DIR } from "./paths";
 
 export async function run(args: string[]): Promise<number> {
-  const { version } = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf-8")) as {
-    version: string;
-  };
-  const program = createProgram(version, {
+  const program = createProgram(`${packageJson.name} ${packageJson.version}`, {
     convert: convertMarkdown,
     format: formatMarkdown,
     exportConfig,
     exportStyle,
+    clean: cleanIntermediateFiles,
   });
   program.exitOverride();
 
@@ -37,6 +34,11 @@ export async function run(args: string[]): Promise<number> {
 }
 
 const entryPath = process.argv[1];
-if (entryPath && realpathSync(entryPath) === realpathSync(fileURLToPath(import.meta.url))) {
+if (
+  import.meta.main ||
+  (entryPath &&
+    existsSync(entryPath) &&
+    realpathSync(entryPath) === realpathSync(fileURLToPath(import.meta.url)))
+) {
   process.exitCode = await run(process.argv.slice(2));
 }

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { exportConfig, exportStyle } from "../src/commands/export";
 import { formatMarkdown } from "../src/commands/format";
+import { cleanIntermediateFiles } from "../src/commands/clean";
 import { loadConfig } from "../src/config";
 
 const tempDirs: string[] = [];
@@ -47,6 +48,30 @@ describe("export 命令", () => {
     expect(exportConfig({ output })).rejects.toThrow("输出文件已存在");
     await exportConfig({ output, force: true });
     expect(JSON.parse(readFileSync(output, "utf-8"))).toBeObject();
+  });
+});
+
+describe("clean 命令", () => {
+  it("清除主目录下的 .md2docx 并允许重复执行", () => {
+    const home = createTempDir();
+    const target = join(home, ".md2docx");
+    mkdirSync(join(target, "preprocess", "example"), { recursive: true });
+    writeFileSync(join(target, "preprocess", "example", "input.md"), "test", "utf-8");
+
+    cleanIntermediateFiles({ targetDir: target, homeDir: home });
+    expect(existsSync(target)).toBe(false);
+
+    cleanIntermediateFiles({ targetDir: target, homeDir: home });
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("拒绝清理非预期目录", () => {
+    const home = createTempDir();
+    const target = join(home, "other");
+
+    expect(() => cleanIntermediateFiles({ targetDir: target, homeDir: home })).toThrow(
+      "拒绝清理非预期目录",
+    );
   });
 });
 

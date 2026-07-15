@@ -37,7 +37,7 @@
 
 ```bash
 npm install -g @v1hz/md2docx
-md2docx --file docs/example.md
+md2docx docs/example.md
 ```
 
 也可通过 `npx @v1hz/md2docx` 直接运行。
@@ -46,7 +46,7 @@ md2docx --file docs/example.md
 
 ```bash
 # 转换 Markdown 为 Word
-md2docx --file docs/example.md
+md2docx docs/example.md
 
 # 使用自定义配置、样式和输出路径
 md2docx -f docs/example.md -c config.json -s style.json -o output/example.docx
@@ -58,6 +58,9 @@ md2docx format --file docs/example.md
 md2docx export config
 md2docx export style
 
+# 清除预处理文件和样式缓存
+md2docx clean
+
 # 从现有 Word 文档提取样式
 md2docx export style --file template.docx
 ```
@@ -68,13 +71,15 @@ md2docx export style --file template.docx
 ## CLI
 
 ```text
+md2docx <markdown>
 md2docx -f <markdown> [选项]
 md2docx format -f <markdown> [选项]
 md2docx export config [选项]
 md2docx export style [选项]
+md2docx clean
 ```
 
-`--file` 在顶层转换和 `format` 命令中必填；在 `export style` 中可选，不提供时导出内置默认样式，提供 DOCX 时从该文档提取样式。
+顶层转换仅提供 Markdown 路径时可省略 `--file`。一旦使用 `--force`、`--output`、`--config` 或 `--style` 等转换选项，就必须通过 `--file` 指定输入。`format` 的 `--file` 必填；`export style` 的 `--file` 可选，不提供时导出内置默认样式，提供 DOCX 时从该文档提取样式。
 
 | 参数                  | 说明                           |
 | --------------------- | ------------------------------ |
@@ -88,6 +93,9 @@ md2docx export style [选项]
 
 默认输出分别为 `<源文件名>.docx`、`<源文件名>_formatted.md`、`config.json` 和
 `style.json`。从 DOCX 提取样式时，默认输出 `<DOCX 文件名>_style.json`。
+
+预处理文件和样式模板缓存统一存储在用户主目录的 `~/.md2docx/`，不会在当前工作目录创建 `tmp/`。
+运行 `md2docx clean` 可清除该目录中的全部中间文件和缓存。
 
 ## 配置
 
@@ -189,7 +197,18 @@ bun check
 
 # 查看 CLI 帮助
 bun run src/index.ts --help
+
+# 构建 npm 使用的 Node.js 版本
+bun run build
+
+# 构建当前平台的单文件可执行程序
+bun run build:exe
 ```
+
+`build:exe` 会在 `dist/` 生成当前操作系统和 CPU 架构对应的可执行文件（Windows 为
+`md2docx.exe`）。可执行文件内置 JavaScript 运行时和 Mermaid 的 SVG → PNG 渲染器，运行时不需要
+安装 Node.js 或 Bun；Pandoc 仍需单独安装并可通过 `PATH` 调用。若要发布其他平台版本，需要在目标
+平台构建，或使用 Bun 的交叉编译目标。
 
 ## 许可
 

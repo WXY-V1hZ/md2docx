@@ -1,16 +1,15 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { copyFile } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
 import { parse } from "node:path";
 
 import { type ExportConfigOptions, type ExportStyleOptions } from "../cli";
-import { CONFIG_PATH, STYLE_CONFIG } from "../paths";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
+import { DEFAULT_CONFIG_TEXT, DEFAULT_STYLE_TEXT } from "../resources";
 import { extractStylesFromDocx } from "../style/extract";
 
 export async function exportConfig(options: ExportConfigOptions): Promise<void> {
   const output = resolveOutputPath(options.output, "config.json", [".json"], "配置输出文件");
   prepareOutput(output, options.force ?? false);
-  await copyFile(CONFIG_PATH, output);
+  writeFileSync(output, DEFAULT_CONFIG_TEXT, "utf-8");
   console.log(`已导出配置：${output}`);
 }
 
@@ -24,7 +23,7 @@ export async function exportStyle(options: ExportStyleOptions): Promise<void> {
     const styles = extractStylesFromDocx(source);
     writeFileSync(output, `${JSON.stringify(styles, null, 2)}\n`, "utf-8");
   } else {
-    writeFileSync(output, readFileSync(STYLE_CONFIG));
+    writeFileSync(output, DEFAULT_STYLE_TEXT, "utf-8");
   }
   console.log(`已导出样式：${output}`);
 }

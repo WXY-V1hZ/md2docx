@@ -1,37 +1,27 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+import { homedir } from "node:os";
+import { join, parse, resolve } from "node:path";
 
-const PKG_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+/** 中间文件根目录（位于用户主目录） */
+export const TMP_DIR = join(homedir(), ".md2docx");
 
-/** 包根目录 */
-export { PKG_DIR };
-
-/** 默认配置文件路径（相对于包安装目录） */
-export const CONFIG_PATH = resolve(PKG_DIR, "config/config.json");
-
-/** 默认配置 schema 路径（相对于包安装目录） */
-export const CONFIG_SCHEMA_PATH = resolve(PKG_DIR, "config/config.schema.json");
-
-/** 临时文件根目录（相对于当前工作目录） */
-export const TMP_DIR = "tmp";
-
-/** 预处理模块的输出目录（相对于当前工作目录） */
-export function preprocessDir(baseName: string): string {
-  return `${TMP_DIR}/preprocess/${baseName}`;
+/** 预处理模块的输出目录，使用输入路径哈希隔离同名文件 */
+export function preprocessDir(inputPath: string): string {
+  const absolutePath = resolve(inputPath);
+  const hashInput = process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath;
+  const hash = createHash("sha256").update(hashInput).digest("hex").slice(0, 12);
+  return join(TMP_DIR, "preprocess", `${parse(inputPath).name}-${hash}`);
 }
 
 /** 预处理后的 Markdown 文件路径 */
-export function formattedMdPath(baseName: string): string {
-  return `${preprocessDir(baseName)}/${baseName}_formatted.md`;
+export function formattedMdPath(inputPath: string): string {
+  return join(preprocessDir(inputPath), `${parse(inputPath).name}_formatted.md`);
 }
 
 /** 样式模块目录 */
-export const STYLE_DIR = `${TMP_DIR}/style`;
-
-/** 样式配置文件（相对于包安装目录），用户维护的样式定义 */
-export const STYLE_CONFIG = resolve(PKG_DIR, "config/style.json");
+export const STYLE_DIR = join(TMP_DIR, "style");
 
 /** 根据样式内容哈希生成模板 docx 缓存路径 */
 export function styleTemplateDocx(hash: string): string {
-  return `${STYLE_DIR}/${hash}.docx`;
+  return join(STYLE_DIR, `${hash}.docx`);
 }

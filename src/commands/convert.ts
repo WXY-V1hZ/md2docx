@@ -1,12 +1,17 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { parse, resolve } from "node:path";
+import { parse } from "node:path";
 
 import { type ConvertOptions } from "../cli";
 import { loadConfig } from "../config";
-import { CONFIG_PATH, PKG_DIR, STYLE_CONFIG, formattedMdPath, preprocessDir } from "../paths";
+import { formattedMdPath, preprocessDir } from "../paths";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
+import {
+  materializeDefaultConfig,
+  materializeDefaultStyle,
+  materializeLuaFilter,
+} from "../resources";
 import { ensureTemplateDocx } from "../style/generate";
 
 export async function convertMarkdown(options: ConvertOptions): Promise<void> {
@@ -14,23 +19,23 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const input = resolveInputPath(options.file, [".md", ".markdown"], "Markdown 文件");
   const configPath = options.config
     ? resolveInputPath(options.config, [".json"], "配置文件")
-    : CONFIG_PATH;
+    : materializeDefaultConfig();
   const stylePath = options.style
     ? resolveInputPath(options.style, [".json"], "样式文件")
-    : STYLE_CONFIG;
+    : materializeDefaultStyle();
   const baseName = parse(input).name;
   const output = resolveOutputPath(options.output, `${baseName}.docx`, [".docx"], "DOCX 输出文件");
   prepareOutput(output, options.force ?? false);
 
   const config = await loadConfig(configPath);
-  const outDir = resolve(preprocessDir(baseName));
+  const outDir = preprocessDir(input);
   mkdirSync(outDir, { recursive: true });
   const formatted = await preprocess(input, config, outDir);
-  const markdownOutput = resolve(formattedMdPath(baseName));
+  const markdownOutput = formattedMdPath(input);
   writeFileSync(markdownOutput, formatted, "utf-8");
 
   const templatePath = await ensureTemplateDocx(stylePath);
-  const luaFilter = resolve(PKG_DIR, "config/lua/add-inline-code.lua");
+  const luaFilter = materializeLuaFilter();
   const pandocArgs = [
     markdownOutput,
     "-o",

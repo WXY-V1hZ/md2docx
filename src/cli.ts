@@ -31,6 +31,7 @@ export interface CliActions {
   format(options: FormatOptions): Promise<void>;
   exportConfig(options: ExportConfigOptions): Promise<void>;
   exportStyle(options: ExportStyleOptions): Promise<void>;
+  clean(): void | Promise<void>;
 }
 
 export function createProgram(version: string, actions: CliActions): Command {
@@ -45,14 +46,36 @@ export function createProgram(version: string, actions: CliActions): Command {
     .showHelpAfterError("使用 --help 查看帮助")
     .showSuggestionAfterError()
     .enablePositionalOptions()
+    .argument("[markdown]", "Markdown 文件（仅无其他转换选项时）")
     .option("-f, --file <path>", "Markdown 文件")
     .option("-c, --config <path>", "自定义配置文件")
     .option("-s, --style <path>", "自定义样式文件")
     .option("-o, --output <path>", "输出 DOCX 文件")
     .option("--force", "覆盖已有文件")
-    .action(function (this: Command, options: ConvertOptions) {
-      if (!options.file) this.help();
-      void actions.convert(options);
+    .action(async function (this: Command, markdown: string | undefined, options: ConvertOptions) {
+      const hasAdditionalOptions =
+        options.config !== undefined ||
+        options.style !== undefined ||
+        options.output !== undefined ||
+        options.force !== undefined;
+
+      if (markdown !== undefined) {
+        if (options.file !== undefined || hasAdditionalOptions) {
+          this.error(
+            "位置参数不能与转换选项同时使用；使用选项时请通过 -f, --file 指定 Markdown 文件",
+          );
+        }
+        await actions.convert({ file: markdown });
+        return;
+      }
+
+      if (!options.file) {
+        if (hasAdditionalOptions) {
+          this.error("使用转换选项时必须通过 -f, --file 指定 Markdown 文件");
+        }
+        this.help();
+      }
+      await actions.convert(options);
     });
   program.exitOverride();
 
@@ -95,6 +118,15 @@ export function createProgram(version: string, actions: CliActions): Command {
     .option("--force", "覆盖已有文件")
     .action(actions.format);
   formatCommand.exitOverride();
+
+  const cleanCommand = program
+    .command("clean")
+    .description("清除 ~/.md2docx 中的预处理文件和样式缓存")
+    .helpOption("-h, --help", "显示帮助")
+    .action(async () => {
+      await actions.clean();
+    });
+  cleanCommand.exitOverride();
 
   return program;
 }

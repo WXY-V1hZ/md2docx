@@ -15,16 +15,18 @@ interface Calls {
   format: FormatOptions[];
   exportConfig: ExportConfigOptions[];
   exportStyle: ExportStyleOptions[];
+  clean: number;
 }
 
 function setup() {
-  const calls: Calls = { convert: [], format: [], exportConfig: [], exportStyle: [] };
+  const calls: Calls = { convert: [], format: [], exportConfig: [], exportStyle: [], clean: 0 };
   const output: string[] = [];
   const actions: CliActions = {
     convert: async (options) => void calls.convert.push(options),
     format: async (options) => void calls.format.push(options),
     exportConfig: async (options) => void calls.exportConfig.push(options),
     exportStyle: async (options) => void calls.exportStyle.push(options),
+    clean: () => void calls.clean++,
   };
   const program = createProgram("1.2.3", actions);
   function configure(command: Command): void {
@@ -87,6 +89,13 @@ describe("CLI 命令解析", () => {
     expect(calls.exportStyle).toEqual([{ file: "template.docx", output: "style.json" }]);
   });
 
+  it("解析 clean 子命令", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(["clean"], { from: "user" });
+
+    expect(calls.clean).toBe(1);
+  });
+
   it("无参数时显示顶层帮助", async () => {
     const { program, output } = setup();
     try {
@@ -115,10 +124,24 @@ describe("CLI 命令解析", () => {
     ).rejects.toMatchObject({ code: "commander.unknownOption" });
   });
 
-  it("拒绝旧版 Markdown 位置参数", async () => {
+  it("仅提供 Markdown 位置参数时执行转换", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(["report.md"], { from: "user" });
+
+    expect(calls.convert).toEqual([{ file: "report.md" }]);
+  });
+
+  it("位置参数不能与转换选项混用", async () => {
     const { program } = setup();
-    expect(program.parseAsync(["report.md"], { from: "user" })).rejects.toThrow(
-      "too many arguments",
+    expect(program.parseAsync(["report.md", "--force"], { from: "user" })).rejects.toThrow(
+      "位置参数不能与转换选项同时使用",
+    );
+  });
+
+  it("使用转换选项时必须通过 --file 指定输入", async () => {
+    const { program } = setup();
+    expect(program.parseAsync(["--force"], { from: "user" })).rejects.toThrow(
+      "使用转换选项时必须通过 -f, --file 指定 Markdown 文件",
     );
   });
 
@@ -129,6 +152,7 @@ describe("CLI 命令解析", () => {
       ["export", "config", "--help"],
       ["export", "style", "--help"],
       ["format", "--help"],
+      ["clean", "--help"],
     ]) {
       const { program, output } = setup();
       try {

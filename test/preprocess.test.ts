@@ -8,8 +8,8 @@ import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import { type Heading, type Root } from "mdast";
 import { visit } from "unist-util-visit";
-import { CONFIG_PATH } from "../src/paths";
 import { type AppConfig } from "../src/config";
+import { DEFAULT_CONFIG_TEXT } from "../src/resources";
 import { addTitle, normalizeHeadings, numberHeadings } from "../src/preprocess/title";
 import { numberTables, numberPictures } from "../src/preprocess/caption";
 
@@ -58,7 +58,7 @@ function normalizeTable(s: string): string {
 /** 运行完整的预处理管道 */
 function runPipeline(input: string): string {
   const { root, headings } = parse(input);
-  const cfg: AppConfig = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
+  const cfg: AppConfig = JSON.parse(DEFAULT_CONFIG_TEXT);
   addTitle("input.md", root, headings, cfg.detectTitle);
   normalizeHeadings(headings);
   numberHeadings(headings, cfg.numberHeadings);

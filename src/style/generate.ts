@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { Document, Packer } from "docx";
 import { dirname } from "path";
 import { styleTemplateDocx } from "../paths";
 
@@ -14,6 +13,7 @@ export async function generateTemplateDocx(
   styleJsonPath: string,
   outputPath: string,
 ): Promise<void> {
+  const { Document, Packer } = await import("docx");
   const raw = JSON.parse(readFileSync(styleJsonPath, "utf-8")) as Record<string, unknown>;
   const tableStylesXml = raw.tableStylesXml as string | undefined;
   // 移除 tableStylesXml，docx 包不识别它

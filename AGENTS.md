@@ -28,6 +28,8 @@ bun test                  # 运行所有测试
 bun test --watch          # 监视模式
 
 bun check                 # 类型检查 (tsc --noEmit) + 代码检查 (oxlint) + 格式检查 (oxfmt)
+bun run build             # 构建 npm 使用的 Node.js 版本
+bun run build:exe         # 构建当前平台的单文件可执行程序
 
 bun run src/index.ts -f base.md # 将 base.md 转换为 base.docx
 bun add <package>         # 安装依赖
@@ -67,8 +69,8 @@ bun check
 | `config/style.json`         | 样式配置（从模板 docx 提取或手动维护），驱动模板 docx 生成。                        |
 | `config/lua/`               | pandoc Lua filter，用于行内代码样式映射等。                                         |
 | `docs/example.md`           | 全面的 Markdown 测试文档。                                                          |
-| `tmp/preprocess/`           | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
-| `tmp/style/`                | 样式提取与模板生成的中间产物。                                                      |
+| `~/.md2docx/preprocess/`    | 预处理中间产物（格式化 md、mermaid PNG、pandoc docx）。                             |
+| `~/.md2docx/style/`         | 样式提取与模板生成的中间产物。                                                      |
 | `pandoc_docx_template/`     | 用于 DOCX 生成的捆绑 pandoc 模板仓库。                                              |
 | `push.sh`                   | 发布脚本：npm version → git push → npm publish。                                    |
 | `test/`                     | 单元测试。                                                                          |
@@ -115,7 +117,7 @@ pandoc → DOCX
 
 ```bash
 # 转换为 DOCX
-bun run src/index.ts --file <md-path>
+bun run src/index.ts <md-path>
 
 # 只格式化 Markdown
 bun run src/index.ts format --file <md-path>
@@ -123,6 +125,9 @@ bun run src/index.ts format --file <md-path>
 # 导出默认配置或样式
 bun run src/index.ts export config
 bun run src/index.ts export style
+
+# 清除中间文件和样式缓存
+bun run src/index.ts clean
 
 # 查看帮助
 bun run src/index.ts -h
@@ -136,11 +141,14 @@ bun run src/index.ts -f doc.md --force
 
 CLI 不支持单个配置项覆盖。配置应导出为 JSON、直接编辑，并通过 `--config` 指定。
 
-顶层转换和 `format` 的 `--file` 必填；`export style` 的 `--file` 可选。CLI 无参数运行时显示顶层帮助并以状态码 0 退出。所有写文件命令默认拒绝覆盖已有文件，只有显式传入 `--force` 才允许覆盖。
+顶层转换仅提供 Markdown 路径时可省略 `--file`；一旦使用其他转换选项，就必须通过 `--file` 指定输入。`format` 的 `--file` 必填；`export style` 的 `--file` 可选。CLI 无参数运行时显示顶层帮助并以状态码 0 退出。所有写文件命令默认拒绝覆盖已有文件，只有显式传入 `--force` 才允许覆盖。
+
+`clean` 删除用户主目录下的整个 `~/.md2docx/`，包括预处理中间文件与样式模板缓存；目标路径必须严格校验，禁止清理其他目录。
 
 默认输出规则：
 
 ```text
+md2docx report.md                     → ./report.docx
 md2docx -f report.md                  → ./report.docx
 md2docx format -f report.md           → ./report_formatted.md
 md2docx export config                 → ./config.json
@@ -253,7 +261,7 @@ SVG
     ↓
 resolveCSSVars()
     ↓
-sharp
+resvg-wasm
     ↓
 PNG
 ```
@@ -440,9 +448,9 @@ Markdown AST 变换。
 
 Mermaid → SVG 渲染。
 
-## sharp
+## @resvg/resvg-wasm
 
-SVG → PNG 转换。
+使用 WebAssembly 执行 SVG → PNG 转换，避免原生模块阻碍 Bun 单文件可执行程序打包。
 
 不要重新实现这些库已提供的功能。
 
@@ -458,9 +466,9 @@ SVG → PNG 转换。
 counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 ```
 
-## sharp / librsvg
+## resvg
 
-它们**不支持** CSS var() 和 color-mix()。在将 SVG 传入 sharp 之前必须调用 `resolveCSSVars()` 内联所有变量。
+它**不支持** CSS var() 和 color-mix()。在将 SVG 传入 resvg 之前必须调用 `resolveCSSVars()` 内联所有变量。
 
 `resolveCSSVars()` 内部做了：
 
@@ -489,7 +497,7 @@ counter.fill(0, depth); // 并**不会**填充前 depth 个元素
 
 `src/style/generate.ts` 读取 `config/style.json`，用 `docx` 包生成空白模板 docx。
 
-模板按照样式内容哈希缓存到 `tmp/style/`。调用 pandoc 时自动作为 reference docx 传入，确保不同样式不会复用错误缓存。
+模板按照样式内容哈希缓存到 `~/.md2docx/style/`。调用 pandoc 时自动作为 reference docx 传入，确保不同样式不会复用错误缓存。
 
 ## 样式继承陷阱
 

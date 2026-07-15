@@ -3,15 +3,15 @@ import { basename, dirname, parse, resolve } from "node:path";
 
 import { type FormatOptions } from "../cli";
 import { loadConfig } from "../config";
-import { CONFIG_PATH } from "../paths";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
+import { materializeDefaultConfig } from "../resources";
 
 export async function formatMarkdown(options: FormatOptions): Promise<void> {
   const input = resolveInputPath(options.file, [".md", ".markdown"], "Markdown 文件");
   const configPath = options.config
     ? resolveInputPath(options.config, [".json"], "配置文件")
-    : CONFIG_PATH;
+    : materializeDefaultConfig();
   const defaultName = `${parse(input).name}_formatted.md`;
   const output = resolveOutputPath(
     options.output,
