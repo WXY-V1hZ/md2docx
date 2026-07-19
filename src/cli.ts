@@ -49,7 +49,7 @@ export function createProgram(version: string, actions: CliActions): Command {
     .argument("[markdown]", "Markdown 文件（仅无其他转换选项时）")
     .option("-f, --file <path>", "Markdown 文件")
     .option("-c, --config <path>", "自定义配置文件")
-    .option("-s, --style <path>", "自定义样式文件")
+    .option("-s, --style <path>", "自定义底层样式或语义化样式配置")
     .option("-o, --output <path>", "输出 DOCX 文件")
     .option("--force", "覆盖已有文件")
     .action(async function (this: Command, markdown: string | undefined, options: ConvertOptions) {

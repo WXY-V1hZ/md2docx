@@ -54,19 +54,12 @@ function wBool(el: Element | null, local: string): boolean | null {
 function mapShd(shd: Element | null): Record<string, string> | undefined {
   if (!shd) return undefined;
   const sh: Record<string, string> = {};
-  for (const a of [
-    "val",
-    "color",
-    "fill",
-    "themeColor",
-    "themeTint",
-    "themeFill",
-    "themeFillShade",
-    "themeShade",
-  ]) {
+  for (const a of ["color", "fill"]) {
     const v = wAttr(shd, a);
     if (v !== null) sh[a] = v;
   }
+  const type = wAttr(shd, "val");
+  if (type !== null) sh.type = type;
   return Object.keys(sh).length > 0 ? sh : undefined;
 }
 
@@ -74,10 +67,14 @@ function mapShd(shd: Element | null): Record<string, string> | undefined {
 function mapBorder(bdr: Element | null): Record<string, string | number> | undefined {
   if (!bdr) return undefined;
   const b: Record<string, string | number> = {};
-  for (const a of ["val", "color", "sz", "space", "themeColor", "themeShade"]) {
+  for (const a of ["color", "space"]) {
     const v = wAttr(bdr, a);
     if (v !== null) b[a] = /^\d+$/.test(v) ? Number(v) : v;
   }
+  const style = wAttr(bdr, "val");
+  if (style !== null) b.style = style;
+  const size = wAttr(bdr, "sz");
+  if (size !== null) b.size = /^\d+$/.test(size) ? Number(size) : size;
   return Object.keys(b).length > 0 ? b : undefined;
 }
 

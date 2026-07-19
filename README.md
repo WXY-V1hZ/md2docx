@@ -17,18 +17,18 @@
 
 ## 功能
 
-| 功能              | 说明                                                               |
-| ----------------- | ------------------------------------------------------------------ |
-| 文档标题          | 从 YAML frontmatter、H1 或文件名提取标题                           |
-| 标题层级归一化    | 将最浅标题归一化为 H1，并修复标题层级跳跃                          |
-| 标题编号          | 生成 `1`、`1.1`、`1.1.1` 等编号，并可剥离常见的已有中英文编号      |
-| 表格与图片编号    | 自动生成“表 1”“图 1：标题”等题注                                   |
-| Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG   |
-| Word 样式         | 根据 JSON 样式生成 Pandoc reference DOCX，也可从现有 DOCX 提取样式 |
-| Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                      |
-| 去除分隔符        | 默认移除 `---`、`***`、`___` 等分隔符行，减少无用页面间距          |
-| 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`        |
-| Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件   |
+| 功能              | 说明                                                             |
+| ----------------- | ---------------------------------------------------------------- |
+| 文档标题          | 从 YAML frontmatter、H1 或文件名提取标题                         |
+| 标题层级归一化    | 将最浅标题归一化为 H1，并修复标题层级跳跃                        |
+| 标题编号          | 生成 `1`、`1.1`、`1.1.1` 等编号，并可剥离常见的已有中英文编号    |
+| 表格与图片编号    | 自动生成“表 1”“图 1：标题”等题注                                 |
+| Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG |
+| Word 样式         | 支持受控语义化配置和完整底层样式，也可从现有 DOCX 提取样式       |
+| Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                    |
+| 去除分隔符        | 默认移除 `---`、`***`、`___` 等分隔符行，减少无用页面间距        |
+| 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`      |
+| Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件 |
 
 ## 安装方式
 
@@ -97,7 +97,7 @@ md2docx clean
 | `<markdown>`          | 位置参数；仅在没有其他转换选项时允许使用 |
 | `-f, --file <path>`   | Markdown 输入文件                        |
 | `-c, --config <path>` | 自定义配置 JSON                          |
-| `-s, --style <path>`  | 自定义样式 JSON                          |
+| `-s, --style <path>`  | 语义化样式配置或完整底层样式 JSON        |
 | `-o, --output <path>` | DOCX 输出路径                            |
 | `--force`             | 覆盖已有输出                             |
 | `-h, --help`          | 显示帮助                                 |
@@ -169,6 +169,7 @@ md2docx export style -f template.docx → ./template_style.json
 │       └── mermaid_*.png
 ├── resources/
 │   ├── config.json
+│   ├── style-config.json
 │   ├── style.json
 │   └── add-inline-code.lua
 └── style/
@@ -213,7 +214,43 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 
 ## 样式定制
 
-`config/style.json` 定义 DOCX 的默认样式、标题样式、段落样式和字符样式。转换时，项目用 `docx` 生成 reference DOCX，再通过 Pandoc 的 `--reference-doc` 应用样式。
+普通用户推荐使用受控的语义化样式配置，只修改程序明确开放的高频选项。其余颜色、尺寸、对齐方式、间距和 Word 样式继承关系继续由内置预设管理。
+
+仓库中的 `config/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。未指定 `--style` 时，转换会自动加载内嵌的默认 `style-config.json`，再将它编译到内置底层样式；不需要手工传入 `-s`。
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
+  "schemaVersion": 1,
+  "preset": "default",
+  "options": {
+    "body": {
+      "firstLineIndent": false
+    },
+    "headings": {
+      "1": {
+        "startOnNewPage": false
+      }
+    },
+    "inlineCode": {
+      "background": false
+    },
+    "codeBlock": {
+      "border": false
+    }
+  }
+}
+```
+
+将配置保存为 `style-config.json` 后使用：
+
+```bash
+md2docx -f report.md -s style-config.json
+```
+
+字段缺失表示继承预设；`true` 表示使用预设效果；`false` 表示显式关闭。当前只开放正文首行缩进、一级标题另起一页、行内代码背景和代码块外框。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
+
+`config/style.json` 仍定义完整的底层 DOCX 样式，包括标题、段落、字符和表格样式。转换时，项目先将语义化配置编译到底层样式，再用 `docx` 生成 reference DOCX，最后通过 Pandoc 的 `--reference-doc` 应用样式。现有完整样式 JSON 可继续直接传给 `--style`。
 
 ### 从现有 DOCX 提取
 
@@ -222,7 +259,7 @@ md2docx export style -f template.docx
 md2docx -f report.md -s template_style.json
 ```
 
-### 手动维护
+### 高级手动维护
 
 主要区域包括：
 

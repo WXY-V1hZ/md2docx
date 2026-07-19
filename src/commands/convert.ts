@@ -9,7 +9,7 @@ import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
 import {
   materializeDefaultConfig,
-  materializeDefaultStyle,
+  materializeDefaultStyleConfig,
   materializeLuaFilter,
 } from "../resources";
 import { ensureTemplateDocx } from "../style/generate";
@@ -22,7 +22,7 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
     : materializeDefaultConfig();
   const stylePath = options.style
     ? resolveInputPath(options.style, [".json"], "样式文件")
-    : materializeDefaultStyle();
+    : materializeDefaultStyleConfig();
   const baseName = parse(input).name;
   const output = resolveOutputPath(options.output, `${baseName}.docx`, [".docx"], "DOCX 输出文件");
   prepareOutput(output, options.force ?? false);

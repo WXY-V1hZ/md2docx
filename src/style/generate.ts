@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname } from "path";
 import { styleTemplateDocx } from "../paths";
+import { loadEffectiveStyles, type WordStyleDefinition } from "./compiler";
 
 /**
  * 根据样式 JSON 文件生成模板 docx。
@@ -13,8 +14,15 @@ export async function generateTemplateDocx(
   styleJsonPath: string,
   outputPath: string,
 ): Promise<void> {
+  const styles = loadEffectiveStyles(styleJsonPath);
+  await generateTemplateDocxFromStyles(styles, outputPath);
+}
+
+async function generateTemplateDocxFromStyles(
+  raw: WordStyleDefinition,
+  outputPath: string,
+): Promise<void> {
   const { Document, Packer } = await import("docx");
-  const raw = JSON.parse(readFileSync(styleJsonPath, "utf-8")) as Record<string, unknown>;
   const tableStylesXml = raw.tableStylesXml as string | undefined;
   // 移除 tableStylesXml，docx 包不识别它
   const { tableStylesXml: _, ...styles } = raw;
@@ -53,13 +61,13 @@ const generatePromises = new Map<string, Promise<void>>();
  * @param styleJsonPath - 样式 JSON 文件路径（如 config/style.json）
  */
 export async function ensureTemplateDocx(styleJsonPath: string): Promise<string> {
-  const raw = readFileSync(styleJsonPath);
-  const hash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
+  const styles = loadEffectiveStyles(styleJsonPath);
+  const hash = createHash("sha256").update(JSON.stringify(styles)).digest("hex").slice(0, 16);
   const outputPath = styleTemplateDocx(hash);
   if (!existsSync(outputPath)) {
     let promise = generatePromises.get(outputPath);
     if (!promise) {
-      promise = generateTemplateDocx(styleJsonPath, outputPath).catch((error) => {
+      promise = generateTemplateDocxFromStyles(styles, outputPath).catch((error) => {
         generatePromises.delete(outputPath);
         throw error;
       });

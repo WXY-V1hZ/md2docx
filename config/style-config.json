@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
+  "schemaVersion": 1,
+  "preset": "default",
+  "options": {
+    "body": {
+      "firstLineIndent": true
+    },
+    "headings": {
+      "1": {
+        "startOnNewPage": false
+      }
+    },
+    "inlineCode": {
+      "background": true
+    },
+    "codeBlock": {
+      "border": true
+    }
+  }
+}

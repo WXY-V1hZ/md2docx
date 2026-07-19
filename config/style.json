@@ -559,7 +559,7 @@
           "eastAsia": "zh-CN"
         },
         "shading": {
-          "val": "pct5",
+          "type": "pct5",
           "color": "auto",
           "fill": "auto"
         }
@@ -571,40 +571,40 @@
         },
         "wordWrap": false,
         "shading": {
-          "val": "clear",
+          "type": "clear",
           "color": "F3F4F4",
           "fill": "FFFFFF",
           "themeFill": "background1"
         },
         "border": {
           "top": {
-            "val": "single",
+            "style": "single",
             "color": "BFBFBF",
-            "sz": 8,
+            "size": 8,
             "space": 10,
             "themeColor": "background1",
             "themeShade": "BF"
           },
           "left": {
-            "val": "single",
+            "style": "single",
             "color": "BFBFBF",
-            "sz": 8,
+            "size": 8,
             "space": 10,
             "themeColor": "background1",
             "themeShade": "BF"
           },
           "bottom": {
-            "val": "single",
+            "style": "single",
             "color": "BFBFBF",
-            "sz": 8,
+            "size": 8,
             "space": 10,
             "themeColor": "background1",
             "themeShade": "BF"
           },
           "right": {
-            "val": "single",
+            "style": "single",
             "color": "BFBFBF",
-            "sz": 8,
+            "size": 8,
             "space": 10,
             "themeColor": "background1",
             "themeShade": "BF"
@@ -750,7 +750,7 @@
           "eastAsia": "zh-CN"
         },
         "shading": {
-          "val": "clear",
+          "type": "clear",
           "color": "F3F4F4",
           "fill": "FFFFFF",
           "themeFill": "background1"
@@ -844,16 +844,16 @@
           "eastAsia": "zh-CN"
         },
         "shading": {
-          "val": "clear",
+          "type": "clear",
           "color": "F3F4F4",
           "fill": "F2F2F2",
           "themeFill": "background1",
           "themeFillShade": "F2"
         },
         "border": {
-          "val": "none",
+          "style": "none",
           "color": "auto",
-          "sz": 0,
+          "size": 0,
           "space": 0
         }
       }

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
+  "title": "md2docx 语义化样式配置",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "preset"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "preset": {
+      "const": "default"
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "firstLineIndent": {
+              "type": "boolean",
+              "description": "正文是否使用预设的首行缩进"
+            }
+          }
+        },
+        "headings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "1": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "startOnNewPage": {
+                  "type": "boolean",
+                  "description": "一级标题是否另起一页"
+                }
+              }
+            }
+          }
+        },
+        "inlineCode": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "type": "boolean",
+              "description": "行内代码是否使用预设背景"
+            }
+          }
+        },
+        "codeBlock": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "border": {
+              "type": "boolean",
+              "description": "代码块是否使用预设外框"
+            }
+          }
+        }
+      }
+    }
+  }
+}
