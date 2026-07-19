@@ -11,6 +11,7 @@ import { type AppConfig } from "../config";
 import { addTitle, normalizeHeadings, numberHeadings } from "./title";
 import { numberTables, numberPictures } from "./caption";
 import { renderMermaid } from "./mermaid";
+import { removeThematicBreaks } from "./thematic-break";
 
 export async function preprocess(
   mdPath: string,
@@ -33,6 +34,10 @@ export async function preprocess(
   });
 
   addTitle(mdPath, ast, headings, cfg.detectTitle);
+
+  if (cfg.removeThematicBreaks.enabled) {
+    removeThematicBreaks(ast);
+  }
 
   if (cfg.normalizeHeadings.enabled || cfg.numberHeadings.enabled) {
     normalizeHeadings(headings);

@@ -92,6 +92,7 @@ bun run build:exe                # Windows 单文件构建（含程序图标）
 | `src/preprocess/index.ts`                | 预处理流水线编排                                        |
 | `src/preprocess/title.ts`                | 标题提取、标题归一化、标题编号                          |
 | `src/preprocess/caption.ts`              | 表格和图片编号                                          |
+| `src/preprocess/thematic-break.ts`       | 移除文档中所有 `thematicBreak`（分隔符）节点            |
 | `src/preprocess/mermaid.ts`              | Mermaid → SVG → PNG、字体加载、CSS 解析、PNG DPI 元数据 |
 | `src/style/extract.ts`                   | 从 DOCX 提取样式 JSON                                   |
 | `src/style/generate.ts`                  | 用 `docx` 生成 reference DOCX，并注入表格样式 XML       |
@@ -245,6 +246,8 @@ Markdown
     ↓
 addTitle()
     ↓
+removeThematicBreaks()
+    ↓
 normalizeHeadings()
     ↓
 numberHeadings()
@@ -266,6 +269,7 @@ DOCX
 
 顺序约束：
 
+- `removeThematicBreaks()` 位于 `addTitle()` 之后、标题处理之前，不依赖其他步骤状态。
 - `numberTables()` 必须位于 `renderMermaid()` 之前。
 - `renderMermaid()` 必须位于 `numberPictures()` 之前，否则 Mermaid 图片不会编号。
 - 每个步骤保持单一职责，避免步骤间隐式读写私有状态。
@@ -298,6 +302,12 @@ DOCX
 - 可识别并剥离已有中文或数字编号。
 - 编号剥离规则顺序不可随意调整：顿号多级、中文括号、中文单级、数字点分。
 - 数字点分至少要求两段，避免把版本号误判为标题编号。
+
+## removeThematicBreaks()
+
+- 遍历根节点 `children`，移除所有 `type === "thematicBreak"` 的节点。
+- 只操作根级别节点，不影响段落内或嵌套结构中可能出现的分隔符。
+- 默认开启，可通过配置关闭。
 
 ## numberTables()
 
@@ -575,6 +585,7 @@ test/fixtures/<名称>/
 ## 必测边界
 
 - 空文档
+- 分隔符（---、***、___）被移除，配置关闭时分隔符保留
 - 无标题、单 H1、多个 H1
 - 标题不在首节点
 - 标题层级跳跃

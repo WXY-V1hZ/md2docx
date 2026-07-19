@@ -141,6 +141,19 @@
         }
       },
       "required": ["enabled", "strategy"]
+    },
+    "removeThematicBreaks": {
+      "description": "分隔符",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "自动移除 markdown 中的分隔符（---, ***, ___）",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": ["enabled"]
     }
   },
   "required": [
@@ -149,6 +162,7 @@
     "normalizeHeadings",
     "numberHeadings",
     "renderMermaid",
-    "detectTitle"
+    "detectTitle",
+    "removeThematicBreaks"
   ]
 }

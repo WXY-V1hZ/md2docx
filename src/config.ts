@@ -37,6 +37,7 @@ export interface AppConfig {
   numberHeadings: HeadingNumberingConfig;
   renderMermaid: MermaidConfig;
   detectTitle: TitleConfig;
+  removeThematicBreaks: BooleanConfig;
 }
 
 export async function loadConfig(path: string): Promise<AppConfig> {
@@ -82,6 +83,8 @@ function validateConfig(
   if (!Number.isInteger(mermaid.density) || (mermaid.density as number) < 72) {
     invalidConfig(path, "renderMermaid.density", "必须是不小于 72 的整数");
   }
+
+  validateEnabled(root.removeThematicBreaks, path, "removeThematicBreaks");
 
   const title = expectRecord(root.detectTitle, path, "detectTitle");
   expectBoolean(title.enabled, path, "detectTitle.enabled");

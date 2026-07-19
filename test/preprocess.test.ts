@@ -12,6 +12,7 @@ import { type AppConfig } from "../src/config";
 import { DEFAULT_CONFIG_TEXT } from "../src/resources";
 import { addTitle, normalizeHeadings, numberHeadings } from "../src/preprocess/title";
 import { numberTables, numberPictures } from "../src/preprocess/caption";
+import { removeThematicBreaks } from "../src/preprocess/thematic-break";
 
 const fixturesDir = import.meta.dirname + "/fixtures";
 
@@ -59,6 +60,10 @@ function normalizeTable(s: string): string {
 function runPipeline(input: string): string {
   const { root, headings } = parse(input);
   const cfg: AppConfig = JSON.parse(DEFAULT_CONFIG_TEXT);
+  cfg.removeThematicBreaks.enabled = true;
+  if (cfg.removeThematicBreaks.enabled) {
+    removeThematicBreaks(root);
+  }
   addTitle("input.md", root, headings, cfg.detectTitle);
   normalizeHeadings(headings);
   numberHeadings(headings, cfg.numberHeadings);

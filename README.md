@@ -26,6 +26,7 @@
 | Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG   |
 | Word 样式         | 根据 JSON 样式生成 Pandoc reference DOCX，也可从现有 DOCX 提取样式 |
 | Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                      |
+| 去除分隔符        | 默认移除 `---`、`***`、`___` 等分隔符行，减少无用页面间距          |
 | 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`        |
 | Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件   |
 
@@ -208,6 +209,7 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 | `renderMermaid.enabled`          | 将 Mermaid 渲染为 PNG                          | `true`                |
 | `renderMermaid.theme`            | beautiful-mermaid 主题                         | `"tokyo-night-light"` |
 | `renderMermaid.density`          | PNG 输出 DPI，最小值 72                        | `200`                 |
+| `removeThematicBreaks.enabled`   | 移除 `---`、`***`、`___` 等分隔符行            | `true`                |
 
 ## 样式定制
 
@@ -268,6 +270,8 @@ Markdown
     ↓
 addTitle()
     ↓
+removeThematicBreaks()
+    ↓
 normalizeHeadings()
     ↓
 numberHeadings()
@@ -287,6 +291,7 @@ Pandoc + Lua filter
 DOCX
 ```
 
+`removeThematicBreaks()` 在标题处理之前执行，避免分隔符干扰文档结构。
 `numberTables()` 必须先于 Mermaid 渲染；`numberPictures()` 必须后于 Mermaid 渲染，这样 Mermaid 生成的图片也能获得图题。
 
 ## 构建
