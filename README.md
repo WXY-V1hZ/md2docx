@@ -60,18 +60,19 @@ md2docx report.md
 # 使用任何转换选项时，输入必须通过 --file 指定
 md2docx --file report.md --output output/report.docx --force
 
-# 使用自定义配置和样式
-md2docx -f report.md -c config.json -s style.json
+# 使用自定义配置、底层样式和语义化样式配置
+md2docx -f report.md -c config.json --style-raw style-raw.json --style-config style-config.json
 
 # 只执行 Markdown 预处理
 md2docx format -f report.md
 
-# 导出内置默认配置和样式
+# 导出内置默认配置、底层样式和语义化样式配置
 md2docx export config
-md2docx export style
+md2docx export style-raw
+md2docx export style-config
 
 # 从现有 DOCX 提取样式
-md2docx export style -f template.docx
+md2docx export style-raw -f template.docx
 
 # 删除 ~/.md2docx 中的中间文件和缓存
 md2docx clean
@@ -86,24 +87,26 @@ md2docx <markdown>
 md2docx -f <markdown> [转换选项]
 md2docx format -f <markdown> [选项]
 md2docx export config [选项]
-md2docx export style [选项]
+md2docx export style-raw [选项]
+md2docx export style-config [选项]
 md2docx clean
 ```
 
 ### 转换
 
-| 参数                  | 说明                                     |
-| --------------------- | ---------------------------------------- |
-| `<markdown>`          | 位置参数；仅在没有其他转换选项时允许使用 |
-| `-f, --file <path>`   | Markdown 输入文件                        |
-| `-c, --config <path>` | 自定义配置 JSON                          |
-| `-s, --style <path>`  | 语义化样式配置或完整底层样式 JSON        |
-| `-o, --output <path>` | DOCX 输出路径                            |
-| `--force`             | 覆盖已有输出                             |
-| `-h, --help`          | 显示帮助                                 |
-| `-v, --version`       | 显示版本号                               |
+| 参数                    | 说明                                     |
+| ----------------------- | ---------------------------------------- |
+| `<markdown>`            | 位置参数；仅在没有其他转换选项时允许使用 |
+| `-f, --file <path>`     | Markdown 输入文件                        |
+| `-c, --config <path>`   | 自定义配置 JSON                          |
+| `--style-raw <path>`    | 完整底层 Word 样式 JSON                  |
+| `--style-config <path>` | 受控语义化样式配置 JSON                  |
+| `-o, --output <path>`   | DOCX 输出路径                            |
+| `--force`               | 覆盖已有输出                             |
+| `-h, --help`            | 显示帮助                                 |
+| `-v, --version`         | 显示版本号                               |
 
-位置参数不能和 `--file`、`--config`、`--style`、`--output` 或 `--force` 混用。例如：
+位置参数不能和 `--file`、`--config`、`--style-raw`、`--style-config`、`--output` 或 `--force` 混用。例如：
 
 ```bash
 md2docx report.md                 # 正确
@@ -126,10 +129,11 @@ md2docx -f report.md --force      # 正确
 
 ```bash
 md2docx export config [-o config.json] [--force]
-md2docx export style [-f template.docx] [-o style.json] [--force]
+md2docx export style-raw [-f template.docx] [-o style-raw.json] [--force]
+md2docx export style-config [-o style-config.json] [--force]
 ```
 
-`export config` 导出内置默认配置。`export style` 不带 `--file` 时导出内置默认样式；指定 DOCX 时从该文档提取样式。
+`export config` 导出内置 Markdown 处理配置。`export style-raw` 不带 `--file` 时导出内置底层 Word 样式；指定 DOCX 时从该文档提取底层样式。`export style-config` 导出默认语义化样式配置。
 
 ### clean
 
@@ -153,8 +157,9 @@ md2docx report.md                     → ./report.docx
 md2docx -f report.md                  → ./report.docx
 md2docx format -f report.md           → ./report_formatted.md
 md2docx export config                 → ./config.json
-md2docx export style                  → ./style.json
-md2docx export style -f template.docx → ./template_style.json
+md2docx export style-raw                  → ./style-raw.json
+md2docx export style-raw -f template.docx → ./template_style-raw.json
+md2docx export style-config               → ./style-config.json
 ```
 
 ## 中间文件与缓存
@@ -170,7 +175,7 @@ md2docx export style -f template.docx → ./template_style.json
 ├── resources/
 │   ├── config.json
 │   ├── style-config.json
-│   ├── style.json
+│   ├── style-raw.json
 │   └── add-inline-code.lua
 └── style/
     └── <样式内容哈希>.docx
@@ -216,13 +221,12 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 
 普通用户推荐使用受控的语义化样式配置，只修改程序明确开放的高频选项。其余颜色、尺寸、对齐方式、间距和 Word 样式继承关系继续由内置预设管理。
 
-仓库中的 `config/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。未指定 `--style` 时，转换会自动加载内嵌的默认 `style-config.json`，再将它编译到内置底层样式；不需要手工传入 `-s`。
+仓库中的 `config/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。完整底层 Word 样式位于 `config/style-raw.json`。
 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
   "schemaVersion": 1,
-  "preset": "default",
   "options": {
     "body": {
       "firstLineIndent": false
@@ -245,18 +249,27 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 将配置保存为 `style-config.json` 后使用：
 
 ```bash
-md2docx -f report.md -s style-config.json
+md2docx -f report.md --style-config style-config.json
 ```
 
-字段缺失表示继承预设；`true` 表示使用预设效果；`false` 表示显式关闭。当前只开放正文首行缩进、一级标题另起一页、行内代码背景和代码块外框。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
+字段缺失表示继承底层样式；`true` 表示显式启用完整效果；`false` 表示显式关闭。当前只开放正文首行缩进、一级标题另起一页、行内代码背景和代码块外框。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
 
-`config/style.json` 仍定义完整的底层 DOCX 样式，包括标题、段落、字符和表格样式。转换时，项目先将语义化配置编译到底层样式，再用 `docx` 生成 reference DOCX，最后通过 Pandoc 的 `--reference-doc` 应用样式。现有完整样式 JSON 可继续直接传给 `--style`。
+转换时按以下规则选择输入：
+
+| 参数                | 行为                                |
+| ------------------- | ----------------------------------- |
+| 都不指定            | 默认 raw + 默认 config              |
+| 仅 `--style-raw`    | 直接使用用户 raw，不应用默认 config |
+| 仅 `--style-config` | 用户 config 应用到默认 raw          |
+| 两者都指定          | 用户 config 应用到用户 raw          |
+
+最终有效的底层样式用于生成 reference DOCX，并通过 Pandoc 的 `--reference-doc` 应用。`--style-raw` 和 `--style-config` 类型固定，不能互换。
 
 ### 从现有 DOCX 提取
 
 ```bash
-md2docx export style -f template.docx
-md2docx -f report.md -s template_style.json
+md2docx export style-raw -f template.docx
+md2docx -f report.md --style-raw template_style-raw.json
 ```
 
 ### 高级手动维护

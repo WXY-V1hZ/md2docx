@@ -8,7 +8,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { createProgram } from "./cli";
 import { cleanIntermediateFiles } from "./commands/clean";
 import { convertMarkdown } from "./commands/convert";
-import { exportConfig, exportStyle } from "./commands/export";
+import { exportConfig, exportStyleConfig, exportStyleRaw } from "./commands/export";
 import { formatMarkdown } from "./commands/format";
 
 export async function run(args: string[]): Promise<number> {
@@ -16,7 +16,8 @@ export async function run(args: string[]): Promise<number> {
     convert: convertMarkdown,
     format: formatMarkdown,
     exportConfig,
-    exportStyle,
+    exportStyleRaw,
+    exportStyleConfig,
     clean: cleanIntermediateFiles,
   });
   program.exitOverride();

@@ -1,7 +1,6 @@
 export interface StyleConfig {
   $schema?: string;
   schemaVersion: 1;
-  preset: "default";
   options?: StyleOptions;
 }
 
@@ -22,18 +21,12 @@ export interface StyleOptions {
   };
 }
 
-export function isStyleConfig(value: unknown): boolean {
-  if (!isRecord(value)) return false;
-  return "schemaVersion" in value || "preset" in value || "options" in value;
-}
-
 export function validateStyleConfig(value: unknown, path: string): StyleConfig {
   const root = expectRecord(value, path, "样式配置");
-  rejectUnknown(root, ["$schema", "schemaVersion", "preset", "options"], path, "样式配置");
+  rejectUnknown(root, ["$schema", "schemaVersion", "options"], path, "样式配置");
 
   if (root.$schema !== undefined) expectString(root.$schema, path, "$schema");
   if (root.schemaVersion !== 1) invalidStyleConfig(path, "schemaVersion", "目前只支持版本 1");
-  if (root.preset !== "default") invalidStyleConfig(path, "preset", '目前只支持 "default"');
 
   if (root.options !== undefined) validateOptions(root.options, path);
   return root as unknown as StyleConfig;

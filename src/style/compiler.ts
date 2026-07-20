@@ -1,32 +1,67 @@
 import { readFileSync } from "node:fs";
 
-import { DEFAULT_STYLE_TEXT } from "../resources";
-import { isStyleConfig, type StyleConfig, validateStyleConfig } from "./config";
+import { materializeDefaultStyleConfig, materializeDefaultStyleRaw } from "../resources";
+import { type StyleConfig, validateStyleConfig } from "./config";
 
-export type WordStyleDefinition = Record<string, unknown>;
+export type RawStyleDefinition = Record<string, unknown>;
+
+export interface StyleSources {
+  styleRawPath?: string;
+  styleConfigPath?: string;
+}
+
+export interface DefaultStyleSources {
+  styleRawPath: string;
+  styleConfigPath: string;
+}
 
 type StyleEntry = Record<string, unknown> & {
   id?: string;
   name?: string;
 };
 
-export function loadEffectiveStyles(stylePath: string): WordStyleDefinition {
-  const source = parseJson(readFileSync(stylePath, "utf-8"), stylePath);
-  if (!isStyleConfig(source)) return expectStyleDefinition(source, stylePath);
+export function resolveEffectiveStyles(
+  sources: StyleSources,
+  defaults?: DefaultStyleSources,
+): RawStyleDefinition {
+  const rawPath = sources.styleRawPath ?? defaults?.styleRawPath ?? materializeDefaultStyleRaw();
+  const rawStyle = loadStyleRaw(rawPath);
 
-  const config = validateStyleConfig(source, stylePath);
-  const preset = expectStyleDefinition(
-    parseJson(DEFAULT_STYLE_TEXT, "内置默认样式"),
-    "内置默认样式",
-  );
-  return compileStyleConfig(preset, config);
+  if (sources.styleConfigPath) {
+    return compileStyleConfig(rawStyle, loadStyleConfig(sources.styleConfigPath));
+  }
+  if (sources.styleRawPath) return rawStyle;
+  const defaultConfigPath = defaults?.styleConfigPath ?? materializeDefaultStyleConfig();
+  return compileStyleConfig(rawStyle, loadStyleConfig(defaultConfigPath));
+}
+
+export function loadStyleRaw(path: string): RawStyleDefinition {
+  const source = parseJson(readFileSync(path, "utf-8"), path, "底层样式文件");
+  if (!isRecord(source)) throw new Error(`底层样式文件必须是 JSON 对象：${path}`);
+  if (looksLikeStyleConfig(source)) {
+    throw new Error(
+      `底层样式文件无效：${path}\n当前文件看起来是语义化样式配置，请改用 --style-config`,
+    );
+  }
+  if (!looksLikeRawStyle(source)) {
+    throw new Error(`底层样式文件无效：${path}\n缺少 Word 样式定义`);
+  }
+  return source;
+}
+
+export function loadStyleConfig(path: string): StyleConfig {
+  const source = parseJson(readFileSync(path, "utf-8"), path, "语义化样式配置");
+  if (isRecord(source) && looksLikeRawStyle(source)) {
+    throw new Error(`语义化样式配置无效：${path}\n当前文件看起来是底层样式，请改用 --style-raw`);
+  }
+  return validateStyleConfig(source, path);
 }
 
 export function compileStyleConfig(
-  preset: WordStyleDefinition,
+  rawStyle: RawStyleDefinition,
   config: StyleConfig,
-): WordStyleDefinition {
-  const styles = structuredClone(preset);
+): RawStyleDefinition {
+  const styles = structuredClone(rawStyle);
   const options = config.options;
   if (!options) return styles;
 
@@ -47,7 +82,7 @@ export function compileStyleConfig(
   return styles;
 }
 
-function applyBodyFirstLineIndent(styles: WordStyleDefinition, enabled: boolean): void {
+function applyBodyFirstLineIndent(styles: RawStyleDefinition, enabled: boolean): void {
   const firstParagraph = findStyle(styles, "paragraphStyles", "First Paragraph");
   const bodyText = findStyle(styles, "paragraphStyles", "Body Text");
 
@@ -61,12 +96,12 @@ function applyBodyFirstLineIndent(styles: WordStyleDefinition, enabled: boolean)
   }
 }
 
-function applyHeading1PageBreak(styles: WordStyleDefinition, enabled: boolean): void {
+function applyHeading1PageBreak(styles: RawStyleDefinition, enabled: boolean): void {
   const heading1 = findStyle(styles, "paragraphStyles", "heading 1");
   ensureObject(heading1, "paragraph").pageBreakBefore = enabled;
 }
 
-function applyInlineCodeBackground(styles: WordStyleDefinition, enabled: boolean): void {
+function applyInlineCodeBackground(styles: RawStyleDefinition, enabled: boolean): void {
   const inlineCode = findStyle(styles, "characterStyles", "Inline Code");
   ensureObject(inlineCode, "run").shading = {
     type: "clear",
@@ -75,7 +110,7 @@ function applyInlineCodeBackground(styles: WordStyleDefinition, enabled: boolean
   };
 }
 
-function applyCodeBlockBorder(styles: WordStyleDefinition, enabled: boolean): void {
+function applyCodeBlockBorder(styles: RawStyleDefinition, enabled: boolean): void {
   const sourceCode = findStyle(styles, "paragraphStyles", "Source Code");
   const border = (): Record<string, unknown> => ({
     style: enabled ? "single" : "none",
@@ -92,13 +127,13 @@ function applyCodeBlockBorder(styles: WordStyleDefinition, enabled: boolean): vo
 }
 
 function findStyle(
-  styles: WordStyleDefinition,
+  styles: RawStyleDefinition,
   collectionName: "paragraphStyles" | "characterStyles",
   name: string,
 ): StyleEntry {
   const collection = styles[collectionName];
   if (!Array.isArray(collection)) {
-    throw new Error(`内置样式缺少 ${collectionName}，无法应用样式配置`);
+    throw new Error(`底层样式缺少 ${collectionName}，无法应用语义化样式配置`);
   }
   const normalizedName = name.toLowerCase();
   const style = collection.find(
@@ -107,7 +142,7 @@ function findStyle(
       typeof entry.name === "string" &&
       entry.name.toLowerCase() === normalizedName,
   );
-  if (!style) throw new Error(`内置样式缺少“${name}”，无法应用样式配置`);
+  if (!style) throw new Error(`底层样式缺少“${name}”，无法应用语义化样式配置`);
   return style;
 }
 
@@ -123,18 +158,23 @@ function optionalObject(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
 
-function parseJson(text: string, path: string): unknown {
+function parseJson(text: string, path: string, kind: string): unknown {
   try {
     return JSON.parse(text);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`样式文件不是有效的 JSON：${path}\n${message}`);
+    throw new Error(`${kind}不是有效的 JSON：${path}\n${message}`);
   }
 }
 
-function expectStyleDefinition(value: unknown, path: string): WordStyleDefinition {
-  if (!isRecord(value)) throw new Error(`样式文件必须是 JSON 对象：${path}`);
-  return value;
+function looksLikeStyleConfig(value: Record<string, unknown>): boolean {
+  return "schemaVersion" in value || "options" in value || "preset" in value;
+}
+
+function looksLikeRawStyle(value: Record<string, unknown>): boolean {
+  return ["default", "paragraphStyles", "characterStyles", "tableStyles", "tableStylesXml"].some(
+    (key) => key in value,
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

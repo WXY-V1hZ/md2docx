@@ -2,13 +2,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import configText from "../config/config.json" with { type: "text" };
 import luaFilterText from "../config/lua/add-inline-code.lua" with { type: "text" };
+import styleRawText from "../config/style-raw.json" with { type: "text" };
 import styleConfigText from "../config/style-config.json" with { type: "text" };
-import styleText from "../config/style.json" with { type: "text" };
 import { TMP_DIR } from "./paths";
 
 export const DEFAULT_CONFIG_TEXT = configText as unknown as string;
 export const DEFAULT_STYLE_CONFIG_TEXT = styleConfigText as unknown as string;
-export const DEFAULT_STYLE_TEXT = styleText as unknown as string;
+export const DEFAULT_STYLE_RAW_TEXT = styleRawText as unknown as string;
 
 function materializeResource(name: string, content: string): string {
   const directory = join(TMP_DIR, "resources");
@@ -24,12 +24,11 @@ export function materializeDefaultConfig(): string {
   return materializeResource("config.json", DEFAULT_CONFIG_TEXT);
 }
 
-export function materializeDefaultStyle(): string {
-  return materializeResource("style.json", DEFAULT_STYLE_TEXT);
+export function materializeDefaultStyleRaw(): string {
+  return materializeResource("style-raw.json", DEFAULT_STYLE_RAW_TEXT);
 }
 
 export function materializeDefaultStyleConfig(): string {
-  materializeDefaultStyle();
   return materializeResource("style-config.json", DEFAULT_STYLE_CONFIG_TEXT);
 }
 

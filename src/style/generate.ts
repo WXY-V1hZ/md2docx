@@ -3,23 +3,20 @@ import { writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname } from "path";
 import { styleTemplateDocx } from "../paths";
-import { loadEffectiveStyles, type WordStyleDefinition } from "./compiler";
+import { type RawStyleDefinition } from "./compiler";
 
 /**
- * 根据样式 JSON 文件生成模板 docx。
- *
- * @param styleJsonPath - 样式 JSON 文件路径（如 config/style.json）
+ * 根据完整底层样式生成模板 docx。
  */
 export async function generateTemplateDocx(
-  styleJsonPath: string,
+  rawStyle: RawStyleDefinition,
   outputPath: string,
 ): Promise<void> {
-  const styles = loadEffectiveStyles(styleJsonPath);
-  await generateTemplateDocxFromStyles(styles, outputPath);
+  await generateTemplateDocxFromStyles(rawStyle, outputPath);
 }
 
 async function generateTemplateDocxFromStyles(
-  raw: WordStyleDefinition,
+  raw: RawStyleDefinition,
   outputPath: string,
 ): Promise<void> {
   const { Document, Packer } = await import("docx");
@@ -55,19 +52,20 @@ async function generateTemplateDocxFromStyles(
 
 const generatePromises = new Map<string, Promise<void>>();
 
+export function styleCacheHash(rawStyle: RawStyleDefinition): string {
+  return createHash("sha256").update(JSON.stringify(rawStyle)).digest("hex").slice(0, 16);
+}
+
 /**
  * 获取模板 docx 路径。如果模板不存在，则自动生成。
- *
- * @param styleJsonPath - 样式 JSON 文件路径（如 config/style.json）
  */
-export async function ensureTemplateDocx(styleJsonPath: string): Promise<string> {
-  const styles = loadEffectiveStyles(styleJsonPath);
-  const hash = createHash("sha256").update(JSON.stringify(styles)).digest("hex").slice(0, 16);
+export async function ensureTemplateDocx(rawStyle: RawStyleDefinition): Promise<string> {
+  const hash = styleCacheHash(rawStyle);
   const outputPath = styleTemplateDocx(hash);
   if (!existsSync(outputPath)) {
     let promise = generatePromises.get(outputPath);
     if (!promise) {
-      promise = generateTemplateDocxFromStyles(styles, outputPath).catch((error) => {
+      promise = generateTemplateDocxFromStyles(rawStyle, outputPath).catch((error) => {
         generatePromises.delete(outputPath);
         throw error;
       });

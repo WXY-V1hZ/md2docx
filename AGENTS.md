@@ -102,11 +102,11 @@ bun run build:exe                # Windows 单文件构建（含程序图标）
 | `src/config.ts`                          | `AppConfig` 类型、JSON 加载与校验                       |
 | `src/output.ts`                          | 输入、输出路径和覆盖策略                                |
 | `src/paths.ts`                           | `~/.md2docx`、预处理目录和样式缓存路径                  |
-| `src/resources.ts`                       | 内嵌默认配置、样式和 Lua filter，并按需写入运行时目录   |
+| `src/resources.ts`                       | 内嵌默认配置、raw/config 样式和 Lua filter              |
 | `src/assets.d.ts`                        | Bun `text` / `file` 资源导入类型声明                    |
 | `config/config.json`                     | 内置默认配置                                            |
 | `config/config.schema.json`              | 配置 JSON Schema                                        |
-| `config/style.json`                      | 内置默认 Word 样式                                      |
+| `config/style-raw.json`                  | 内置完整底层 Word 样式                                  |
 | `config/style-config.json`               | 可直接使用的默认受控语义化样式配置                      |
 | `config/style-config.schema.json`        | 受控语义化样式配置 JSON Schema                          |
 | `config/lua/add-inline-code.lua`         | Pandoc 行内代码字符样式 filter                          |
@@ -132,7 +132,8 @@ md2docx <markdown>
 md2docx -f <markdown> [转换选项]
 md2docx format -f <markdown> [选项]
 md2docx export config [选项]
-md2docx export style [选项]
+md2docx export style-raw [选项]
+md2docx export style-config [选项]
 md2docx clean
 ```
 
@@ -146,13 +147,14 @@ md2docx report.md --force         非法
 md2docx -f report.md --force      合法
 ```
 
-一旦出现 `--config`、`--style`、`--output` 或 `--force`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
+一旦出现 `--config`、`--style-raw`、`--style-config`、`--output` 或 `--force`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
 
 顶层选项：
 
 - `-f, --file <path>`：Markdown 输入
 - `-c, --config <path>`：配置 JSON
-- `-s, --style <path>`：样式 JSON
+- `--style-raw <path>`：完整底层 Word 样式 JSON
+- `--style-config <path>`：受控语义化样式配置 JSON
 - `-o, --output <path>`：DOCX 输出
 - `--force`：允许覆盖
 
@@ -163,9 +165,10 @@ md2docx -f report.md --force      合法
 ## export
 
 - `export config` 导出内嵌默认配置。
-- `export style` 不带 `--file` 时导出内嵌默认样式。
-- `export style --file template.docx` 从 DOCX 提取样式。
-- 两者都支持 `--output` 和 `--force`。
+- `export style-raw` 不带 `--file` 时导出内嵌默认底层样式。
+- `export style-raw --file template.docx` 从 DOCX 提取底层样式。
+- `export style-config` 导出内嵌默认语义化样式配置。
+- 三者都支持 `--output` 和 `--force`，只有 `style-raw` 接受 `--file`。
 
 ## clean
 
@@ -202,8 +205,9 @@ md2docx report.md                     → ./report.docx
 md2docx -f report.md                  → ./report.docx
 md2docx format -f report.md           → ./report_formatted.md
 md2docx export config                 → ./config.json
-md2docx export style                  → ./style.json
-md2docx export style -f template.docx → ./template_style.json
+md2docx export style-raw                  → ./style-raw.json
+md2docx export style-raw -f template.docx → ./template_style-raw.json
+md2docx export style-config               → ./style-config.json
 ```
 
 ---
@@ -221,7 +225,7 @@ md2docx export style -f template.docx → ./template_style.json
 ├── resources/
 │   ├── config.json
 │   ├── style-config.json
-│   ├── style.json
+│   ├── style-raw.json
 │   └── add-inline-code.lua
 └── style/
     └── <16位样式哈希>.docx
@@ -236,7 +240,7 @@ md2docx export style -f template.docx → ./template_style.json
 
 资源规则：
 
-- 默认配置、语义化样式配置、底层样式和 Lua filter 以文本形式打入 bundle/EXE。
+- 默认配置、语义化样式配置、底层 raw 样式和 Lua filter 以文本形式打入 bundle/EXE。
 - 外部程序 Pandoc 无法直接读取 Bun 虚拟文件，因此调用前物化到 `resources/`。
 - 内容未变化时不重复写入。
 - npm 构建的 resvg WASM 是 `dist/index_bg.wasm` 相邻资源。
@@ -390,25 +394,30 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 
 # 样式系统
 
-`config/style.json` 同时支持内置默认样式、手工维护和从 DOCX 提取。
+`config/style-raw.json` 是完整底层 Word 样式，可作为内置默认样式、手工维护文件或 DOCX 样式提取结果。`config/style-config.json` 是版本化的受控语义化样式配置，包含 `schemaVersion: 1` 和可选 `options`，不包含 `preset` 字段。
 
-`--style` 同时接受完整底层样式 JSON 和版本化的受控语义化样式配置。语义化配置包含 `schemaVersion: 1`、`preset: "default"` 和可选 `options`，当前只开放：
+`--style-raw` 和 `--style-config` 类型固定，不得根据 JSON 内容自动猜测或混用。当前语义化配置只开放：
 
 - `body.firstLineIndent`
 - `headings["1"].startOnNewPage`
 - `inlineCode.background`
 - `codeBlock.border`
 
-未指定 `--style` 时必须物化并加载内嵌的 `config/style-config.json`，再以 `config/style.json` 作为底层预设编译；不得绕过默认语义化配置直接使用底层样式。
+输入组合必须严格遵守：
 
-字段缺失表示继承预设，`true` 必须明确写入完整的预设效果，不能因为底层属性已存在或缺失而直接返回；`false` 必须写入明确的 Word 关闭值，不能仅删除属性后继续继承。配置及其每层对象必须拒绝未知字段。不得加入任意样式透传或通用深合并入口；后续能力继续按用户需要加入白名单。完整设计位于 `docs/style-config-design.md`。
+- 二者都不指定：默认 raw + 默认 config。
+- 仅指定 `--style-raw`：直接使用用户 raw，不得读取或应用默认 config。
+- 仅指定 `--style-config`：用户 config 应用到默认 raw。
+- 二者都指定：用户 config 应用到用户 raw。
 
-语义化配置从内置完整样式的深拷贝开始编译，不改写用户文件。缓存哈希基于编译后的完整有效样式，因此等效配置应复用缓存，不同有效样式必须隔离。
+字段缺失表示继承 raw，`true` 必须明确写入完整效果，不能因为底层属性已存在或缺失而直接返回；`false` 必须写入明确的 Word 关闭值，不能仅删除属性后继续继承。配置及其每层对象必须拒绝未知字段。不得加入任意样式透传或通用深合并入口；后续能力继续按用户需要加入白名单。完整设计位于 `docs/style-config-design.md`。
+
+语义化配置从选定 raw 的深拷贝开始编译，不改写用户文件。缓存哈希基于最终完整有效样式，因此等效配置应复用缓存，不同有效样式必须隔离。
 
 转换流程：
 
-1. 读取样式 JSON。
-2. 对内容计算 SHA-256 前 16 位。
+1. 按参数组合读取 raw，并按需读取、编译 config。
+2. 对最终有效样式计算 SHA-256 前 16 位。
 3. 在 `~/.md2docx/style/<hash>.docx` 查找缓存。
 4. 缓存不存在时用 `docx` 生成 reference DOCX。
 5. 如包含 `tableStylesXml`，使用 PizZip 注入 `word/styles.xml`。
@@ -513,7 +522,7 @@ Windows 输出 `dist/md2docx.exe`。跨平台发布必须为每个 OS/CPU 构建
 - 位置参数转换
 - Mermaid 中文渲染
 - 默认配置、样式和 Lua 资源物化
-- `export config` / `export style`
+- `export config` / `export style-raw` / `export style-config`
 - 隔离 HOME 下的 `clean`
 - Pandoc 不存在时的错误
 

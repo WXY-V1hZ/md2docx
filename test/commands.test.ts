@@ -3,11 +3,19 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { exportConfig, exportStyle } from "../src/commands/export";
+import {
+  defaultStyleRawOutputName,
+  exportConfig,
+  exportStyleConfig,
+  exportStyleRaw,
+} from "../src/commands/export";
 import { formatMarkdown } from "../src/commands/format";
 import { cleanIntermediateFiles } from "../src/commands/clean";
 import { buildPandocResourcePathArgs } from "../src/commands/convert";
 import { loadConfig } from "../src/config";
+import { DEFAULT_STYLE_RAW_TEXT } from "../src/resources";
+import { type RawStyleDefinition } from "../src/style/compiler";
+import { generateTemplateDocx } from "../src/style/generate";
 
 const tempDirs: string[] = [];
 
@@ -32,13 +40,40 @@ describe("export 命令", () => {
     expect(config.$schema).toBeString();
   });
 
-  it("导出默认样式", async () => {
+  it("导出默认底层样式", async () => {
     const dir = createTempDir();
-    const output = join(dir, "style.json");
-    await exportStyle({ output });
+    const output = join(dir, "style-raw.json");
+    await exportStyleRaw({ output });
 
     const style = JSON.parse(readFileSync(output, "utf-8")) as Record<string, unknown>;
     expect(style.default).toBeDefined();
+  });
+
+  it("导出默认语义化样式配置", async () => {
+    const dir = createTempDir();
+    const output = join(dir, "style-config.json");
+    await exportStyleConfig({ output });
+
+    const config = JSON.parse(readFileSync(output, "utf-8")) as Record<string, unknown>;
+    expect(config.schemaVersion).toBe(1);
+    expect(config.options).toBeDefined();
+    expect(config).not.toHaveProperty("preset");
+  });
+
+  it("使用约定的底层样式默认文件名", () => {
+    expect(defaultStyleRawOutputName()).toBe("style-raw.json");
+    expect(defaultStyleRawOutputName("C:/docs/template.docx")).toBe("template_style-raw.json");
+  });
+
+  it("从 DOCX 提取底层样式", async () => {
+    const dir = createTempDir();
+    const input = join(dir, "template.docx");
+    const output = join(dir, "template_style-raw.json");
+    await generateTemplateDocx(JSON.parse(DEFAULT_STYLE_RAW_TEXT) as RawStyleDefinition, input);
+
+    await exportStyleRaw({ file: input, output });
+    const styles = JSON.parse(readFileSync(output, "utf-8")) as Record<string, unknown>;
+    expect(styles.paragraphStyles).toBeArray();
   });
 
   it("默认拒绝覆盖并允许 --force", async () => {

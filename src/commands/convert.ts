@@ -7,11 +7,8 @@ import { loadConfig } from "../config";
 import { formattedMdPath, preprocessDir } from "../paths";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
-import {
-  materializeDefaultConfig,
-  materializeDefaultStyleConfig,
-  materializeLuaFilter,
-} from "../resources";
+import { materializeDefaultConfig, materializeLuaFilter } from "../resources";
+import { resolveEffectiveStyles } from "../style/compiler";
 import { ensureTemplateDocx } from "../style/generate";
 
 export async function convertMarkdown(options: ConvertOptions): Promise<void> {
@@ -20,9 +17,12 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const configPath = options.config
     ? resolveInputPath(options.config, [".json"], "配置文件")
     : materializeDefaultConfig();
-  const stylePath = options.style
-    ? resolveInputPath(options.style, [".json"], "样式文件")
-    : materializeDefaultStyleConfig();
+  const styleRawPath = options.styleRaw
+    ? resolveInputPath(options.styleRaw, [".json"], "底层样式文件")
+    : undefined;
+  const styleConfigPath = options.styleConfig
+    ? resolveInputPath(options.styleConfig, [".json"], "语义化样式配置")
+    : undefined;
   const baseName = parse(input).name;
   const output = resolveOutputPath(options.output, `${baseName}.docx`, [".docx"], "DOCX 输出文件");
   prepareOutput(output, options.force ?? false);
@@ -34,7 +34,8 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const markdownOutput = formattedMdPath(input);
   writeFileSync(markdownOutput, formatted, "utf-8");
 
-  const templatePath = await ensureTemplateDocx(stylePath);
+  const effectiveStyles = resolveEffectiveStyles({ styleRawPath, styleConfigPath });
+  const templatePath = await ensureTemplateDocx(effectiveStyles);
   const luaFilter = materializeLuaFilter();
   const pandocArgs = [
     markdownOutput,

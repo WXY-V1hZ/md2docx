@@ -5,7 +5,8 @@ import {
   type CliActions,
   type ConvertOptions,
   type ExportConfigOptions,
-  type ExportStyleOptions,
+  type ExportStyleConfigOptions,
+  type ExportStyleRawOptions,
   type FormatOptions,
   createProgram,
 } from "../src/cli";
@@ -14,18 +15,27 @@ interface Calls {
   convert: ConvertOptions[];
   format: FormatOptions[];
   exportConfig: ExportConfigOptions[];
-  exportStyle: ExportStyleOptions[];
+  exportStyleRaw: ExportStyleRawOptions[];
+  exportStyleConfig: ExportStyleConfigOptions[];
   clean: number;
 }
 
 function setup() {
-  const calls: Calls = { convert: [], format: [], exportConfig: [], exportStyle: [], clean: 0 };
+  const calls: Calls = {
+    convert: [],
+    format: [],
+    exportConfig: [],
+    exportStyleRaw: [],
+    exportStyleConfig: [],
+    clean: 0,
+  };
   const output: string[] = [];
   const actions: CliActions = {
     convert: async (options) => void calls.convert.push(options),
     format: async (options) => void calls.format.push(options),
     exportConfig: async (options) => void calls.exportConfig.push(options),
-    exportStyle: async (options) => void calls.exportStyle.push(options),
+    exportStyleRaw: async (options) => void calls.exportStyleRaw.push(options),
+    exportStyleConfig: async (options) => void calls.exportStyleConfig.push(options),
     clean: () => void calls.clean++,
   };
   const program = createProgram("1.2.3", actions);
@@ -45,7 +55,19 @@ describe("CLI 命令解析", () => {
   it("解析顶层转换参数", async () => {
     const { program, calls } = setup();
     await program.parseAsync(
-      ["-f", "report.md", "-c", "config.json", "-s", "style.json", "-o", "report.docx", "--force"],
+      [
+        "-f",
+        "report.md",
+        "-c",
+        "config.json",
+        "--style-raw",
+        "style-raw.json",
+        "--style-config",
+        "style-config.json",
+        "-o",
+        "report.docx",
+        "--force",
+      ],
       { from: "user" },
     );
 
@@ -53,7 +75,8 @@ describe("CLI 命令解析", () => {
       {
         file: "report.md",
         config: "config.json",
-        style: "style.json",
+        styleRaw: "style-raw.json",
+        styleConfig: "style-config.json",
         output: "report.docx",
         force: true,
       },
@@ -79,14 +102,32 @@ describe("CLI 命令解析", () => {
     expect(calls.exportConfig).toEqual([{ output: "custom.json", force: true }]);
   });
 
-  it("解析 export style 的可选 DOCX 文件", async () => {
+  it("解析 export style-raw 的可选 DOCX 文件", async () => {
     const { program, calls } = setup();
     await program.parseAsync(
-      ["export", "style", "--file", "template.docx", "--output", "style.json"],
+      ["export", "style-raw", "--file", "template.docx", "--output", "style-raw.json"],
       { from: "user" },
     );
 
-    expect(calls.exportStyle).toEqual([{ file: "template.docx", output: "style.json" }]);
+    expect(calls.exportStyleRaw).toEqual([{ file: "template.docx", output: "style-raw.json" }]);
+  });
+
+  it("解析 export style-config", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(["export", "style-config", "--output", "style-config.json"], {
+      from: "user",
+    });
+
+    expect(calls.exportStyleConfig).toEqual([{ output: "style-config.json" }]);
+  });
+
+  it("export style-config 不接受 --file", async () => {
+    const { program } = setup();
+    expect(
+      program.parseAsync(["export", "style-config", "--file", "template.docx"], {
+        from: "user",
+      }),
+    ).rejects.toMatchObject({ code: "commander.unknownOption" });
   });
 
   it("解析 clean 子命令", async () => {
@@ -124,6 +165,18 @@ describe("CLI 命令解析", () => {
     ).rejects.toMatchObject({ code: "commander.unknownOption" });
   });
 
+  it("拒绝旧的 --style 和 export style", async () => {
+    const first = setup();
+    expect(
+      first.program.parseAsync(["-f", "report.md", "--style", "style.json"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "commander.unknownOption" });
+
+    const second = setup();
+    expect(second.program.parseAsync(["export", "style"], { from: "user" })).rejects.toThrow(
+      "too many arguments",
+    );
+  });
+
   it("仅提供 Markdown 位置参数时执行转换", async () => {
     const { program, calls } = setup();
     await program.parseAsync(["report.md"], { from: "user" });
@@ -150,7 +203,8 @@ describe("CLI 命令解析", () => {
       ["--help"],
       ["export", "--help"],
       ["export", "config", "--help"],
-      ["export", "style", "--help"],
+      ["export", "style-raw", "--help"],
+      ["export", "style-config", "--help"],
       ["format", "--help"],
       ["clean", "--help"],
     ]) {

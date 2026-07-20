@@ -1,43 +1,49 @@
-# 受控语义化样式配置设计
+# 底层样式与语义化样式配置设计
 
 ## 目标
 
-md2docx 的底层 `style.json` 包含 Word 样式 ID、OOXML 单位、继承关系、边框和颜色等大量实现细节。它适合作为生成 reference DOCX 的完整样式定义，但不适合作为普通用户或 Web 页面直接编辑的模型。
+md2docx 将 Word 样式拆分为两个类型固定的输入。`style-raw.json` 保存 `docx` 生成 reference DOCX 所需的完整底层样式；`style-config.json` 只开放经过筛选的高频语义化选项。两者不能通过内容自动识别或混用。
 
-语义化样式配置只开放经过筛选的高频选项。未开放的颜色、尺寸、间距、对齐方式和 Word 样式关系始终由预设控制。它不是通用 Word 样式编辑器，也不允许任意字段透传到底层样式。
+底层 raw 包含 Word 样式 ID、OOXML 单位、继承关系、边框和颜色等实现细节，主要面向内置资源、高级用户和 DOCX 样式提取。语义化 config 面向普通用户和未来 Web 页面，不允许任意属性透传。
 
-## 分层
-
-样式处理分为三层：
+## 分层与输入组合
 
 ```text
-用户 StyleConfig（少量白名单选项）
-                ↓
-受控 StyleCompiler
-                ↓
-完整 WordStyleDefinition 预设
-                ↓
+Style Raw（完整底层样式）
+          +
+Style Config（可选白名单覆盖）
+          ↓
+受控 Style Compiler
+          ↓
+最终 RawStyleDefinition
+          ↓
 reference DOCX
 ```
 
-`StyleConfig` 面向用户和未来的 Web 页面。`WordStyleDefinition` 是当前 `config/style.json` 所使用的底层结构，只在程序内部和高级兼容场景中出现。Compiler 从完整预设的副本开始，只修改公开选项对应的固定属性，不改写用户提供的配置文件。
+转换必须严格遵守：
 
-仓库提供 `config/style-config.json` 作为可直接使用的默认配置，并提供 `config/style-config.schema.json` 作为公开配置契约。转换未指定 `--style` 时自动物化并加载内嵌的默认语义化配置；完整的 `config/style.json` 只作为它的底层编译预设。
+| 参数                | 行为                                      |
+| ------------------- | ----------------------------------------- |
+| 都不指定            | 默认 raw + 默认 config                    |
+| 仅 `--style-raw`    | 直接使用用户 raw，不读取或应用默认 config |
+| 仅 `--style-config` | 用户 config 应用到默认 raw                |
+| 两者都指定          | 用户 config 应用到用户 raw                |
 
-## 第一版配置
+仓库提供 `config/style-raw.json`、`config/style-config.json` 和 `config/style-config.schema.json`。默认资源以文本形式打入 npm bundle 和单文件 EXE。
+
+## 第一版语义化配置
 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
   "schemaVersion": 1,
-  "preset": "default",
   "options": {
     "body": {
       "firstLineIndent": true
     },
     "headings": {
       "1": {
-        "startOnNewPage": true
+        "startOnNewPage": false
       }
     },
     "inlineCode": {
@@ -50,31 +56,33 @@ reference DOCX
 }
 ```
 
-字段缺失表示完整继承预设；`true` 表示启用预设中定义的效果；`false` 表示显式关闭效果。用户不能配置缩进量、背景色、边框颜色、边框宽度或一级标题的其他段落属性。
+字段缺失表示继承 raw；`true` 表示明确写入完整启用效果，即使 raw 缺少对应属性也必须生效；`false` 表示写入明确关闭值。配置不包含 `preset`，也不允许设置缩进量、背景色、边框颜色或其他未开放属性。
 
-第一版只支持 `default` 预设。转换命令的 `--style` 同时接受上述语义化配置和旧版底层样式 JSON。包含 `schemaVersion`、`preset` 或 `options` 的文件按语义化配置校验；包含 `paragraphStyles` 等底层字段的旧文件保持原行为。
+## 编译与校验
 
-## 编译规则
-
-Compiler 每次从未修改的预设创建深拷贝。字段为 `true` 时明确写入该选项的预设效果，即使底层样式当前缺少相应属性也能启用；字段为 `false` 时写入明确的关闭值：
+Compiler 每次从选定 raw 的深拷贝开始，只修改公开选项对应的固定属性：
 
 | 用户选项                       | 底层目标                         | 关闭方式                               |
 | ------------------------------ | -------------------------------- | -------------------------------------- |
 | `body.firstLineIndent`         | `First Paragraph` 和 `Body Text` | `firstLine`、`firstLineChars` 设为 `0` |
 | `headings["1"].startOnNewPage` | `heading 1`                      | `pageBreakBefore` 设为 `false`         |
 | `inlineCode.background`        | `Inline Code` 字符样式           | 底纹设为 `clear/auto`                  |
-| `codeBlock.border`             | `Source Code` 段落样式           | 四边均写入 `val: "none"`               |
+| `codeBlock.border`             | `Source Code` 段落样式           | 四边写入 `style: "none"`               |
 
-关闭时不能简单删除字段，否则 Word 可能继续从父样式继承效果。Compiler 通过稳定的样式名称定位目标，不依赖当前默认样式中的短 ID。
+关闭时不能只删除属性，否则 Word 可能继续继承效果。启用和关闭都不能因 raw 当前属性存在或缺失而直接返回。不得增加通用 `deepMerge` 或任意样式补丁入口。
 
-编译后的完整样式参与缓存哈希。不同语义化配置只有在最终 Word 样式确实不同时才生成不同的 reference DOCX 缓存。
+`loadStyleRaw()` 只接受具有底层 Word 样式字段的 JSON 对象；`loadStyleConfig()` 只接受通过 Schema 契约的语义化配置。传错入口时必须提示改用对应的 `--style-raw` 或 `--style-config`。
 
-## 校验与 Web 页面
+## 导出与缓存
 
-`config/style-config.schema.json` 是公开配置契约。Schema 和运行时校验都在每一层拒绝未知字段，因此拼写错误不会被静默忽略，Web 页面也只能展示程序明确支持的控件。
+```text
+md2docx export style-raw                  → style-raw.json
+md2docx export style-raw -f template.docx → template_style-raw.json
+md2docx export style-config               → style-config.json
+```
 
-后续新增能力时继续采用白名单方式。例如可以为各级标题开放中英文字体、粗体和斜体，为表格开放少量命名预设；标题颜色、段落对齐、边框颜色等没有明确用户需求的底层设置不进入公开 Schema。不得增加通用 `deepMerge` 或任意样式补丁入口。
+从 DOCX 提取的结果是底层 raw。reference DOCX 缓存哈希只基于最终 `RawStyleDefinition`，因此不同输入组合产生相同有效样式时复用缓存，最终样式不同时隔离缓存。
 
 ## 扩展边界
 
-公开配置的字段名表达用户意图，而不是 OOXML 实现。例如表格样式应优先设计为 `three-line`、`grid`、`minimal` 等有限预设，而不是暴露每条边框。新增字段时必须同步更新 TypeScript 类型、运行时校验、JSON Schema、README、本文档和正常/边界测试。
+后续能力继续按白名单增加，例如为标题开放中英文字体、粗体和斜体，或为表格开放有限的命名方案。Web 页面只根据 `style-config.schema.json` 展示允许修改的控件；颜色、段落对齐和底层 Word 属性没有明确需求时不进入公开配置。

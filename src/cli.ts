@@ -3,7 +3,8 @@ import { Command } from "commander";
 export interface ConvertOptions {
   file?: string;
   config?: string;
-  style?: string;
+  styleRaw?: string;
+  styleConfig?: string;
   output?: string;
   force?: boolean;
 }
@@ -20,8 +21,13 @@ export interface ExportConfigOptions {
   force?: boolean;
 }
 
-export interface ExportStyleOptions {
+export interface ExportStyleRawOptions {
   file?: string;
+  output?: string;
+  force?: boolean;
+}
+
+export interface ExportStyleConfigOptions {
   output?: string;
   force?: boolean;
 }
@@ -30,7 +36,8 @@ export interface CliActions {
   convert(options: ConvertOptions): Promise<void>;
   format(options: FormatOptions): Promise<void>;
   exportConfig(options: ExportConfigOptions): Promise<void>;
-  exportStyle(options: ExportStyleOptions): Promise<void>;
+  exportStyleRaw(options: ExportStyleRawOptions): Promise<void>;
+  exportStyleConfig(options: ExportStyleConfigOptions): Promise<void>;
   clean(): void | Promise<void>;
 }
 
@@ -49,13 +56,15 @@ export function createProgram(version: string, actions: CliActions): Command {
     .argument("[markdown]", "Markdown 文件（仅无其他转换选项时）")
     .option("-f, --file <path>", "Markdown 文件")
     .option("-c, --config <path>", "自定义配置文件")
-    .option("-s, --style <path>", "自定义底层样式或语义化样式配置")
+    .option("--style-raw <path>", "自定义底层 Word 样式")
+    .option("--style-config <path>", "自定义语义化样式配置")
     .option("-o, --output <path>", "输出 DOCX 文件")
     .option("--force", "覆盖已有文件")
     .action(async function (this: Command, markdown: string | undefined, options: ConvertOptions) {
       const hasAdditionalOptions =
         options.config !== undefined ||
-        options.style !== undefined ||
+        options.styleRaw !== undefined ||
+        options.styleConfig !== undefined ||
         options.output !== undefined ||
         options.force !== undefined;
 
@@ -98,15 +107,24 @@ export function createProgram(version: string, actions: CliActions): Command {
     .action(actions.exportConfig);
   exportConfigCommand.exitOverride();
 
-  const exportStyleCommand = exportCommand
-    .command("style")
-    .description("导出默认样式，或从 DOCX 提取样式")
+  const exportStyleRawCommand = exportCommand
+    .command("style-raw")
+    .description("导出默认底层 Word 样式，或从 DOCX 提取底层样式")
     .helpOption("-h, --help", "显示帮助")
-    .option("-f, --file <path>", "用于提取样式的 DOCX 文件")
+    .option("-f, --file <path>", "用于提取底层样式的 DOCX 文件")
     .option("-o, --output <path>", "输出 JSON 文件")
     .option("--force", "覆盖已有文件")
-    .action(actions.exportStyle);
-  exportStyleCommand.exitOverride();
+    .action(actions.exportStyleRaw);
+  exportStyleRawCommand.exitOverride();
+
+  const exportStyleConfigCommand = exportCommand
+    .command("style-config")
+    .description("导出默认语义化样式配置")
+    .helpOption("-h, --help", "显示帮助")
+    .option("-o, --output <path>", "输出 JSON 文件，默认 ./style-config.json")
+    .option("--force", "覆盖已有文件")
+    .action(actions.exportStyleConfig);
+  exportStyleConfigCommand.exitOverride();
 
   const formatCommand = program
     .command("format")
