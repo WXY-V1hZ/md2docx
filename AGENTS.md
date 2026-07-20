@@ -115,6 +115,7 @@ bun run build:exe                # Windows 单文件构建（含程序图标）
 | `assets/logo.svg`                        | Logo 矢量源文件，也是 README 展示资源                   |
 | `docs/style-config-design.md`            | 受控语义化样式配置设计文档                              |
 | `docs/example.md`                        | 综合转换样例                                            |
+| `SKILL.md`                               | AI 助手技能描述，指导 AI 正确使用 md2docx CLI           |
 | `test/fixtures/`                         | AST 流水线输入/期望 Markdown                            |
 | `test/mermaid.test.ts`                   | CSS fallback 和 PNG DPI 等纯逻辑测试                    |
 | `test/mermaid-render-comparison.test.ts` | Sharp 与 resvg 人工对比；输出到 `tmp/render-compare/`   |

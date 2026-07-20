@@ -31,6 +31,10 @@
 | 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`      |
 | Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件 |
 
+## AI 辅助
+
+本仓库提供 [`SKILL.md`](SKILL.md)，是供 AI 代码助手（如 Zed、Cursor、GitHub Copilot）使用的技能描述文件。在 AI 对话中引用此文件，AI 就能正确使用 `md2docx` CLI 完成转换、格式化、样式定制和导出等操作。
+
 ## 安装方式
 
 ### npm CLI
