@@ -12,6 +12,12 @@ export interface MermaidConfig {
   density: number;
 }
 
+export interface ImageSizeConfig {
+  enabled: boolean;
+  maxWidthCm: number;
+  maxHeightCm: number;
+}
+
 export interface BooleanConfig {
   enabled: boolean;
 }
@@ -36,6 +42,7 @@ export interface AppConfig {
   normalizeHeadings: BooleanConfig;
   numberHeadings: HeadingNumberingConfig;
   renderMermaid: MermaidConfig;
+  imageSize: ImageSizeConfig;
   detectTitle: TitleConfig;
   removeThematicBreaks: BooleanConfig;
 }
@@ -84,6 +91,11 @@ function validateConfig(
     invalidConfig(path, "renderMermaid.density", "必须是不小于 72 的整数");
   }
 
+  const imageSize = expectRecord(root.imageSize, path, "imageSize");
+  expectBoolean(imageSize.enabled, path, "imageSize.enabled");
+  expectPositiveNumber(imageSize.maxWidthCm, path, "imageSize.maxWidthCm");
+  expectPositiveNumber(imageSize.maxHeightCm, path, "imageSize.maxHeightCm");
+
   validateEnabled(root.removeThematicBreaks, path, "removeThematicBreaks");
 
   const title = expectRecord(root.detectTitle, path, "detectTitle");
@@ -120,6 +132,13 @@ function expectBoolean(value: unknown, path: string, field: string): boolean {
 
 function expectString(value: unknown, path: string, field: string): string {
   if (typeof value !== "string") invalidConfig(path, field, "必须是字符串");
+  return value;
+}
+
+function expectPositiveNumber(value: unknown, path: string, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    invalidConfig(path, field, "必须是大于 0 的有限数字");
+  }
   return value;
 }
 

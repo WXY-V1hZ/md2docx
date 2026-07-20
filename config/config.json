@@ -23,6 +23,11 @@
     "theme": "tokyo-night-light",
     "density": 200
   },
+  "imageSize": {
+    "enabled": true,
+    "maxWidthCm": 12,
+    "maxHeightCm": 12
+  },
   "detectTitle": {
     "enabled": true,
     "strategy": "first-h1"

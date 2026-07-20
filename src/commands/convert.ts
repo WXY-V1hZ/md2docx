@@ -3,11 +3,15 @@ import { spawn } from "node:child_process";
 import { dirname, parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../cli";
-import { loadConfig } from "../config";
+import { type ImageSizeConfig, loadConfig } from "../config";
 import { formattedMdPath, preprocessDir } from "../paths";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
-import { materializeDefaultConfig, materializeLuaFilter } from "../resources";
+import {
+  materializeDefaultConfig,
+  materializeImageSizeFilter,
+  materializeInlineCodeFilter,
+} from "../resources";
 import { resolveEffectiveStyles } from "../style/compiler";
 import { ensureTemplateDocx } from "../style/generate";
 
@@ -36,20 +40,33 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
 
   const effectiveStyles = resolveEffectiveStyles({ styleRawPath, styleConfigPath });
   const templatePath = await ensureTemplateDocx(effectiveStyles);
-  const luaFilter = materializeLuaFilter();
+  const inlineCodeFilter = materializeInlineCodeFilter();
+  const imageSizeArgs = config.imageSize.enabled
+    ? buildImageSizePandocArgs(config.imageSize, materializeImageSizeFilter())
+    : [];
   const pandocArgs = [
     markdownOutput,
     "-o",
     output,
     ...buildPandocResourcePathArgs(input),
     `--reference-doc=${templatePath}`,
-    ...(existsSync(luaFilter) ? [`--lua-filter=${luaFilter}`] : []),
+    ...(existsSync(inlineCodeFilter) ? [`--lua-filter=${inlineCodeFilter}`] : []),
+    ...imageSizeArgs,
   ];
   const { exitCode, stderr } = await runProcess("pandoc", pandocArgs);
   if (exitCode !== 0) {
     throw new Error(`pandoc 转换失败 (exit code ${exitCode})：${stderr.trim()}`);
   }
   console.log(`已生成：${output}`);
+}
+
+export function buildImageSizePandocArgs(config: ImageSizeConfig, filterPath: string): string[] {
+  if (!config.enabled) return [];
+  return [
+    `--metadata=md2docx-image-max-width-cm:${config.maxWidthCm}`,
+    `--metadata=md2docx-image-max-height-cm:${config.maxHeightCm}`,
+    `--lua-filter=${filterPath}`,
+  ];
 }
 
 /**

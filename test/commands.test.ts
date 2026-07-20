@@ -11,9 +11,9 @@ import {
 } from "../src/commands/export";
 import { formatMarkdown } from "../src/commands/format";
 import { cleanIntermediateFiles } from "../src/commands/clean";
-import { buildPandocResourcePathArgs } from "../src/commands/convert";
+import { buildImageSizePandocArgs, buildPandocResourcePathArgs } from "../src/commands/convert";
 import { loadConfig } from "../src/config";
-import { DEFAULT_STYLE_RAW_TEXT } from "../src/resources";
+import { DEFAULT_CONFIG_TEXT, DEFAULT_STYLE_RAW_TEXT } from "../src/resources";
 import { type RawStyleDefinition } from "../src/style/compiler";
 import { generateTemplateDocx } from "../src/style/generate";
 
@@ -38,6 +38,7 @@ describe("export 命令", () => {
     const config = JSON.parse(readFileSync(output, "utf-8")) as Record<string, unknown>;
     expect(config).not.toHaveProperty("pandoc");
     expect(config.$schema).toBeString();
+    expect(config.imageSize).toEqual({ enabled: true, maxWidthCm: 15.5, maxHeightCm: 22 });
   });
 
   it("导出默认底层样式", async () => {
@@ -180,6 +181,16 @@ describe("配置校验", () => {
 
     expect(loadConfig(config)).rejects.toThrow("不是有效的 JSON");
   });
+
+  it("拒绝非正数的图片尺寸限制", async () => {
+    const dir = createTempDir();
+    const path = join(dir, "config.json");
+    const config = JSON.parse(DEFAULT_CONFIG_TEXT) as Record<string, Record<string, unknown>>;
+    config.imageSize!.maxWidthCm = 0;
+    writeFileSync(path, JSON.stringify(config), "utf-8");
+
+    expect(loadConfig(path)).rejects.toThrow("位置：imageSize.maxWidthCm");
+  });
 });
 
 describe("Pandoc 资源路径", () => {
@@ -200,5 +211,29 @@ describe("Pandoc 资源路径", () => {
     const input = join(sourceDir, "example.md");
 
     expect(buildPandocResourcePathArgs(input, sourceDir)).toEqual([`--resource-path=${sourceDir}`]);
+  });
+});
+
+describe("Pandoc 图片尺寸参数", () => {
+  it("启用时传递最大宽高和独立 Lua filter", () => {
+    expect(
+      buildImageSizePandocArgs(
+        { enabled: true, maxWidthCm: 15.5, maxHeightCm: 22 },
+        "limit-image-size.lua",
+      ),
+    ).toEqual([
+      "--metadata=md2docx-image-max-width-cm:15.5",
+      "--metadata=md2docx-image-max-height-cm:22",
+      "--lua-filter=limit-image-size.lua",
+    ]);
+  });
+
+  it("关闭时不传递图片尺寸参数", () => {
+    expect(
+      buildImageSizePandocArgs(
+        { enabled: false, maxWidthCm: 15.5, maxHeightCm: 22 },
+        "limit-image-size.lua",
+      ),
+    ).toEqual([]);
   });
 });

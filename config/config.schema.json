@@ -117,6 +117,31 @@
       },
       "required": ["enabled", "theme", "density"]
     },
+    "imageSize": {
+      "description": "DOCX 图片尺寸限制",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "按图片自然尺寸等比缩小超限图片",
+          "type": "boolean",
+          "default": true
+        },
+        "maxWidthCm": {
+          "description": "图片最大宽度（厘米）",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 15.5
+        },
+        "maxHeightCm": {
+          "description": "图片最大高度（厘米）",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 22
+        }
+      },
+      "required": ["enabled", "maxWidthCm", "maxHeightCm"]
+    },
     "detectTitle": {
       "description": "文档标题",
       "type": "object",
@@ -162,6 +187,7 @@
     "normalizeHeadings",
     "numberHeadings",
     "renderMermaid",
+    "imageSize",
     "detectTitle",
     "removeThematicBreaks"
   ]

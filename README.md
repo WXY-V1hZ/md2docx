@@ -23,6 +23,7 @@
 | 标题层级归一化    | 将最浅标题归一化为 H1，并修复标题层级跳跃                        |
 | 标题编号          | 生成 `1`、`1.1`、`1.1.1` 等编号，并可剥离常见的已有中英文编号    |
 | 表格与图片编号    | 自动生成“表 1”“图 1：标题”等题注                                 |
+| 图片尺寸限制      | 按自然尺寸等比缩小超过最大宽度或高度的图片                       |
 | Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG |
 | Word 样式         | 支持受控语义化配置和完整底层样式，也可从现有 DOCX 提取样式       |
 | Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                    |
@@ -37,7 +38,7 @@
 前置依赖：
 
 - [Node.js 22.12+](https://nodejs.org/)
-- [Pandoc](https://pandoc.org/installing.html)，并确保 `pandoc` 可通过 `PATH` 调用
+- [Pandoc](https://pandoc.org/installing.html)，并确保 `pandoc` 可通过 `PATH` 调用；图片尺寸限制需要 Pandoc 3.1.13+
 
 ```bash
 npm install -g @v1hz/md2docx
@@ -174,7 +175,8 @@ md2docx export style-config               → ./style-config.json
 │   ├── config.json
 │   ├── style-config.json
 │   ├── style-raw.json
-│   └── add-inline-code.lua
+│   ├── add-inline-code.lua
+│   └── limit-image-size.lua
 └── style/
     └── <样式内容哈希>.docx
 ```
@@ -213,7 +215,12 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 | `renderMermaid.enabled`          | 将 Mermaid 渲染为 PNG                          | `true`                |
 | `renderMermaid.theme`            | beautiful-mermaid 主题                         | `"tokyo-night-light"` |
 | `renderMermaid.density`          | PNG 输出 DPI，最小值 72                        | `200`                 |
+| `imageSize.enabled`              | 等比缩小超过尺寸限制的图片                     | `true`                |
+| `imageSize.maxWidthCm`           | DOCX 图片最大宽度（厘米）                      | `15.5`                |
+| `imageSize.maxHeightCm`          | DOCX 图片最大高度（厘米）                      | `22`                  |
 | `removeThematicBreaks.enabled`   | 移除 `---`、`***`、`___` 等分隔符行            | `true`                |
+
+图片尺寸限制在 Pandoc 生成 DOCX 前通过 Lua filter 应用。程序读取图片像素尺寸和 DPI，仅缩小超限图片，不会放大小图；宽度和高度使用同一缩放比例。Markdown 中已经显式设置 `width` 或 `height` 的图片视为用户覆盖，不应用全局限制。单张图片无法读取尺寸时会输出警告并继续转换。
 
 ## 样式定制
 
@@ -334,7 +341,7 @@ numberPictures()
     ↓
 生成或复用 reference DOCX
     ↓
-Pandoc + Lua filter
+Pandoc + 行内代码/图片尺寸 Lua filter
     ↓
 DOCX
 ```
