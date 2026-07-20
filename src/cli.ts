@@ -6,30 +6,25 @@ export interface ConvertOptions {
   styleRaw?: string;
   styleConfig?: string;
   output?: string;
-  force?: boolean;
 }
 
 export interface FormatOptions {
   file: string;
   config?: string;
   output?: string;
-  force?: boolean;
 }
 
 export interface ExportConfigOptions {
   output?: string;
-  force?: boolean;
 }
 
 export interface ExportStyleRawOptions {
   file?: string;
   output?: string;
-  force?: boolean;
 }
 
 export interface ExportStyleConfigOptions {
   output?: string;
-  force?: boolean;
 }
 
 export interface CliActions {
@@ -59,14 +54,12 @@ export function createProgram(version: string, actions: CliActions): Command {
     .option("--style-raw <path>", "自定义底层 Word 样式")
     .option("--style-config <path>", "自定义语义化样式配置")
     .option("-o, --output <path>", "输出 DOCX 文件")
-    .option("--force", "覆盖已有文件")
     .action(async function (this: Command, markdown: string | undefined, options: ConvertOptions) {
       const hasAdditionalOptions =
         options.config !== undefined ||
         options.styleRaw !== undefined ||
         options.styleConfig !== undefined ||
-        options.output !== undefined ||
-        options.force !== undefined;
+        options.output !== undefined;
 
       if (markdown !== undefined) {
         if (options.file !== undefined || hasAdditionalOptions) {
@@ -103,7 +96,6 @@ export function createProgram(version: string, actions: CliActions): Command {
     .description("导出默认配置")
     .helpOption("-h, --help", "显示帮助")
     .option("-o, --output <path>", "输出 JSON 文件，默认 ./config.json")
-    .option("--force", "覆盖已有文件")
     .action(actions.exportConfig);
   exportConfigCommand.exitOverride();
 
@@ -113,7 +105,6 @@ export function createProgram(version: string, actions: CliActions): Command {
     .helpOption("-h, --help", "显示帮助")
     .option("-f, --file <path>", "用于提取底层样式的 DOCX 文件")
     .option("-o, --output <path>", "输出 JSON 文件")
-    .option("--force", "覆盖已有文件")
     .action(actions.exportStyleRaw);
   exportStyleRawCommand.exitOverride();
 
@@ -122,7 +113,6 @@ export function createProgram(version: string, actions: CliActions): Command {
     .description("导出默认语义化样式配置")
     .helpOption("-h, --help", "显示帮助")
     .option("-o, --output <path>", "输出 JSON 文件，默认 ./style-config.json")
-    .option("--force", "覆盖已有文件")
     .action(actions.exportStyleConfig);
   exportStyleConfigCommand.exitOverride();
 
@@ -133,7 +123,6 @@ export function createProgram(version: string, actions: CliActions): Command {
     .requiredOption("-f, --file <path>", "Markdown 文件")
     .option("-c, --config <path>", "自定义配置文件")
     .option("-o, --output <path>", "输出 Markdown 文件")
-    .option("--force", "覆盖已有文件")
     .action(actions.format);
   formatCommand.exitOverride();
 

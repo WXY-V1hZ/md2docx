@@ -16,7 +16,7 @@ import { extractStylesFromDocx } from "../style/extract";
 
 export async function exportConfig(options: ExportConfigOptions): Promise<void> {
   const output = resolveOutputPath(options.output, "config.json", [".json"], "配置输出文件");
-  prepareOutput(output, options.force ?? false);
+  prepareOutput(output);
   writeFileSync(output, DEFAULT_CONFIG_TEXT, "utf-8");
   console.log(`已导出配置：${output}`);
 }
@@ -25,7 +25,7 @@ export async function exportStyleRaw(options: ExportStyleRawOptions): Promise<vo
   const source = options.file ? resolveInputPath(options.file, [".docx"], "DOCX 文件") : undefined;
   const defaultName = defaultStyleRawOutputName(source);
   const output = resolveOutputPath(options.output, defaultName, [".json"], "底层样式输出文件");
-  prepareOutput(output, options.force ?? false);
+  prepareOutput(output);
 
   if (source) {
     const styles = extractStylesFromDocx(source);
@@ -47,7 +47,7 @@ export async function exportStyleConfig(options: ExportStyleConfigOptions): Prom
     [".json"],
     "语义化样式配置输出文件",
   );
-  prepareOutput(output, options.force ?? false);
+  prepareOutput(output);
   writeFileSync(output, DEFAULT_STYLE_CONFIG_TEXT, "utf-8");
   console.log(`已导出语义化样式配置：${output}`);
 }

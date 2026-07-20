@@ -20,10 +20,7 @@ export function resolveOutputPath(
   return resolved;
 }
 
-export function prepareOutput(path: string, force: boolean): void {
-  if (existsSync(path) && !force) {
-    throw new Error(`输出文件已存在：${path}\n使用 --force 覆盖现有文件`);
-  }
+export function prepareOutput(path: string): void {
   mkdirSync(dirname(path), { recursive: true });
 }
 

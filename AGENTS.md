@@ -62,7 +62,7 @@ bun test --watch                 # 监视模式
 bun check                        # tsc + oxlint + oxfmt
 
 bun run src/index.ts report.md   # 从源码转换
-bun run src/index.ts -f report.md --force
+bun run src/index.ts -f report.md -o output.docx
 bun run src/index.ts format -f report.md
 
 bun run build                    # npm/Node 构建
@@ -143,11 +143,11 @@ md2docx clean
 
 ```text
 md2docx report.md                 合法
-md2docx report.md --force         非法
-md2docx -f report.md --force      合法
+md2docx report.md -o report.docx  非法
+md2docx -f report.md -o report.docx 合法
 ```
 
-一旦出现 `--config`、`--style-raw`、`--style-config`、`--output` 或 `--force`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
+一旦出现 `--config`、`--style-raw`、`--style-config` 或 `--output`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
 
 顶层选项：
 
@@ -156,11 +156,10 @@ md2docx -f report.md --force      合法
 - `--style-raw <path>`：完整底层 Word 样式 JSON
 - `--style-config <path>`：受控语义化样式配置 JSON
 - `-o, --output <path>`：DOCX 输出
-- `--force`：允许覆盖
 
 ## format
 
-`format` 的 `--file` 必填；支持 `--config`、`--output` 和 `--force`，不接受样式。它不生成 reference DOCX，也不调用 Pandoc。
+`format` 的 `--file` 必填；支持 `--config` 和 `--output`，不接受样式。它不生成 reference DOCX，也不调用 Pandoc。
 
 ## export
 
@@ -168,7 +167,7 @@ md2docx -f report.md --force      合法
 - `export style-raw` 不带 `--file` 时导出内嵌默认底层样式。
 - `export style-raw --file template.docx` 从 DOCX 提取底层样式。
 - `export style-config` 导出内嵌默认语义化样式配置。
-- 三者都支持 `--output` 和 `--force`，只有 `style-raw` 接受 `--file`。
+- 三者都支持 `--output`，只有 `style-raw` 接受 `--file`。
 
 ## clean
 
@@ -190,12 +189,11 @@ md2docx -f report.md --force      合法
 
 npm uninstall 生命周期脚本不应用来删除用户主目录数据。卸载清理由用户显式执行 `md2docx clean`。
 
-## 帮助、错误和覆盖
+## 帮助、错误和输出
 
 - CLI 无参数时显示顶层帮助并以 0 退出。
 - 子命令缺少必填参数时返回非 0。
-- 所有写文件命令默认拒绝覆盖。
-- 只有显式 `--force` 才能覆盖。
+- 所有写文件命令默认覆盖已有输出。
 - 错误消息应指出字段、文件或命令上下文。
 
 ## 默认输出
@@ -629,7 +627,7 @@ test/fixtures/<名称>/
 - 从不同 cwd 转换时，`./images/a.png` 和 `../shared/a.png` 相对于原始 Markdown 目录解析
 - 原始 Markdown 目录与 cwd 中存在同名资源时优先使用原始目录
 - 绝对图片、HTTP(S) 图片和 Mermaid 缓存图片不受 resource path 影响
-- 输出存在与 `--force`
+- 已有输出文件和 Mermaid 资源目录被默认覆盖
 - clean 目录不存在、正常目录、符号链接和危险路径拒绝
 - Node 构建与 EXE 在仓库外运行
 

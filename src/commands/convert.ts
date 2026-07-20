@@ -25,7 +25,7 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
     : undefined;
   const baseName = parse(input).name;
   const output = resolveOutputPath(options.output, `${baseName}.docx`, [".docx"], "DOCX 输出文件");
-  prepareOutput(output, options.force ?? false);
+  prepareOutput(output);
 
   const config = await loadConfig(configPath);
   const outDir = preprocessDir(input);

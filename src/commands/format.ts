@@ -19,17 +19,13 @@ export async function formatMarkdown(options: FormatOptions): Promise<void> {
     [".md", ".markdown"],
     "Markdown 输出文件",
   );
-  const force = options.force ?? false;
-  prepareOutput(output, force);
+  prepareOutput(output);
 
   const config = await loadConfig(configPath);
   const outputName = parse(output).name;
   const assetsName = `${outputName}_assets`;
   const assetsDir = resolve(dirname(output), assetsName);
   if (config.renderMermaid.enabled && existsSync(assetsDir)) {
-    if (!force) {
-      throw new Error(`资源目录已存在：${assetsDir}\n使用 --force 覆盖现有目录`);
-    }
     const parent = resolve(dirname(output));
     if (dirname(assetsDir) !== parent) throw new Error(`拒绝清理非输出目录：${assetsDir}`);
     rmSync(assetsDir, { recursive: true, force: true });

@@ -66,7 +66,6 @@ describe("CLI 命令解析", () => {
         "style-config.json",
         "-o",
         "report.docx",
-        "--force",
       ],
       { from: "user" },
     );
@@ -78,28 +77,26 @@ describe("CLI 命令解析", () => {
         styleRaw: "style-raw.json",
         styleConfig: "style-config.json",
         output: "report.docx",
-        force: true,
       },
     ]);
   });
 
   it("解析 format 子命令", async () => {
     const { program, calls } = setup();
-    await program.parseAsync(
-      ["format", "--file", "report.md", "--config", "config.json", "--force"],
-      { from: "user" },
-    );
+    await program.parseAsync(["format", "--file", "report.md", "--config", "config.json"], {
+      from: "user",
+    });
 
-    expect(calls.format).toEqual([{ file: "report.md", config: "config.json", force: true }]);
+    expect(calls.format).toEqual([{ file: "report.md", config: "config.json" }]);
   });
 
   it("解析 export config 子命令", async () => {
     const { program, calls } = setup();
-    await program.parseAsync(["export", "config", "-o", "custom.json", "--force"], {
+    await program.parseAsync(["export", "config", "-o", "custom.json"], {
       from: "user",
     });
 
-    expect(calls.exportConfig).toEqual([{ output: "custom.json", force: true }]);
+    expect(calls.exportConfig).toEqual([{ output: "custom.json" }]);
   });
 
   it("解析 export style-raw 的可选 DOCX 文件", async () => {
@@ -186,16 +183,31 @@ describe("CLI 命令解析", () => {
 
   it("位置参数不能与转换选项混用", async () => {
     const { program } = setup();
-    expect(program.parseAsync(["report.md", "--force"], { from: "user" })).rejects.toThrow(
-      "位置参数不能与转换选项同时使用",
-    );
+    expect(
+      program.parseAsync(["report.md", "--output", "report.docx"], { from: "user" }),
+    ).rejects.toThrow("位置参数不能与转换选项同时使用");
   });
 
   it("使用转换选项时必须通过 --file 指定输入", async () => {
     const { program } = setup();
-    expect(program.parseAsync(["--force"], { from: "user" })).rejects.toThrow(
+    expect(program.parseAsync(["--output", "report.docx"], { from: "user" })).rejects.toThrow(
       "使用转换选项时必须通过 -f, --file 指定 Markdown 文件",
     );
+  });
+
+  it("不再接受 --force", async () => {
+    for (const args of [
+      ["-f", "report.md", "--force"],
+      ["format", "-f", "report.md", "--force"],
+      ["export", "config", "--force"],
+      ["export", "style-raw", "--force"],
+      ["export", "style-config", "--force"],
+    ]) {
+      const { program } = setup();
+      expect(program.parseAsync(args, { from: "user" })).rejects.toMatchObject({
+        code: "commander.unknownOption",
+      });
+    }
   });
 
   it("各层级均提供帮助", async () => {

@@ -58,7 +58,7 @@ npx @v1hz/md2docx report.md
 md2docx report.md
 
 # 使用任何转换选项时，输入必须通过 --file 指定
-md2docx --file report.md --output output/report.docx --force
+md2docx --file report.md --output output/report.docx
 
 # 使用自定义配置、底层样式和语义化样式配置
 md2docx -f report.md -c config.json --style-raw style-raw.json --style-config style-config.json
@@ -78,7 +78,7 @@ md2docx export style-raw -f template.docx
 md2docx clean
 ```
 
-所有写文件命令默认拒绝覆盖已有文件。确认覆盖时显式传入 `--force`。
+所有写文件命令默认覆盖已有输出。
 
 ## CLI 参考
 
@@ -102,16 +102,15 @@ md2docx clean
 | `--style-raw <path>`    | 完整底层 Word 样式 JSON                  |
 | `--style-config <path>` | 受控语义化样式配置 JSON                  |
 | `-o, --output <path>`   | DOCX 输出路径                            |
-| `--force`               | 覆盖已有输出                             |
 | `-h, --help`            | 显示帮助                                 |
 | `-v, --version`         | 显示版本号                               |
 
-位置参数不能和 `--file`、`--config`、`--style-raw`、`--style-config`、`--output` 或 `--force` 混用。例如：
+位置参数不能和 `--file`、`--config`、`--style-raw`、`--style-config` 或 `--output` 混用。例如：
 
 ```bash
 md2docx report.md                 # 正确
-md2docx report.md --force         # 错误
-md2docx -f report.md --force      # 正确
+md2docx report.md -o report.docx  # 错误
+md2docx -f report.md -o report.docx # 正确
 ```
 
 ### format
@@ -123,14 +122,13 @@ md2docx -f report.md --force      # 正确
 | `-f, --file <path>`   | 必填，Markdown 输入文件                     |
 | `-c, --config <path>` | 自定义配置 JSON                             |
 | `-o, --output <path>` | 输出 Markdown，默认 `<文件名>_formatted.md` |
-| `--force`             | 覆盖已有输出                                |
 
 ### export
 
 ```bash
-md2docx export config [-o config.json] [--force]
-md2docx export style-raw [-f template.docx] [-o style-raw.json] [--force]
-md2docx export style-config [-o style-config.json] [--force]
+md2docx export config [-o config.json]
+md2docx export style-raw [-f template.docx] [-o style-raw.json]
+md2docx export style-config [-o style-config.json]
 ```
 
 `export config` 导出内置 Markdown 处理配置。`export style-raw` 不带 `--file` 时导出内置底层 Word 样式；指定 DOCX 时从该文档提取底层样式。`export style-config` 导出默认语义化样式配置。
@@ -398,14 +396,6 @@ pandoc --version
 ```
 
 如果命令不存在，请从 [Pandoc 官方安装页](https://pandoc.org/installing.html) 安装，并重新打开终端使 `PATH` 生效。
-
-### 输出文件已存在
-
-默认不会覆盖文件。确认目标可以覆盖后使用：
-
-```bash
-md2docx -f report.md --force
-```
 
 ### 从其他目录转换时图片缺失
 

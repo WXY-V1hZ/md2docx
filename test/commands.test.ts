@@ -76,13 +76,12 @@ describe("export 命令", () => {
     expect(styles.paragraphStyles).toBeArray();
   });
 
-  it("默认拒绝覆盖并允许 --force", async () => {
+  it("默认覆盖已有文件", async () => {
     const dir = createTempDir();
     const output = join(dir, "config.json");
     writeFileSync(output, "existing", "utf-8");
 
-    expect(exportConfig({ output })).rejects.toThrow("输出文件已存在");
-    await exportConfig({ output, force: true });
+    await exportConfig({ output });
     expect(JSON.parse(readFileSync(output, "utf-8"))).toBeObject();
   });
 });
@@ -135,6 +134,23 @@ describe("format 命令", () => {
 
     expect(readFileSync(output, "utf-8")).toContain('title: "报告"');
     expect(readFileSync(output, "utf-8")).not.toContain(dir);
+  });
+
+  it("默认覆盖已有 Markdown 输出", async () => {
+    const dir = createTempDir();
+    const input = join(dir, "input.md");
+    const output = join(dir, "result.md");
+    const assetsDir = join(dir, "result_assets");
+    writeFileSync(input, "# 新标题\n", "utf-8");
+    writeFileSync(output, "旧内容\n", "utf-8");
+    mkdirSync(assetsDir);
+    writeFileSync(join(assetsDir, "stale.txt"), "旧资源", "utf-8");
+
+    await formatMarkdown({ file: input, output });
+
+    expect(readFileSync(output, "utf-8")).toContain('title: "新标题"');
+    expect(readFileSync(output, "utf-8")).not.toContain("旧内容");
+    expect(existsSync(assetsDir)).toBe(false);
   });
 
   it("拒绝错误的输出扩展名", async () => {
