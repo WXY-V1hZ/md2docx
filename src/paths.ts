@@ -5,6 +5,12 @@ import { join, parse, resolve } from "node:path";
 /** 中间文件根目录（位于用户主目录） */
 export const TMP_DIR = join(homedir(), ".md2docx");
 
+/** 用户预设目录（持久数据，不由 clean 删除） */
+export const PRESETS_DIR = join(TMP_DIR, "presets");
+
+/** 当前预设设置（持久数据，不由 clean 删除） */
+export const SETTINGS_PATH = join(TMP_DIR, "settings.json");
+
 /** 预处理模块的输出目录，使用输入路径哈希隔离同名文件 */
 export function preprocessDir(inputPath: string): string {
   const absolutePath = resolve(inputPath);

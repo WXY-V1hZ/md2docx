@@ -66,7 +66,7 @@ function writeJson(path: string, value: unknown): void {
 
 describe("语义化样式配置", () => {
   it("内置默认语义化配置有效且不包含 preset", () => {
-    const path = join(import.meta.dir, "..", "config", "style-config.json");
+    const path = join(import.meta.dir, "..", "config", "default", "style-config.json");
     const config = JSON.parse(readFileSync(path, "utf-8"));
 
     expect(validateStyleConfig(config, path)).toEqual(config);

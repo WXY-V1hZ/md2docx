@@ -25,9 +25,15 @@ export function cleanIntermediateFiles(
   }
 
   if (lstatSync(target).isSymbolicLink()) {
-    unlinkSync(target);
-  } else {
-    rmSync(target, { recursive: true, force: true });
+    throw new Error(`拒绝清理符号链接目录：${target}`);
   }
-  console.log(`已清理：${target}`);
+
+  for (const name of ["preprocess", "resources", "style"]) {
+    const cachePath = resolve(target, name);
+    if (dirname(cachePath) !== target) throw new Error(`拒绝清理非预期目录：${cachePath}`);
+    if (!existsSync(cachePath)) continue;
+    if (lstatSync(cachePath).isSymbolicLink()) unlinkSync(cachePath);
+    else rmSync(cachePath, { recursive: true, force: true });
+  }
+  console.log(`已清理缓存：${target}`);
 }

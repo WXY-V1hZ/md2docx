@@ -5,22 +5,20 @@ import { dirname, parse, resolve } from "node:path";
 import { type ConvertOptions } from "../cli";
 import { type ImageSizeConfig, loadConfig } from "../config";
 import { formattedMdPath, preprocessDir } from "../paths";
+import { resolvePreset } from "../preset";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
-import {
-  materializeDefaultConfig,
-  materializeImageSizeFilter,
-  materializeInlineCodeFilter,
-} from "../resources";
+import { materializeImageSizeFilter, materializeInlineCodeFilter } from "../resources";
 import { resolveEffectiveStyles } from "../style/compiler";
 import { ensureTemplateDocx } from "../style/generate";
 
 export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   if (!options.file) throw new Error("缺少必填参数：--file");
   const input = resolveInputPath(options.file, [".md", ".markdown"], "Markdown 文件");
+  const preset = await resolvePreset(options.preset);
   const configPath = options.config
     ? resolveInputPath(options.config, [".json"], "配置文件")
-    : materializeDefaultConfig();
+    : preset.configPath;
   const styleRawPath = options.styleRaw
     ? resolveInputPath(options.styleRaw, [".json"], "底层样式文件")
     : undefined;
@@ -38,7 +36,10 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const markdownOutput = formattedMdPath(input);
   writeFileSync(markdownOutput, formatted, "utf-8");
 
-  const effectiveStyles = resolveEffectiveStyles({ styleRawPath, styleConfigPath });
+  const effectiveStyles = resolveEffectiveStyles(
+    { styleRawPath, styleConfigPath },
+    { styleRawPath: preset.styleRawPath, styleConfigPath: preset.styleConfigPath },
+  );
   const templatePath = await ensureTemplateDocx(effectiveStyles);
   const inlineCodeFilter = materializeInlineCodeFilter();
   const imageSizeArgs = config.imageSize.enabled

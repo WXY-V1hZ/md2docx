@@ -8,6 +8,7 @@ import {
   type ExportStyleConfigOptions,
   type ExportStyleRawOptions,
   type FormatOptions,
+  type PresetSaveOptions,
   createProgram,
 } from "../src/cli";
 
@@ -17,6 +18,9 @@ interface Calls {
   exportConfig: ExportConfigOptions[];
   exportStyleRaw: ExportStyleRawOptions[];
   exportStyleConfig: ExportStyleConfigOptions[];
+  presetList: number;
+  presetUse: string[];
+  presetSave: PresetSaveOptions[];
   clean: number;
 }
 
@@ -27,6 +31,9 @@ function setup() {
     exportConfig: [],
     exportStyleRaw: [],
     exportStyleConfig: [],
+    presetList: 0,
+    presetUse: [],
+    presetSave: [],
     clean: 0,
   };
   const output: string[] = [];
@@ -36,6 +43,9 @@ function setup() {
     exportConfig: async (options) => void calls.exportConfig.push(options),
     exportStyleRaw: async (options) => void calls.exportStyleRaw.push(options),
     exportStyleConfig: async (options) => void calls.exportStyleConfig.push(options),
+    presetList: async () => void calls.presetList++,
+    presetUse: async (name) => void calls.presetUse.push(name),
+    presetSave: async (options) => void calls.presetSave.push(options),
     clean: () => void calls.clean++,
   };
   const program = createProgram("1.2.3", actions);
@@ -60,6 +70,8 @@ describe("CLI 命令解析", () => {
         "report.md",
         "-c",
         "config.json",
+        "--preset",
+        "academic",
         "--style-raw",
         "style-raw.json",
         "--style-config",
@@ -73,6 +85,7 @@ describe("CLI 命令解析", () => {
     expect(calls.convert).toEqual([
       {
         file: "report.md",
+        preset: "academic",
         config: "config.json",
         styleRaw: "style-raw.json",
         styleConfig: "style-config.json",
@@ -88,6 +101,52 @@ describe("CLI 命令解析", () => {
     });
 
     expect(calls.format).toEqual([{ file: "report.md", config: "config.json" }]);
+  });
+
+  it("解析 preset list、use 和 save", async () => {
+    const setupResult = setup();
+    await setupResult.program.parseAsync(["preset", "list"], { from: "user" });
+    expect(setupResult.calls.presetList).toBe(1);
+
+    const useResult = setup();
+    await useResult.program.parseAsync(["preset", "use", "academic"], { from: "user" });
+    expect(useResult.calls.presetUse).toEqual(["academic"]);
+
+    const saveResult = setup();
+    await saveResult.program.parseAsync(
+      [
+        "preset",
+        "save",
+        "--name",
+        "academic",
+        "--config",
+        "config.json",
+        "--style-raw",
+        "style-raw.json",
+        "--style-config",
+        "style-config.json",
+      ],
+      { from: "user" },
+    );
+    expect(saveResult.calls.presetSave).toEqual([
+      {
+        name: "academic",
+        config: "config.json",
+        styleRaw: "style-raw.json",
+        styleConfig: "style-config.json",
+      },
+    ]);
+  });
+
+  it("format 接受 preset，并允许 config 显式覆盖", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(
+      ["format", "--file", "report.md", "--preset", "academic", "--config", "config.json"],
+      { from: "user" },
+    );
+    expect(calls.format).toEqual([
+      { file: "report.md", preset: "academic", config: "config.json" },
+    ]);
   });
 
   it("解析 export config 子命令", async () => {
@@ -202,6 +261,7 @@ describe("CLI 命令解析", () => {
       ["export", "config", "--force"],
       ["export", "style-raw", "--force"],
       ["export", "style-config", "--force"],
+      ["preset", "save", "--name", "example", "--config", "config.json", "--force"],
     ]) {
       const { program } = setup();
       expect(program.parseAsync(args, { from: "user" })).rejects.toMatchObject({
@@ -217,6 +277,10 @@ describe("CLI 命令解析", () => {
       ["export", "config", "--help"],
       ["export", "style-raw", "--help"],
       ["export", "style-config", "--help"],
+      ["preset", "--help"],
+      ["preset", "list", "--help"],
+      ["preset", "use", "--help"],
+      ["preset", "save", "--help"],
       ["format", "--help"],
       ["clean", "--help"],
     ]) {

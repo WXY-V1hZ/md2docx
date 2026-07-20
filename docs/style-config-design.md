@@ -24,12 +24,12 @@ reference DOCX
 
 | 参数                | 行为                                      |
 | ------------------- | ----------------------------------------- |
-| 都不指定            | 默认 raw + 默认 config                    |
+| 都不指定            | 当前预设 raw + 当前预设 config            |
 | 仅 `--style-raw`    | 直接使用用户 raw，不读取或应用默认 config |
-| 仅 `--style-config` | 用户 config 应用到默认 raw                |
+| 仅 `--style-config` | 用户 config 应用到当前预设 raw            |
 | 两者都指定          | 用户 config 应用到用户 raw                |
 
-仓库提供 `config/style-raw.json`、`config/style-config.json` 和 `config/style-config.schema.json`。默认资源以文本形式打入 npm bundle 和单文件 EXE。
+仓库通过 `config/default/` 提供内置 raw、语义化 config 和 Markdown 处理配置，Schema 仍位于 `config/`。默认资源以文本形式打入 npm bundle 和单文件 EXE。用户 preset 缺少样式文件时逐项继承这里的系统默认文件。
 
 ## 当前语义化配置
 

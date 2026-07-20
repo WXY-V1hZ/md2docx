@@ -10,6 +10,7 @@ import { cleanIntermediateFiles } from "./commands/clean";
 import { convertMarkdown } from "./commands/convert";
 import { exportConfig, exportStyleConfig, exportStyleRaw } from "./commands/export";
 import { formatMarkdown } from "./commands/format";
+import { listPresets, saveUserPreset, selectPreset } from "./commands/preset";
 
 export async function run(args: string[]): Promise<number> {
   const program = createProgram(`${packageJson.name} ${packageJson.version}`, {
@@ -18,6 +19,9 @@ export async function run(args: string[]): Promise<number> {
     exportConfig,
     exportStyleRaw,
     exportStyleConfig,
+    presetList: listPresets,
+    presetUse: selectPreset,
+    presetSave: saveUserPreset,
     clean: cleanIntermediateFiles,
   });
   program.exitOverride();

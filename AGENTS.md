@@ -90,7 +90,9 @@ bun run build:exe                # Windows 单文件构建（含程序图标）
 | `src/commands/convert.ts`                | 完整 Markdown → DOCX 流程和 Pandoc 子进程调用           |
 | `src/commands/format.ts`                 | 只执行 Markdown 预处理并写出 Markdown                   |
 | `src/commands/export.ts`                 | 导出内置配置/样式，或从 DOCX 提取样式                   |
-| `src/commands/clean.ts`                  | 安全删除 `~/.md2docx/`                                  |
+| `src/commands/preset.ts`                 | 列出、选择和保存用户预设                                |
+| `src/commands/clean.ts`                  | 安全删除可重建缓存并保留用户预设                        |
+| `src/preset.ts`                          | 预设发现、逐项回退、保存和设置持久化                    |
 | `src/preprocess/index.ts`                | 预处理流水线编排                                        |
 | `src/preprocess/title.ts`                | 标题提取、标题归一化、标题编号                          |
 | `src/preprocess/caption.ts`              | 表格和图片编号                                          |
@@ -105,15 +107,16 @@ bun run build:exe                # Windows 单文件构建（含程序图标）
 | `src/paths.ts`                           | `~/.md2docx`、预处理目录和样式缓存路径                  |
 | `src/resources.ts`                       | 内嵌默认配置、raw/config 样式和 Lua filter              |
 | `src/assets.d.ts`                        | Bun `text` / `file` 资源导入类型声明                    |
-| `config/config.json`                     | 内置默认配置                                            |
+| `config/default/config.json`             | 内置默认配置                                            |
 | `config/config.schema.json`              | 配置 JSON Schema                                        |
-| `config/style-raw.json`                  | 内置完整底层 Word 样式                                  |
-| `config/style-config.json`               | 可直接使用的默认受控语义化样式配置                      |
+| `config/default/style-raw.json`          | 内置完整底层 Word 样式                                  |
+| `config/default/style-config.json`       | 可直接使用的默认受控语义化样式配置                      |
 | `config/style-config.schema.json`        | 受控语义化样式配置 JSON Schema                          |
 | `config/lua/add-inline-code.lua`         | Pandoc 行内代码字符样式 filter                          |
 | `config/lua/limit-image-size.lua`        | Pandoc DOCX 图片尺寸限制 filter                         |
 | `assets/logo.svg`                        | Logo 矢量源文件，也是 README 展示资源                   |
 | `docs/style-config-design.md`            | 受控语义化样式配置设计文档                              |
+| `docs/preset-design.md`                  | 目录式预设、回退与持久化设计                            |
 | `docs/example.md`                        | 综合转换样例                                            |
 | `SKILL.md`                               | AI 助手技能描述，指导 AI 正确使用 md2docx CLI           |
 | `test/fixtures/`                         | AST 流水线输入/期望 Markdown                            |
@@ -137,6 +140,9 @@ md2docx format -f <markdown> [选项]
 md2docx export config [选项]
 md2docx export style-raw [选项]
 md2docx export style-config [选项]
+md2docx preset list
+md2docx preset use <name>
+md2docx preset save --name <name> [配置选项]
 md2docx clean
 ```
 
@@ -150,11 +156,12 @@ md2docx report.md -o report.docx  非法
 md2docx -f report.md -o report.docx 合法
 ```
 
-一旦出现 `--config`、`--style-raw`、`--style-config` 或 `--output`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
+一旦出现 `--preset`、`--config`、`--style-raw`、`--style-config` 或 `--output`，必须通过 `-f, --file` 指定输入。位置参数不能与 `--file` 混用。
 
 顶层选项：
 
 - `-f, --file <path>`：Markdown 输入
+- `--preset <name>`：本次转换使用指定预设
 - `-c, --config <path>`：配置 JSON
 - `--style-raw <path>`：完整底层 Word 样式 JSON
 - `--style-config <path>`：受控语义化样式配置 JSON
@@ -162,7 +169,15 @@ md2docx -f report.md -o report.docx 合法
 
 ## format
 
-`format` 的 `--file` 必填；支持 `--config` 和 `--output`，不接受样式。它不生成 reference DOCX，也不调用 Pandoc。
+`format` 的 `--file` 必填；支持 `--preset`、`--config` 和 `--output`，不接受样式。显式 config 覆盖预设 config。它不生成 reference DOCX，也不调用 Pandoc。
+
+## preset
+
+- `preset list` 每行只输出预设名称，当前项在名称后追加绿色 `*`。
+- `preset use <name>` 校验并持久化当前预设；`preset use default` 恢复系统默认。
+- `preset save --name <name>` 至少需要 `--config`、`--style-raw`、`--style-config` 之一。
+- 同名保存完整替换旧预设；未提供的标准文件被移除并继承系统 `default`。
+- `default` 是保留名称，用户不得保存或覆盖。
 
 ## export
 
@@ -174,19 +189,19 @@ md2docx -f report.md -o report.docx 合法
 
 ## clean
 
-`clean` 删除整个 `~/.md2docx/`，包括：
+`clean` 只删除 `~/.md2docx/` 下的可重建缓存：
 
 - 预处理 Markdown
 - Mermaid PNG
 - 物化的默认配置、样式和 Lua filter
 - reference DOCX 缓存
-- 未来如存放于该目录中的其他可重建缓存
+- 不得删除 `presets/` 和 `settings.json`
 
 安全要求：
 
 - 删除前必须确认目标严格等于 `<home>/.md2docx`。
 - 必须确认目标父目录严格等于用户主目录。
-- 目标为符号链接时只 unlink 链接，不递归跟随。
+- 根目录为符号链接时拒绝清理；缓存子目录为符号链接时只 unlink，不递归跟随。
 - 目录不存在时幂等成功。
 - 禁止扩展为任意路径清理命令。
 
@@ -219,14 +234,21 @@ md2docx export style-config               → ./style-config.json
 
 ```text
 ~/.md2docx/
+├── settings.json
+├── presets/
+│   └── <name>/
+│       ├── config.json（可选）
+│       ├── style-raw.json（可选）
+│       └── style-config.json（可选）
 ├── preprocess/
 │   └── <basename>-<12位路径哈希>/
 │       ├── <basename>_formatted.md
 │       └── mermaid_*.png
 ├── resources/
-│   ├── config.json
-│   ├── style-config.json
-│   ├── style-raw.json
+│   ├── default/
+│   │   ├── config.json
+│   │   ├── style-config.json
+│   │   └── style-raw.json
 │   ├── add-inline-code.lua
 │   └── limit-image-size.lua
 └── style/
@@ -247,6 +269,13 @@ md2docx export style-config               → ./style-config.json
 - 内容未变化时不重复写入。
 - npm 构建的 resvg WASM 是 `dist/index_bg.wasm` 相邻资源。
 - EXE 构建将 resvg WASM 嵌入单文件。
+
+预设规则：
+
+- 系统默认预设源码位于 `config/default/`。
+- 用户预设位于 `~/.md2docx/presets/<name>/`，标准文件均可缺省并逐项继承系统 default。
+- 文件缺失才允许继承；文件存在但内容无效时必须报错。
+- 当前选择保存在版本化的 `settings.json`；设置不存在时使用 `default`。
 
 ---
 
@@ -415,7 +444,7 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 
 # 样式系统
 
-`config/style-raw.json` 是完整底层 Word 样式，可作为内置默认样式、手工维护文件或 DOCX 样式提取结果。`config/style-config.json` 是版本化的受控语义化样式配置，包含 `schemaVersion: 1` 和可选 `options`，不包含 `preset` 字段。
+`config/default/style-raw.json` 是完整底层 Word 样式，可作为内置默认样式、手工维护文件或 DOCX 样式提取结果。`config/default/style-config.json` 是版本化的受控语义化样式配置，包含 `schemaVersion: 1` 和可选 `options`，不包含 preset 选择字段。
 
 `--style-raw` 和 `--style-config` 类型固定，不得根据 JSON 内容自动猜测或混用。当前语义化配置只开放：
 
@@ -430,9 +459,9 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 
 输入组合必须严格遵守：
 
-- 二者都不指定：默认 raw + 默认 config。
+- 二者都不指定：当前预设 raw + 当前预设 config。
 - 仅指定 `--style-raw`：直接使用用户 raw，不得读取或应用默认 config。
-- 仅指定 `--style-config`：用户 config 应用到默认 raw。
+- 仅指定 `--style-config`：用户 config 应用到当前预设 raw。
 - 二者都指定：用户 config 应用到用户 raw。
 
 字段缺失表示继承 raw，`true` 必须明确写入完整效果，不能因为底层属性已存在或缺失而直接返回；`false` 必须写入明确的 Word 关闭值，不能仅删除属性后继续继承。配置及其每层对象必须拒绝未知字段。不得加入任意样式透传或通用深合并入口；后续能力继续按用户需要加入白名单。完整设计位于 `docs/style-config-design.md`。

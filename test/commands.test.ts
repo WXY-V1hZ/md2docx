@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -12,6 +20,7 @@ import {
 import { formatMarkdown } from "../src/commands/format";
 import { cleanIntermediateFiles } from "../src/commands/clean";
 import { buildImageSizePandocArgs, buildPandocResourcePathArgs } from "../src/commands/convert";
+import { formatPresetListEntry } from "../src/commands/preset";
 import { loadConfig } from "../src/config";
 import { DEFAULT_CONFIG_TEXT, DEFAULT_STYLE_RAW_TEXT } from "../src/resources";
 import { type RawStyleDefinition } from "../src/style/compiler";
@@ -88,17 +97,26 @@ describe("export 命令", () => {
 });
 
 describe("clean 命令", () => {
-  it("清除主目录下的 .md2docx 并允许重复执行", () => {
+  it("只清除缓存并保留用户预设和设置", () => {
     const home = createTempDir();
     const target = join(home, ".md2docx");
     mkdirSync(join(target, "preprocess", "example"), { recursive: true });
+    mkdirSync(join(target, "resources"), { recursive: true });
+    mkdirSync(join(target, "style"), { recursive: true });
+    mkdirSync(join(target, "presets", "academic"), { recursive: true });
     writeFileSync(join(target, "preprocess", "example", "input.md"), "test", "utf-8");
+    writeFileSync(join(target, "settings.json"), "{}", "utf-8");
+    writeFileSync(join(target, "presets", "academic", "config.json"), "{}", "utf-8");
 
     cleanIntermediateFiles({ targetDir: target, homeDir: home });
-    expect(existsSync(target)).toBe(false);
+    expect(existsSync(join(target, "preprocess"))).toBe(false);
+    expect(existsSync(join(target, "resources"))).toBe(false);
+    expect(existsSync(join(target, "style"))).toBe(false);
+    expect(existsSync(join(target, "settings.json"))).toBe(true);
+    expect(existsSync(join(target, "presets", "academic", "config.json"))).toBe(true);
 
     cleanIntermediateFiles({ targetDir: target, homeDir: home });
-    expect(existsSync(target)).toBe(false);
+    expect(existsSync(target)).toBe(true);
   });
 
   it("拒绝清理非预期目录", () => {
@@ -107,6 +125,29 @@ describe("clean 命令", () => {
 
     expect(() => cleanIntermediateFiles({ targetDir: target, homeDir: home })).toThrow(
       "拒绝清理非预期目录",
+    );
+  });
+
+  it("只解除缓存子目录符号链接且不跟随删除目标", () => {
+    const home = createTempDir();
+    const target = join(home, ".md2docx");
+    const external = join(home, "external-cache");
+    mkdirSync(target, { recursive: true });
+    mkdirSync(external);
+    writeFileSync(join(external, "keep.txt"), "keep", "utf-8");
+    symlinkSync(external, join(target, "style"), "junction");
+
+    cleanIntermediateFiles({ targetDir: target, homeDir: home });
+    expect(existsSync(join(target, "style"))).toBe(false);
+    expect(readFileSync(join(external, "keep.txt"), "utf-8")).toBe("keep");
+  });
+});
+
+describe("preset list 输出", () => {
+  it("只显示名称，并在当前预设名称后添加绿色星号", () => {
+    expect(formatPresetListEntry({ name: "default", current: false })).toBe("default");
+    expect(formatPresetListEntry({ name: "academic", current: true })).toBe(
+      "academic \x1b[32m*\x1b[0m",
     );
   });
 });
@@ -118,7 +159,7 @@ describe("format 命令", () => {
     const output = join(dir, "result.md");
     writeFileSync(input, "# 标题\n\n正文\n", "utf-8");
 
-    await formatMarkdown({ file: input, output });
+    await formatMarkdown({ file: input, output, preset: "default" });
 
     expect(existsSync(output)).toBe(true);
     expect(readFileSync(output, "utf-8")).toContain('title: "标题"');
@@ -131,7 +172,7 @@ describe("format 命令", () => {
     const output = join(dir, "result.md");
     writeFileSync(input, "正文\n", "utf-8");
 
-    await formatMarkdown({ file: input, output });
+    await formatMarkdown({ file: input, output, preset: "default" });
 
     expect(readFileSync(output, "utf-8")).toContain('title: "报告"');
     expect(readFileSync(output, "utf-8")).not.toContain(dir);
@@ -147,7 +188,7 @@ describe("format 命令", () => {
     mkdirSync(assetsDir);
     writeFileSync(join(assetsDir, "stale.txt"), "旧资源", "utf-8");
 
-    await formatMarkdown({ file: input, output });
+    await formatMarkdown({ file: input, output, preset: "default" });
 
     expect(readFileSync(output, "utf-8")).toContain('title: "新标题"');
     expect(readFileSync(output, "utf-8")).not.toContain("旧内容");
@@ -159,9 +200,13 @@ describe("format 命令", () => {
     const input = join(dir, "input.md");
     writeFileSync(input, "正文\n", "utf-8");
 
-    expect(formatMarkdown({ file: input, output: join(dir, "result.docx") })).rejects.toThrow(
-      "Markdown 输出文件扩展名",
-    );
+    expect(
+      formatMarkdown({
+        file: input,
+        output: join(dir, "result.docx"),
+        preset: "default",
+      }),
+    ).rejects.toThrow("Markdown 输出文件扩展名");
   });
 });
 

@@ -26,6 +26,7 @@
 | 图片尺寸限制      | 按自然尺寸等比缩小超过最大宽度或高度的图片                       |
 | Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG |
 | Word 样式         | 支持受控语义化配置和完整底层样式，也可从现有 DOCX 提取样式       |
+| 配置预设          | 将处理配置和两层 Word 样式保存为可切换、可继承默认值的预设       |
 | Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                    |
 | 去除分隔符        | 默认移除 `---`、`***`、`___` 等分隔符行，减少无用页面间距        |
 | 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`      |
@@ -68,6 +69,10 @@ md2docx --file report.md --output output/report.docx
 # 使用自定义配置、底层样式和语义化样式配置
 md2docx -f report.md -c config.json --style-raw style-raw.json --style-config style-config.json
 
+# 保存并使用预设
+md2docx preset save --name academic --config config.json --style-config style-config.json
+md2docx preset use academic
+
 # 只执行 Markdown 预处理
 md2docx format -f report.md
 
@@ -94,6 +99,9 @@ md2docx format -f <markdown> [选项]
 md2docx export config [选项]
 md2docx export style-raw [选项]
 md2docx export style-config [选项]
+md2docx preset list
+md2docx preset use <name>
+md2docx preset save --name <name> [配置选项]
 md2docx clean
 ```
 
@@ -103,6 +111,7 @@ md2docx clean
 | ----------------------- | ---------------------------------------- |
 | `<markdown>`            | 位置参数；仅在没有其他转换选项时允许使用 |
 | `-f, --file <path>`     | Markdown 输入文件                        |
+| `--preset <name>`       | 本次转换使用指定预设                     |
 | `-c, --config <path>`   | 自定义配置 JSON                          |
 | `--style-raw <path>`    | 完整底层 Word 样式 JSON                  |
 | `--style-config <path>` | 受控语义化样式配置 JSON                  |
@@ -110,7 +119,7 @@ md2docx clean
 | `-h, --help`            | 显示帮助                                 |
 | `-v, --version`         | 显示版本号                               |
 
-位置参数不能和 `--file`、`--config`、`--style-raw`、`--style-config` 或 `--output` 混用。例如：
+位置参数不能和 `--file`、`--preset`、`--config`、`--style-raw`、`--style-config` 或 `--output` 混用。例如：
 
 ```bash
 md2docx report.md                 # 正确
@@ -125,6 +134,7 @@ md2docx -f report.md -o report.docx # 正确
 | 参数                  | 说明                                        |
 | --------------------- | ------------------------------------------- |
 | `-f, --file <path>`   | 必填，Markdown 输入文件                     |
+| `--preset <name>`     | 使用预设中的 `config.json`                  |
 | `-c, --config <path>` | 自定义配置 JSON                             |
 | `-o, --output <path>` | 输出 Markdown，默认 `<文件名>_formatted.md` |
 
@@ -138,13 +148,27 @@ md2docx export style-config [-o style-config.json]
 
 `export config` 导出内置 Markdown 处理配置。`export style-raw` 不带 `--file` 时导出内置底层 Word 样式；指定 DOCX 时从该文档提取底层样式。`export style-config` 导出默认语义化样式配置。
 
+### preset
+
+```bash
+md2docx preset list
+md2docx preset use academic
+md2docx preset use default
+md2docx preset save --name academic \
+  --config config.json \
+  --style-raw style-raw.json \
+  --style-config style-config.json
+```
+
+用户预设位于 `~/.md2docx/presets/<name>/`，其中三个标准 JSON 文件都可省略；缺失项逐一继承系统内置 `default`。文件存在但内容无效时会报错。`preset save` 至少需要一个配置文件，同名保存会完整替换旧预设，未提供的类型改为继承默认值。`--preset` 只影响本次执行，`preset use` 会持久化默认选择。
+
 ### clean
 
 ```bash
 md2docx clean
 ```
 
-`clean` 只允许删除当前用户主目录下严格匹配的 `~/.md2docx/`。如果目标是符号链接，只删除链接本身。命令可重复执行；目录不存在时正常退出。
+`clean` 只删除 `~/.md2docx/` 下可重建的预处理文件、物化资源和样式缓存，保留 `presets/` 与 `settings.json`。命令拒绝跟随符号链接，且可重复执行。
 
 npm 卸载不会可靠地清理用户数据。卸载前如需清理，请显式运行：
 
@@ -171,14 +195,21 @@ md2docx export style-config               → ./style-config.json
 
 ```text
 ~/.md2docx/
+├── settings.json
+├── presets/
+│   └── <预设名称>/
+│       ├── config.json（可选）
+│       ├── style-raw.json（可选）
+│       └── style-config.json（可选）
 ├── preprocess/
 │   └── <输入文件名>-<绝对路径哈希>/
 │       ├── <输入文件名>_formatted.md
 │       └── mermaid_*.png
 ├── resources/
-│   ├── config.json
-│   ├── style-config.json
-│   ├── style-raw.json
+│   ├── default/
+│   │   ├── config.json
+│   │   ├── style-config.json
+│   │   └── style-raw.json
 │   ├── add-inline-code.lua
 │   └── limit-image-size.lua
 └── style/
@@ -193,7 +224,7 @@ md2docx export style-config               → ./style-config.json
 
 ## 配置
 
-内置配置来自 `config/config.json`，并由 `config/config.schema.json` 提供 JSON Schema。推荐先导出再编辑：
+内置配置来自 `config/default/config.json`，并由 `config/config.schema.json` 提供 JSON Schema。推荐先导出再编辑：
 
 ```bash
 md2docx export config
@@ -230,7 +261,7 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 
 普通用户推荐使用受控的语义化样式配置，只修改程序明确开放的高频选项。其余颜色、尺寸、对齐方式、间距和 Word 样式继承关系继续由内置预设管理。
 
-仓库中的 `config/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。完整底层 Word 样式位于 `config/style-raw.json`。
+仓库中的 `config/default/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。完整底层 Word 样式位于 `config/default/style-raw.json`。
 
 ```json
 {
@@ -288,9 +319,9 @@ md2docx -f report.md --style-config style-config.json
 
 | 参数                | 行为                                |
 | ------------------- | ----------------------------------- |
-| 都不指定            | 默认 raw + 默认 config              |
+| 都不指定            | 当前预设 raw + 当前预设 config      |
 | 仅 `--style-raw`    | 直接使用用户 raw，不应用默认 config |
-| 仅 `--style-config` | 用户 config 应用到默认 raw          |
+| 仅 `--style-config` | 用户 config 应用到当前预设 raw      |
 | 两者都指定          | 用户 config 应用到用户 raw          |
 
 最终有效的底层样式用于生成 reference DOCX，并通过 Pandoc 的 `--reference-doc` 应用。`--style-raw` 和 `--style-config` 类型固定，不能互换。
