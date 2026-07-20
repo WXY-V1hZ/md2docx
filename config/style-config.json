@@ -3,11 +3,32 @@
   "schemaVersion": 1,
   "options": {
     "body": {
-      "firstLineIndent": true
+      "firstLineIndent": true,
+      "lineSpacing": 1.5
     },
     "headings": {
       "1": {
-        "startOnNewPage": false
+        "startOnNewPage": false,
+        "alignment": "left",
+        "bold": true
+      },
+      "2": {
+        "bold": true
+      },
+      "3": {
+        "bold": true
+      },
+      "4": {
+        "bold": true,
+        "italic": false
+      },
+      "5": {
+        "bold": true,
+        "italic": false
+      },
+      "6": {
+        "bold": true,
+        "italic": false
       }
     },
     "inlineCode": {

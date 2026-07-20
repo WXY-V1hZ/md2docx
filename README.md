@@ -216,8 +216,8 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 | `renderMermaid.theme`            | beautiful-mermaid 主题                         | `"tokyo-night-light"` |
 | `renderMermaid.density`          | PNG 输出 DPI，最小值 72                        | `200`                 |
 | `imageSize.enabled`              | 等比缩小超过尺寸限制的图片                     | `true`                |
-| `imageSize.maxWidthCm`           | DOCX 图片最大宽度（厘米）                      | `15.5`                |
-| `imageSize.maxHeightCm`          | DOCX 图片最大高度（厘米）                      | `22`                  |
+| `imageSize.maxWidthCm`           | DOCX 图片最大宽度（厘米）                      | `12`                  |
+| `imageSize.maxHeightCm`          | DOCX 图片最大高度（厘米）                      | `12`                  |
 | `removeThematicBreaks.enabled`   | 移除 `---`、`***`、`___` 等分隔符行            | `true`                |
 
 图片尺寸限制在 Pandoc 生成 DOCX 前通过 Lua filter 应用。程序读取图片像素尺寸和 DPI，仅缩小超限图片，不会放大小图；宽度和高度使用同一缩放比例。Markdown 中已经显式设置 `width` 或 `height` 的图片视为用户覆盖，不应用全局限制。单张图片无法读取尺寸时会输出警告并继续转换。
@@ -234,11 +234,32 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
   "schemaVersion": 1,
   "options": {
     "body": {
-      "firstLineIndent": false
+      "firstLineIndent": false,
+      "lineSpacing": "onePointFive"
     },
     "headings": {
       "1": {
-        "startOnNewPage": false
+        "startOnNewPage": false,
+        "alignment": "left",
+        "bold": true
+      },
+      "2": {
+        "bold": true
+      },
+      "3": {
+        "bold": true
+      },
+      "4": {
+        "bold": true,
+        "italic": false
+      },
+      "5": {
+        "bold": true,
+        "italic": false
+      },
+      "6": {
+        "bold": true,
+        "italic": false
       }
     },
     "inlineCode": {
@@ -257,7 +278,7 @@ CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
 md2docx -f report.md --style-config style-config.json
 ```
 
-字段缺失表示继承底层样式；`true` 表示显式启用完整效果；`false` 表示显式关闭。当前只开放正文首行缩进、一级标题另起一页、行内代码背景和代码块外框。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
+字段缺失表示继承底层样式；`true` 表示显式启用完整效果；`false` 表示显式关闭。正文行距为浮点数倍数，例如 `1.5` 表示 1.5 倍行距；一级标题对齐只接受 `left`、`center`。当前还开放一至六级标题粗体，以及四至六级标题斜体。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
 
 转换时按以下规则选择输入：
 

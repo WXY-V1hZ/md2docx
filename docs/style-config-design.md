@@ -31,7 +31,7 @@ reference DOCX
 
 仓库提供 `config/style-raw.json`、`config/style-config.json` 和 `config/style-config.schema.json`。默认资源以文本形式打入 npm bundle 和单文件 EXE。
 
-## 第一版语义化配置
+## 当前语义化配置
 
 ```json
 {
@@ -39,11 +39,32 @@ reference DOCX
   "schemaVersion": 1,
   "options": {
     "body": {
-      "firstLineIndent": true
+      "firstLineIndent": true,
+      "lineSpacing": "double"
     },
     "headings": {
       "1": {
-        "startOnNewPage": false
+        "startOnNewPage": false,
+        "alignment": "center",
+        "bold": true
+      },
+      "2": {
+        "bold": true
+      },
+      "3": {
+        "bold": true
+      },
+      "4": {
+        "bold": true,
+        "italic": false
+      },
+      "5": {
+        "bold": true,
+        "italic": false
+      },
+      "6": {
+        "bold": true,
+        "italic": false
       }
     },
     "inlineCode": {
@@ -56,7 +77,7 @@ reference DOCX
 }
 ```
 
-字段缺失表示继承 raw；`true` 表示明确写入完整启用效果，即使 raw 缺少对应属性也必须生效；`false` 表示写入明确关闭值。配置不包含 `preset`，也不允许设置缩进量、背景色、边框颜色或其他未开放属性。
+字段缺失表示继承 raw；`true` 表示明确写入完整启用效果，即使 raw 缺少对应属性也必须生效；`false` 表示写入明确关闭值。正文行距为浮点数倍数，例如 `1.5` 表示 1.5 倍行距；一级标题对齐使用 `left`、`center`。配置不包含 `preset`，也不允许设置缩进量、其他对齐方式、背景色、边框颜色或其他未开放属性。
 
 ## 编译与校验
 
@@ -65,7 +86,11 @@ Compiler 每次从选定 raw 的深拷贝开始，只修改公开选项对应的
 | 用户选项                       | 底层目标                         | 关闭方式                               |
 | ------------------------------ | -------------------------------- | -------------------------------------- |
 | `body.firstLineIndent`         | `First Paragraph` 和 `Body Text` | `firstLine`、`firstLineChars` 设为 `0` |
+| `body.lineSpacing`             | `First Paragraph` 和 `Body Text` | `line = Math.round(multiplier × 240)`  |
 | `headings["1"].startOnNewPage` | `heading 1`                      | `pageBreakBefore` 设为 `false`         |
+| `headings["1"].alignment`      | `heading 1`                      | 写入 `left` 或 `center`                |
+| `headings["1".."6"].bold`      | 对应标题的 run                   | 同时写入普通和复杂文字粗体             |
+| `headings["4".."6"].italic`    | 对应标题的 run                   | 同时写入普通和复杂文字斜体             |
 | `inlineCode.background`        | `Inline Code` 字符样式           | 底纹设为 `clear/auto`                  |
 | `codeBlock.border`             | `Source Code` 段落样式           | 四边写入 `style: "none"`               |
 
@@ -85,4 +110,4 @@ md2docx export style-config               → style-config.json
 
 ## 扩展边界
 
-后续能力继续按白名单增加，例如为标题开放中英文字体、粗体和斜体，或为表格开放有限的命名方案。Web 页面只根据 `style-config.schema.json` 展示允许修改的控件；颜色、段落对齐和底层 Word 属性没有明确需求时不进入公开配置。
+后续能力继续按白名单增加，例如为标题开放中英文字体，或为表格开放有限的命名方案。Web 页面只根据 `style-config.schema.json` 展示允许修改的控件；颜色、未明确开放的段落对齐和底层 Word 属性不进入公开配置。

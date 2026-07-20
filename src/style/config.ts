@@ -7,10 +7,31 @@ export interface StyleConfig {
 export interface StyleOptions {
   body?: {
     firstLineIndent?: boolean;
+    lineSpacing?: number;
   };
   headings?: {
     "1"?: {
       startOnNewPage?: boolean;
+      alignment?: "left" | "center";
+      bold?: boolean;
+    };
+    "2"?: {
+      bold?: boolean;
+    };
+    "3"?: {
+      bold?: boolean;
+    };
+    "4"?: {
+      bold?: boolean;
+      italic?: boolean;
+    };
+    "5"?: {
+      bold?: boolean;
+      italic?: boolean;
+    };
+    "6"?: {
+      bold?: boolean;
+      italic?: boolean;
     };
   };
   inlineCode?: {
@@ -38,22 +59,30 @@ function validateOptions(value: unknown, path: string): void {
 
   if (options.body !== undefined) {
     const body = expectRecord(options.body, path, "options.body");
-    rejectUnknown(body, ["firstLineIndent"], path, "options.body");
+    rejectUnknown(body, ["firstLineIndent", "lineSpacing"], path, "options.body");
     if (body.firstLineIndent !== undefined) {
       expectBoolean(body.firstLineIndent, path, "options.body.firstLineIndent");
+    }
+    if (body.lineSpacing !== undefined) {
+      if (
+        typeof body.lineSpacing !== "number" ||
+        !Number.isFinite(body.lineSpacing) ||
+        body.lineSpacing <= 0
+      ) {
+        invalidStyleConfig(path, "options.body.lineSpacing", "必须是大于 0 的有限数字");
+      }
     }
   }
 
   if (options.headings !== undefined) {
     const headings = expectRecord(options.headings, path, "options.headings");
-    rejectUnknown(headings, ["1"], path, "options.headings");
-    if (headings["1"] !== undefined) {
-      const heading1 = expectRecord(headings["1"], path, 'options.headings["1"]');
-      rejectUnknown(heading1, ["startOnNewPage"], path, 'options.headings["1"]');
-      if (heading1.startOnNewPage !== undefined) {
-        expectBoolean(heading1.startOnNewPage, path, 'options.headings["1"].startOnNewPage');
-      }
-    }
+    rejectUnknown(headings, ["1", "2", "3", "4", "5", "6"], path, "options.headings");
+    validateHeading(headings, "1", ["startOnNewPage", "alignment", "bold"], path);
+    validateHeading(headings, "2", ["bold"], path);
+    validateHeading(headings, "3", ["bold"], path);
+    validateHeading(headings, "4", ["bold", "italic"], path);
+    validateHeading(headings, "5", ["bold", "italic"], path);
+    validateHeading(headings, "6", ["bold", "italic"], path);
   }
 
   if (options.inlineCode !== undefined) {
@@ -71,6 +100,26 @@ function validateOptions(value: unknown, path: string): void {
       expectBoolean(codeBlock.border, path, "options.codeBlock.border");
     }
   }
+}
+
+function validateHeading(
+  headings: Record<string, unknown>,
+  level: string,
+  allowed: string[],
+  path: string,
+): void {
+  if (headings[level] === undefined) return;
+  const field = `options.headings["${level}"]`;
+  const heading = expectRecord(headings[level], path, field);
+  rejectUnknown(heading, allowed, path, field);
+  if (heading.startOnNewPage !== undefined) {
+    expectBoolean(heading.startOnNewPage, path, `${field}.startOnNewPage`);
+  }
+  if (heading.alignment !== undefined) {
+    expectEnum(heading.alignment, ["left", "center"], path, `${field}.alignment`);
+  }
+  if (heading.bold !== undefined) expectBoolean(heading.bold, path, `${field}.bold`);
+  if (heading.italic !== undefined) expectBoolean(heading.italic, path, `${field}.italic`);
 }
 
 function rejectUnknown(
@@ -98,6 +147,12 @@ function expectBoolean(value: unknown, path: string, field: string): void {
 
 function expectString(value: unknown, path: string, field: string): void {
   if (typeof value !== "string") invalidStyleConfig(path, field, "必须是字符串");
+}
+
+function expectEnum(value: unknown, allowed: string[], path: string, field: string): void {
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    invalidStyleConfig(path, field, `必须是 ${allowed.join("、")} 之一`);
+  }
 }
 
 function invalidStyleConfig(path: string, field: string, reason: string): never {

@@ -23,6 +23,11 @@
             "firstLineIndent": {
               "type": "boolean",
               "description": "正文是否使用预设的首行缩进"
+            },
+            "lineSpacing": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "正文行距倍数，如 1.5 表示 1.5 倍行距"
             }
           }
         },
@@ -37,8 +42,32 @@
                 "startOnNewPage": {
                   "type": "boolean",
                   "description": "一级标题是否另起一页"
+                },
+                "alignment": {
+                  "type": "string",
+                  "enum": ["left", "center"],
+                  "description": "一级标题左对齐或居中"
+                },
+                "bold": {
+                  "type": "boolean",
+                  "description": "一级标题是否加粗"
                 }
               }
+            },
+            "2": {
+              "$ref": "#/$defs/headingBold"
+            },
+            "3": {
+              "$ref": "#/$defs/headingBold"
+            },
+            "4": {
+              "$ref": "#/$defs/headingBoldItalic"
+            },
+            "5": {
+              "$ref": "#/$defs/headingBoldItalic"
+            },
+            "6": {
+              "$ref": "#/$defs/headingBoldItalic"
             }
           }
         },
@@ -61,6 +90,32 @@
               "description": "代码块是否使用预设外框"
             }
           }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "headingBold": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bold": {
+          "type": "boolean",
+          "description": "标题是否加粗"
+        }
+      }
+    },
+    "headingBoldItalic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bold": {
+          "type": "boolean",
+          "description": "标题是否加粗"
+        },
+        "italic": {
+          "type": "boolean",
+          "description": "标题是否斜体"
         }
       }
     }

@@ -56,6 +56,10 @@ function setHeading1PageBreak(styles: RawStyleDefinition, enabled: boolean): voi
   paragraph.pageBreakBefore = enabled;
 }
 
+function headingStyle(styles: RawStyleDefinition, level: number): Record<string, unknown> {
+  return styleByName(styles, "paragraphStyles", `heading ${level}`);
+}
+
 function writeJson(path: string, value: unknown): void {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf-8");
 }
@@ -90,6 +94,18 @@ describe("语义化样式配置", () => {
     }
   });
 
+  it("设置正文行距倍数", () => {
+    const compiled = compileStyleConfig(defaultStyles(), {
+      schemaVersion: 1,
+      options: { body: { lineSpacing: 1.5 } },
+    });
+
+    for (const name of ["First Paragraph", "Body Text"]) {
+      const paragraph = objectAt(styleByName(compiled, "paragraphStyles", name), "paragraph");
+      expect(paragraph.spacing).toMatchObject({ line: 360, lineRule: "auto" });
+    }
+  });
+
   it("关闭一级标题另起一页", () => {
     const compiled = compileStyleConfig(defaultStyles(), {
       schemaVersion: 1,
@@ -97,6 +113,55 @@ describe("语义化样式配置", () => {
     });
 
     expect(heading1PageBreak(compiled)).toBe(false);
+  });
+
+  it("设置一级标题左对齐或居中", () => {
+    for (const alignment of ["left", "center"] as const) {
+      const compiled = compileStyleConfig(defaultStyles(), {
+        schemaVersion: 1,
+        options: { headings: { "1": { alignment } } },
+      });
+      expect(objectAt(headingStyle(compiled, 1), "paragraph").alignment).toBe(alignment);
+    }
+  });
+
+  it("显式设置一至六级标题粗体", () => {
+    const compiled = compileStyleConfig(defaultStyles(), {
+      schemaVersion: 1,
+      options: {
+        headings: {
+          "1": { bold: false },
+          "2": { bold: false },
+          "3": { bold: false },
+          "4": { bold: false },
+          "5": { bold: false },
+          "6": { bold: false },
+        },
+      },
+    });
+
+    for (let level = 1; level <= 6; level++) {
+      const run = objectAt(headingStyle(compiled, level), "run");
+      expect(run).toMatchObject({ bold: false, boldComplexScript: false });
+    }
+  });
+
+  it("显式设置四至六级标题斜体", () => {
+    const compiled = compileStyleConfig(defaultStyles(), {
+      schemaVersion: 1,
+      options: {
+        headings: {
+          "4": { italic: true },
+          "5": { italic: true },
+          "6": { italic: true },
+        },
+      },
+    });
+
+    for (let level = 4; level <= 6; level++) {
+      const run = objectAt(headingStyle(compiled, level), "run");
+      expect(run).toMatchObject({ italics: true, italicsComplexScript: true });
+    }
   });
 
   it("关闭行内代码背景", () => {
@@ -134,12 +199,23 @@ describe("语义化样式配置", () => {
       .pageBreakBefore;
     delete objectAt(styleByName(rawStyle, "characterStyles", "Inline Code"), "run").shading;
     delete objectAt(styleByName(rawStyle, "paragraphStyles", "Source Code"), "paragraph").border;
+    delete objectAt(styleByName(rawStyle, "paragraphStyles", "First Paragraph"), "paragraph")
+      .spacing;
+    delete objectAt(headingStyle(rawStyle, 1), "paragraph").alignment;
+    for (let level = 1; level <= 6; level++) delete headingStyle(rawStyle, level).run;
 
     const compiled = compileStyleConfig(rawStyle, {
       schemaVersion: 1,
       options: {
-        body: { firstLineIndent: true },
-        headings: { "1": { startOnNewPage: true } },
+        body: { firstLineIndent: true, lineSpacing: 1.5 },
+        headings: {
+          "1": { startOnNewPage: true, alignment: "left", bold: true },
+          "2": { bold: true },
+          "3": { bold: true },
+          "4": { bold: true, italic: true },
+          "5": { bold: true, italic: true },
+          "6": { bold: true, italic: true },
+        },
         inlineCode: { background: true },
         codeBlock: { border: true },
       },
@@ -149,7 +225,23 @@ describe("语义化样式配置", () => {
       const paragraph = objectAt(styleByName(compiled, "paragraphStyles", name), "paragraph");
       expect(paragraph.indent).toMatchObject({ firstLine: 200, firstLineChars: 200 });
     }
+    expect(
+      objectAt(styleByName(compiled, "paragraphStyles", "First Paragraph"), "paragraph").spacing,
+    ).toMatchObject({ line: 360, lineRule: "auto" });
     expect(heading1PageBreak(compiled)).toBe(true);
+    expect(objectAt(headingStyle(compiled, 1), "paragraph").alignment).toBe("left");
+    for (let level = 1; level <= 6; level++) {
+      expect(objectAt(headingStyle(compiled, level), "run")).toMatchObject({
+        bold: true,
+        boldComplexScript: true,
+      });
+    }
+    for (let level = 4; level <= 6; level++) {
+      expect(objectAt(headingStyle(compiled, level), "run")).toMatchObject({
+        italics: true,
+        italicsComplexScript: true,
+      });
+    }
     const inlineRun = objectAt(styleByName(compiled, "characterStyles", "Inline Code"), "run");
     expect(inlineRun.shading).toEqual({ type: "clear", color: "F3F4F4", fill: "F2F2F2" });
     const codeParagraph = objectAt(
@@ -257,6 +349,33 @@ describe("样式生成与校验", () => {
     expect(sourceCodeStyle).toContain('w:val="single"');
   });
 
+  it("将标题和正文语义化选项写入 reference DOCX XML", async () => {
+    const outputPath = join(createTempDir(), "reference.docx");
+    const styles = compileStyleConfig(defaultStyles(), {
+      schemaVersion: 1,
+      options: {
+        body: { lineSpacing: 1.5 },
+        headings: {
+          "1": { alignment: "left", bold: false },
+          "4": { italic: true },
+        },
+      },
+    });
+
+    await generateTemplateDocx(styles, outputPath);
+    const stylesXml = new PizZip(readFileSync(outputPath)).file("word/styles.xml")?.asText();
+    expect(stylesXml).toBeDefined();
+    const styleBlocks = stylesXml!.match(/<w:style\b[^>]*>[\s\S]*?<\/w:style>/g) ?? [];
+    const byName = (name: string) =>
+      styleBlocks.find((block) => block.includes(`<w:name w:val="${name}"/>`));
+
+    expect(byName("First Paragraph")).toContain('w:line="360"');
+    expect(byName("heading 1")).toContain('<w:jc w:val="left"/>');
+    expect(byName("heading 1")).toContain('<w:b w:val="false"/>');
+    expect(byName("heading 4")).toContain("<w:i/>");
+    expect(byName("heading 4")).toContain("<w:iCs/>");
+  });
+
   it("缓存哈希只取决于最终有效样式", () => {
     const rawStyle = defaultStyles();
     const equivalent = structuredClone(rawStyle);
@@ -285,5 +404,23 @@ describe("样式生成与校验", () => {
         "style-config.json",
       ),
     ).toThrow("位置：options.body.firstLineIndent");
+    expect(() =>
+      validateStyleConfig(
+        { schemaVersion: 1, options: { body: { lineSpacing: 0 } } },
+        "style-config.json",
+      ),
+    ).toThrow("位置：options.body.lineSpacing");
+    expect(() =>
+      validateStyleConfig(
+        { schemaVersion: 1, options: { headings: { "1": { alignment: "right" } } } },
+        "style-config.json",
+      ),
+    ).toThrow('位置：options.headings["1"].alignment');
+    expect(() =>
+      validateStyleConfig(
+        { schemaVersion: 1, options: { headings: { "3": { italic: true } } } },
+        "style-config.json",
+      ),
+    ).toThrow('位置：options.headings["3"].italic');
   });
 });

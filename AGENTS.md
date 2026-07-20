@@ -419,7 +419,11 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 `--style-raw` 和 `--style-config` 类型固定，不得根据 JSON 内容自动猜测或混用。当前语义化配置只开放：
 
 - `body.firstLineIndent`
+- `body.lineSpacing`：正文行距倍数，例如 `1.5`（1.5 倍行距）
 - `headings["1"].startOnNewPage`
+- `headings["1"].alignment`：`left` / `center`
+- `headings["1".."6"].bold`
+- `headings["4".."6"].italic`
 - `inlineCode.background`
 - `codeBlock.border`
 
@@ -448,6 +452,8 @@ resvg WASM 不会自动获得完整系统字体。当前候选：
 `docx` 必须按需动态导入。顶层导入会在新版 Node.js 中过早访问 Web Storage，并可能产生 ``--localstorage-file` was provided without a valid path` 警告，即使用户只运行 `md2docx -v`。
 
 样式继承陷阱：基于 `a0`（Body Text）的样式会继承 `firstLine`。不需要缩进的子样式必须显式将 indent 清零。
+
+正文行距编译到 `First Paragraph` 和 `Body Text` 的 `paragraph.spacing`，`line = Math.round(multiplier * 240)`，并显式写入 `lineRule: "auto"`。标题粗体必须同时写入 `bold` 和 `boldComplexScript`；标题斜体必须同时写入 `italics` 和 `italicsComplexScript`，确保中西文效果一致。
 
 ---
 

@@ -131,13 +131,13 @@
           "description": "图片最大宽度（厘米）",
           "type": "number",
           "exclusiveMinimum": 0,
-          "default": 15.5
+          "default": 12
         },
         "maxHeightCm": {
           "description": "图片最大高度（厘米）",
           "type": "number",
           "exclusiveMinimum": 0,
-          "default": 22
+          "default": 12
         }
       },
       "required": ["enabled", "maxWidthCm", "maxHeightCm"]

@@ -20,6 +20,15 @@ type StyleEntry = Record<string, unknown> & {
   name?: string;
 };
 
+const HEADING_LEVELS = ["1", "2", "3", "4", "5", "6"] as const;
+
+type CompilableHeadingOptions = {
+  startOnNewPage?: boolean;
+  alignment?: "left" | "center";
+  bold?: boolean;
+  italic?: boolean;
+};
+
 export function resolveEffectiveStyles(
   sources: StyleSources,
   defaults?: DefaultStyleSources,
@@ -68,8 +77,20 @@ export function compileStyleConfig(
   const firstLineIndent = options.body?.firstLineIndent;
   if (firstLineIndent !== undefined) applyBodyFirstLineIndent(styles, firstLineIndent);
 
+  const lineSpacing = options.body?.lineSpacing;
+  if (lineSpacing !== undefined) applyBodyLineSpacing(styles, lineSpacing);
+
   const startOnNewPage = options.headings?.["1"]?.startOnNewPage;
   if (startOnNewPage !== undefined) applyHeading1PageBreak(styles, startOnNewPage);
+
+  const heading1Alignment = options.headings?.["1"]?.alignment;
+  if (heading1Alignment !== undefined) applyHeading1Alignment(styles, heading1Alignment);
+
+  for (const level of HEADING_LEVELS) {
+    const heading = options.headings?.[level] as CompilableHeadingOptions | undefined;
+    if (heading?.bold !== undefined) applyHeadingBold(styles, level, heading.bold);
+    if (heading?.italic !== undefined) applyHeadingItalic(styles, level, heading.italic);
+  }
 
   const inlineCodeBackground = options.inlineCode?.background;
   if (inlineCodeBackground !== undefined) {
@@ -80,6 +101,19 @@ export function compileStyleConfig(
   if (codeBlockBorder !== undefined) applyCodeBlockBorder(styles, codeBlockBorder);
 
   return styles;
+}
+
+function applyBodyLineSpacing(styles: RawStyleDefinition, multiplier: number): void {
+  const line = Math.round(multiplier * 240);
+  for (const name of ["First Paragraph", "Body Text"]) {
+    const style = findStyle(styles, "paragraphStyles", name);
+    const paragraph = ensureObject(style, "paragraph");
+    paragraph.spacing = {
+      ...optionalObject(paragraph.spacing),
+      line,
+      lineRule: "auto",
+    };
+  }
 }
 
 function applyBodyFirstLineIndent(styles: RawStyleDefinition, enabled: boolean): void {
@@ -99,6 +133,25 @@ function applyBodyFirstLineIndent(styles: RawStyleDefinition, enabled: boolean):
 function applyHeading1PageBreak(styles: RawStyleDefinition, enabled: boolean): void {
   const heading1 = findStyle(styles, "paragraphStyles", "heading 1");
   ensureObject(heading1, "paragraph").pageBreakBefore = enabled;
+}
+
+function applyHeading1Alignment(styles: RawStyleDefinition, alignment: "left" | "center"): void {
+  const heading1 = findStyle(styles, "paragraphStyles", "heading 1");
+  ensureObject(heading1, "paragraph").alignment = alignment;
+}
+
+function applyHeadingBold(styles: RawStyleDefinition, level: string, enabled: boolean): void {
+  const heading = findStyle(styles, "paragraphStyles", `heading ${level}`);
+  const run = ensureObject(heading, "run");
+  run.bold = enabled;
+  run.boldComplexScript = enabled;
+}
+
+function applyHeadingItalic(styles: RawStyleDefinition, level: string, enabled: boolean): void {
+  const heading = findStyle(styles, "paragraphStyles", `heading ${level}`);
+  const run = ensureObject(heading, "run");
+  run.italics = enabled;
+  run.italicsComplexScript = enabled;
 }
 
 function applyInlineCodeBackground(styles: RawStyleDefinition, enabled: boolean): void {

@@ -38,7 +38,7 @@ describe("export 命令", () => {
     const config = JSON.parse(readFileSync(output, "utf-8")) as Record<string, unknown>;
     expect(config).not.toHaveProperty("pandoc");
     expect(config.$schema).toBeString();
-    expect(config.imageSize).toEqual({ enabled: true, maxWidthCm: 15.5, maxHeightCm: 22 });
+    expect(config.imageSize).toEqual({ enabled: true, maxWidthCm: 12, maxHeightCm: 12 });
   });
 
   it("导出默认底层样式", async () => {
