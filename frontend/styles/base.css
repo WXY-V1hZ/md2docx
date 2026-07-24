@@ -1,37 +1,46 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-app-background: var(--app-background);
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
   --color-app-text: var(--app-text);
+  --color-app-secondary: var(--app-secondary);
+  --color-app-tertiary: var(--app-tertiary);
   --color-app-border: var(--app-border);
-  --color-focus: #3478f6;
-  --font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --color-app-accent: #3478f6;
+  --color-app-accent-hover: #2563eb;
+  --color-app-destructive: #ff3b30;
+  --color-app-success: #34c759;
+
+  --font-sans:
+    -apple-system, "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Microsoft YaHei UI",
+    "PingFang SC", system-ui, sans-serif;
   --font-display:
-    "Segoe UI Variable Display", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+    -apple-system, "SF Pro Display", "Segoe UI Variable Display", "Microsoft YaHei UI",
+    "PingFang SC", system-ui, sans-serif;
 }
 
 :root {
-  color: #25272b;
-  background: #f7f8fa;
-  font-family: var(--font-sans);
-  font-synthesis: none;
   color-scheme: light dark;
-  text-rendering: optimizeLegibility;
 
-  --app-background: #f7f8fa;
-  --app-text: #25272b;
-  --app-border: rgb(37 39 43 / 10%);
+  /* Light */
+  --app-bg: #f5f5f7;
+  --app-surface: #ffffff;
+  --app-text: #1d1d1f;
+  --app-secondary: #86868b;
+  --app-tertiary: #aeaeb2;
+  --app-border: rgba(0, 0, 0, 0.06);
   --app-titlebar-height: 48px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f3f4f6;
-    background: #1f2024;
-
-    --app-background: #1f2024;
-    --app-text: #f3f4f6;
-    --app-border: rgb(255 255 255 / 10%);
+    --app-bg: #1c1c1e;
+    --app-surface: #2c2c2e;
+    --app-text: #f5f5f7;
+    --app-secondary: #98989d;
+    --app-tertiary: #636366;
+    --app-border: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -51,7 +60,19 @@ body,
 
 body {
   overflow: hidden;
-  background: var(--app-background);
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family:
+    -apple-system, "SF Pro Text", "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC",
+    system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  cursor: default;
+  user-select: none;
 }
 
 button,
@@ -59,6 +80,7 @@ input,
 select,
 textarea {
   font: inherit;
+  color: inherit;
 }
 
 button,
@@ -66,10 +88,194 @@ a,
 input,
 select,
 textarea {
+  -webkit-app-region: no-drag;
   app-region: no-drag;
 }
 
 :focus-visible {
   outline: 2px solid #3478f6;
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(52, 120, 246, 0.2);
+}
+
+/* Apple-style subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--app-tertiary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-secondary);
+}
+
+/* Apple-style button reset */
+.app-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.app-button:active {
+  transform: scale(0.97);
+}
+
+.app-button--primary {
+  background: #3478f6;
+  color: #ffffff;
+}
+
+.app-button--primary:hover {
+  background: #2563eb;
+}
+
+.app-button--primary:active {
+  background: #1d4ed8;
+}
+
+.app-button--secondary {
+  background: transparent;
+  color: var(--app-text);
+  border: 0.5px solid var(--app-border);
+}
+
+.app-button--secondary:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-button--secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.app-button--secondary:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-button--secondary:active {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.app-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+/* Apple-style pill toggle */
+.app-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.app-toggle__track {
+  position: relative;
+  width: 36px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--app-tertiary);
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.app-toggle__track--on {
+  background: #3478f6;
+}
+
+.app-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: left 0.2s ease;
+}
+
+.app-toggle__track--on .app-toggle__thumb {
+  left: 16px;
+}
+
+.app-toggle__label {
+  font-size: 13px;
+  color: var(--app-text);
+}
+
+/* Apple-style select (dropdown) */
+.app-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 32px;
+  border: 0.5px solid var(--app-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--app-text);
+  cursor: default;
+  transition: background 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.app-select:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-select:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Apple-style card */
+.app-card {
+  background: var(--app-surface);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-card {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      0 0 0 0.5px rgba(255, 255, 255, 0.04);
+  }
 }

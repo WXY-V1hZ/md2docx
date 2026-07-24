@@ -33,37 +33,39 @@ bun run electron                 # 构建前端并启动 Electron
 
 ## 项目结构
 
-| 路径 | 职责 |
-|---|---|
-| `src/index.ts` | 入口、action 绑定 |
-| `src/cli.ts` | Commander 命令树 |
-| `src/commands/convert.ts` | Markdown→DOCX + Pandoc 子进程 |
-| `src/commands/format.ts` | 只预处理并写出 Markdown |
-| `src/commands/export.ts` | 导出内置或从 DOCX 提取样式 |
-| `src/commands/preset.ts` | 预设 list/use/save |
-| `src/commands/clean.ts` | 安全删除 `~/.md2docx` 缓存 |
-| `src/preset.ts` | 预设发现、回退、保存、持久化 |
-| `src/config.ts` | AppConfig 类型定义与校验 |
-| `src/output.ts` | 路径解析与扩展名校验 |
-| `src/paths.ts` | `~/.md2docx/` 各子目录路径 |
-| `src/resources.ts` | 物化内置 JSON/Lua 到文件系统 |
-| `src/preprocess/` | 流水线各步骤（title/caption/mermaid/thematic-break） |
-| `src/style/` | 样式系统（config/compiler/generate/extract） |
-| `electron/` | Electron 主进程 + preload |
-| `frontend/` | Vue 3 + Vite + Tailwind 桌面端 |
-| `config/default/` | 内置默认配置、样式 |
-| `config/lua/` | Pandoc Lua filter |
-| `test/` | 测试 |
+| 路径                      | 职责                                                 |
+| ------------------------- | ---------------------------------------------------- |
+| `src/index.ts`            | 入口、action 绑定                                    |
+| `src/cli.ts`              | Commander 命令树                                     |
+| `src/commands/convert.ts` | Markdown→DOCX + Pandoc 子进程                        |
+| `src/commands/format.ts`  | 只预处理并写出 Markdown                              |
+| `src/commands/export.ts`  | 导出内置或从 DOCX 提取样式                           |
+| `src/commands/preset.ts`  | 预设 list/use/save                                   |
+| `src/commands/clean.ts`   | 安全删除 `~/.md2docx` 缓存                           |
+| `src/preset.ts`           | 预设发现、回退、保存、持久化                         |
+| `src/config.ts`           | AppConfig 类型定义与校验                             |
+| `src/output.ts`           | 路径解析与扩展名校验                                 |
+| `src/paths.ts`            | `~/.md2docx/` 各子目录路径                           |
+| `src/resources.ts`        | 物化内置 JSON/Lua 到文件系统                         |
+| `src/preprocess/`         | 流水线各步骤（title/caption/mermaid/thematic-break） |
+| `src/style/`              | 样式系统（config/compiler/generate/extract）         |
+| `electron/`               | Electron 主进程 + preload                            |
+| `frontend/`               | Vue 3 + Vite + Tailwind 桌面端                       |
+| `config/default/`         | 内置默认配置、样式                                   |
+| `config/lua/`             | Pandoc Lua filter                                    |
+| `test/`                   | 测试                                                 |
 
 `pandoc_docx_template/` 是历史实验目录，不参与运行时。
 
 ### Electron 桌面端规则
 
 - `titleBarStyle: "hidden"`；Windows/Linux 用 `titleBarOverlay` 保留原生按钮，macOS traffic lights
-- 标题栏 48px，根节点 `app-region: drag`，交互控件 `app-region: no-drag`
+- 标题栏 48px，拖拽区同时声明 `-webkit-app-region: drag` 和 `app-region: drag`，交互控件同时声明对应的 `no-drag`
 - 不使用 `frame: false`，不通过 renderer 操作 BrowserWindow
 - 布局优先 Tailwind；Electron 专属 CSS（app-region/titlebar-area）保持独立 CSS 文件
 - Vite `base` 保持 `"./"`
+- `AppTitleBar.vue` 必须显式加载 `frontend/styles/titlebar.css`，否则 Logo 会按 SVG 自然尺寸展开，且拖拽与安全区域失效
+- Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
 
 ---
 
@@ -169,6 +171,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 双层设计：**底层样式** (`style-raw.json`) 为完整 Word 样式定义；**语义化配置** (`style-config.json`) 为受控白名单，schemaVersion: 1。
 
 当前开放选项：
+
 - `body.firstLineIndent` (boolean)
 - `body.lineSpacing` (正浮点数，行距倍数)
 - `headings["1"].startOnNewPage`, `.alignment` (left/center)
@@ -217,17 +220,17 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 
 ## 测试
 
-| 文件 | 内容 |
-|---|---|
-| `test/preprocess.test.ts` | 自动发现 fixtures 运行完整流水线比对 |
-| `test/cli.test.ts` | Commander 参数解析 |
-| `test/commands.test.ts` | export/format/clean/校验 |
-| `test/preset.test.ts` | 预设解析/保存/use |
-| `test/style-config.test.ts` | 样式校验/编译/生成/缓存 |
-| `test/mermaid.test.ts` | CSS/PNG 纯逻辑 |
-| `test/mermaid-render-comparison.test.ts` | Sharp/resvg 视觉对比 |
-| `test/paths.test.ts` | 目录隔离 |
-| `test/image-size.test.ts` | 图片尺寸逻辑 |
+| 文件                                     | 内容                                 |
+| ---------------------------------------- | ------------------------------------ |
+| `test/preprocess.test.ts`                | 自动发现 fixtures 运行完整流水线比对 |
+| `test/cli.test.ts`                       | Commander 参数解析                   |
+| `test/commands.test.ts`                  | export/format/clean/校验             |
+| `test/preset.test.ts`                    | 预设解析/保存/use                    |
+| `test/style-config.test.ts`              | 样式校验/编译/生成/缓存              |
+| `test/mermaid.test.ts`                   | CSS/PNG 纯逻辑                       |
+| `test/mermaid-render-comparison.test.ts` | Sharp/resvg 视觉对比                 |
+| `test/paths.test.ts`                     | 目录隔离                             |
+| `test/image-size.test.ts`                | 图片尺寸逻辑                         |
 
 Fixture 格式：`test/fixtures/<name>/input.md + expected.md`。新 AST 行为优先用 fixture。
 
