@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
-import { ChevronDown, ArrowRight, Check } from "lucide-vue-next";
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import { ArrowRight, Check, ChevronDown } from "lucide-vue-next";
 
 const props = defineProps<{
   canConvert: boolean;
@@ -17,7 +17,7 @@ const presets = ref<{ name: string; current: boolean }[]>([{ name: "default", cu
 const currentPreset = ref("default");
 const menuOpen = ref(false);
 
-onMounted(async () => {
+async function loadPresets() {
   try {
     if (window.md2docx?.getPresets) {
       const list = await window.md2docx.getPresets();
@@ -30,7 +30,7 @@ onMounted(async () => {
   } catch {
     // IPC not available
   }
-});
+}
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value;
@@ -55,13 +55,31 @@ function onDocumentClick(e: MouseEvent) {
   }
 }
 
-onBeforeUnmount(() => {
-  document.removeEventListener("click", onDocumentClick);
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape") {
+    menuOpen.value = false;
+    return;
+  }
+  if (
+    event.key === "Enter" &&
+    (event.metaKey || event.ctrlKey) &&
+    props.canConvert &&
+    !props.isConverting
+  ) {
+    event.preventDefault();
+    startConversion();
+  }
+}
+
+onMounted(() => {
+  void loadPresets();
+  document.addEventListener("click", onDocumentClick);
+  document.addEventListener("keydown", onKeydown);
 });
 
-// 挂载后注册全局点击监听
-onMounted(() => {
-  document.addEventListener("click", onDocumentClick);
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocumentClick);
+  document.removeEventListener("keydown", onKeydown);
 });
 </script>
 
@@ -84,48 +102,37 @@ onMounted(() => {
             :class="{ 'dropdown-chevron--open': menuOpen }"
           />
         </button>
-        <div
-          class="app-dropdown__menu"
-          :class="{ 'app-dropdown__menu--open': menuOpen }"
-          role="menu"
-        >
-          <button
-            v-for="p in presets"
-            :key="p.name"
-            type="button"
-            class="app-dropdown__item"
-            :class="{ 'app-dropdown__item--active': p.name === currentPreset }"
-            role="menuitemradio"
-            :aria-checked="p.name === currentPreset"
-            @click="selectPreset(p.name)"
-          >
-            <Check v-if="p.name === currentPreset" :size="14" stroke-width="2" />
-            <span v-else style="width: 14px" />
-            {{ p.name }}
-          </button>
-          <div class="app-dropdown__divider" />
-          <button type="button" class="app-dropdown__item app-dropdown__item--disabled" disabled>
-            管理预设…
-          </button>
-        </div>
+        <Transition name="menu-pop">
+          <div v-if="menuOpen" class="app-dropdown__menu" role="menu">
+            <button
+              v-for="p in presets"
+              :key="p.name"
+              type="button"
+              class="app-dropdown__item"
+              :class="{ 'app-dropdown__item--active': p.name === currentPreset }"
+              role="menuitemradio"
+              :aria-checked="p.name === currentPreset"
+              @click="selectPreset(p.name)"
+            >
+              <Check v-if="p.name === currentPreset" :size="14" stroke-width="2" />
+              <span v-else class="app-dropdown__check-space" />
+              {{ p.name }}
+            </button>
+            <div class="app-dropdown__divider" />
+            <button type="button" class="app-dropdown__item" disabled>管理预设…</button>
+          </div>
+        </Transition>
       </div>
     </div>
 
     <div class="action-bar__center">
-      <div class="app-toggle">
-        <button
-          type="button"
-          class="app-toggle__track"
-          :class="{ 'app-toggle__track--on': autoOpen }"
-          role="switch"
-          :aria-checked="autoOpen"
-          aria-label="转换后打开"
-          @click="autoOpen = !autoOpen"
-        >
-          <div class="app-toggle__thumb" />
-        </button>
+      <label class="app-toggle">
+        <input v-model="autoOpen" type="checkbox" class="app-toggle__input" />
+        <span class="app-toggle__track" :class="{ 'app-toggle__track--on': autoOpen }">
+          <span class="app-toggle__thumb" />
+        </span>
         <span class="app-toggle__label">转换后打开</span>
-      </div>
+      </label>
     </div>
 
     <div class="action-bar__right">
@@ -133,6 +140,7 @@ onMounted(() => {
         type="button"
         class="app-button app-button--primary action-bar__convert"
         :disabled="!canConvert || isConverting"
+        title="转换所选文件（Ctrl/⌘ + Enter）"
         @click="startConversion"
       >
         <template v-if="isConverting">
@@ -140,8 +148,7 @@ onMounted(() => {
           <div class="action-bar__spinner" />
         </template>
         <template v-else>
-          <span v-if="fileCount > 0">转换 ({{ fileCount }})</span>
-          <span v-else>添加文件开始转换</span>
+          <span>{{ fileCount > 1 ? `转换 ${fileCount} 个文件` : "转换" }}</span>
           <ArrowRight v-if="fileCount > 0" :size="16" stroke-width="2" />
         </template>
       </button>
@@ -155,9 +162,11 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--app-surface);
+  background: color-mix(in srgb, var(--app-surface) 88%, transparent);
   border-top: 0.5px solid var(--app-border);
   gap: 16px;
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
 }
 
 .action-bar__left {
@@ -181,7 +190,8 @@ onMounted(() => {
 }
 
 .action-bar__convert {
-  padding: 0 20px;
+  min-width: 94px;
+  padding: 0 18px;
   height: 34px;
   font-size: 13px;
   font-weight: 600;
@@ -189,7 +199,21 @@ onMounted(() => {
 }
 
 .dropdown-chevron {
-  transition: transform 0.15s ease;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-pop-enter-active,
+.menu-pop-leave-active {
+  transition:
+    opacity 0.12s ease-out,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: bottom left;
+}
+
+.menu-pop-enter-from,
+.menu-pop-leave-to {
+  opacity: 0;
+  transform: translateY(5px) scale(0.97);
 }
 
 .dropdown-chevron--open {
@@ -208,6 +232,20 @@ onMounted(() => {
 @keyframes action-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .action-bar {
+    gap: 10px;
+  }
+
+  .action-bar__center {
+    justify-content: flex-start;
+  }
+
+  .action-bar__convert {
+    padding: 0 14px;
   }
 }
 </style>

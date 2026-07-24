@@ -46,20 +46,27 @@ function onDrop(e: DragEvent) {
   <div
     class="dropzone"
     :class="{ 'dropzone--active': isDragOver }"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
+    @dragover.stop="onDragOver"
+    @dragleave.stop="onDragLeave"
+    @drop.stop="onDrop"
   >
-    <div class="dropzone__icon">
-      <FileText :size="48" stroke-width="1" />
+    <div class="dropzone__document" aria-hidden="true">
+      <span class="dropzone__paper dropzone__paper--back" />
+      <span class="dropzone__paper dropzone__paper--front">
+        <FileText :size="42" stroke-width="1.15" />
+        <span class="dropzone__format">DOCX</span>
+      </span>
     </div>
-    <h2 class="dropzone__title">将 Markdown 文件拖到这里</h2>
-    <p class="dropzone__hint">或</p>
+    <div class="dropzone__copy">
+      <h2 class="dropzone__title">
+        {{ isDragOver ? "松开即可添加" : "将 Markdown 转为 Word" }}
+      </h2>
+      <p class="dropzone__subtitle">支持 .md 和 .markdown，可一次选择多个</p>
+    </div>
     <button class="app-button app-button--primary dropzone__button" @click="handleSelectFiles">
       <Plus :size="16" stroke-width="2" />
-      选择文件
+      选择 Markdown 文件
     </button>
-    <p class="dropzone__subtitle">支持 .md .markdown 格式</p>
   </div>
 </template>
 
@@ -72,49 +79,103 @@ function onDrop(e: DragEvent) {
   gap: 12px;
   width: 100%;
   max-width: 460px;
-  padding: 48px 32px;
-  border: 1px dashed var(--app-border);
-  border-radius: 16px;
-  background: var(--app-surface);
+  min-height: 288px;
+  padding: 42px 32px 38px;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 50% 16%,
+      color-mix(in srgb, var(--app-accent) 9%, transparent),
+      transparent 44%
+    ),
+    color-mix(in srgb, var(--app-surface) 94%, transparent);
+  box-shadow: var(--app-shadow-card);
   transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.24s ease,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   cursor: default;
 }
 
 .dropzone:hover {
-  border-color: var(--app-secondary);
+  border-color: color-mix(in srgb, var(--app-accent) 24%, var(--app-border-strong));
+  box-shadow:
+    var(--app-shadow-card),
+    0 0 0 1px color-mix(in srgb, var(--app-accent) 5%, transparent);
 }
 
 .dropzone--active {
-  border-color: #3478f6;
-  background: rgba(52, 120, 246, 0.04);
-  transform: scale(1.01);
+  border-color: color-mix(in srgb, var(--app-accent) 68%, transparent);
+  background:
+    radial-gradient(
+      circle at 50% 16%,
+      color-mix(in srgb, var(--app-accent) 16%, transparent),
+      transparent 52%
+    ),
+    color-mix(in srgb, var(--app-surface) 92%, var(--app-accent) 8%);
+  box-shadow:
+    var(--app-shadow-card),
+    0 0 0 3px color-mix(in srgb, var(--app-accent) 13%, transparent);
+  transform: translateY(-2px) scale(1.008);
 }
 
-@media (prefers-color-scheme: dark) {
-  .dropzone--active {
-    background: rgba(52, 120, 246, 0.08);
-  }
+.dropzone__document {
+  position: relative;
+  width: 84px;
+  height: 88px;
+  margin-bottom: 2px;
 }
 
-.dropzone__icon {
-  display: flex;
+.dropzone__paper {
+  position: absolute;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  background: rgba(52, 120, 246, 0.08);
-  color: #3478f6;
-  margin-bottom: 4px;
+  width: 64px;
+  height: 78px;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 14px;
+  background: var(--app-surface-raised);
 }
 
-@media (prefers-color-scheme: dark) {
-  .dropzone__icon {
-    background: rgba(52, 120, 246, 0.15);
-  }
+.dropzone__paper--back {
+  top: 0;
+  left: 7px;
+  transform: rotate(-7deg);
+  opacity: 0.62;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.dropzone__paper--front {
+  right: 5px;
+  bottom: 0;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--app-accent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dropzone--active .dropzone__paper--front {
+  transform: translateY(-4px) rotate(2deg);
+}
+
+.dropzone__format {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dropzone__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
 }
 
 .dropzone__title {
@@ -123,25 +184,23 @@ function onDrop(e: DragEvent) {
     -apple-system, "SF Pro Display", "Segoe UI Variable Display", "Microsoft YaHei UI",
     "PingFang SC", system-ui, sans-serif;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--app-text);
   text-align: center;
 }
 
-.dropzone__hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--app-tertiary);
-}
-
 .dropzone__button {
-  margin-top: 4px;
+  height: 34px;
+  margin-top: 7px;
+  padding-inline: 16px;
 }
 
 .dropzone__subtitle {
   margin: 0;
   font-size: 12px;
-  color: var(--app-tertiary);
+  line-height: 1.45;
+  color: var(--app-secondary);
+  text-align: center;
 }
 </style>

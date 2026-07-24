@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, FolderOpen, Plus } from "lucide-vue-next";
+import { Plus } from "lucide-vue-next";
 
 import { type FileEntry } from "../file-entry";
 
@@ -14,8 +14,6 @@ const emit = defineEmits<{
   clear: [];
   remove: [index: number];
   retry: [index: number];
-  openFile: [path: string];
-  showInFolder: [path: string];
 }>();
 </script>
 
@@ -23,7 +21,7 @@ const emit = defineEmits<{
   <div class="file-list" :class="{ 'file-list--drag': dragOver }">
     <div class="file-list__header">
       <h2 class="file-list__title">
-        文件
+        转换队列
         <span class="file-list__count">{{ files.length }}</span>
       </h2>
       <div class="file-list__actions">
@@ -66,7 +64,6 @@ const emit = defineEmits<{
               v-if="file.status === 'idle'"
               type="button"
               class="file-item__remove"
-              title="移除此文件"
               aria-label="移除此文件"
               @click="emit('remove', index)"
             >
@@ -85,52 +82,11 @@ const emit = defineEmits<{
               <div class="file-item__spinner" aria-hidden="true" />
             </template>
 
-            <template v-else-if="file.status === 'done'">
-              <div v-if="file.outputPath" class="file-item__actions">
-                <button
-                  type="button"
-                  class="app-icon-button"
-                  title="打开文件"
-                  aria-label="打开转换后的文件"
-                  @click="emit('openFile', file.outputPath)"
-                >
-                  <ExternalLink :size="14" stroke-width="1.5" />
-                </button>
-                <button
-                  type="button"
-                  class="app-icon-button"
-                  title="在文件夹中显示"
-                  aria-label="在文件夹中显示转换后的文件"
-                  @click="emit('showInFolder', file.outputPath)"
-                >
-                  <FolderOpen :size="14" stroke-width="1.5" />
-                </button>
-              </div>
-              <span class="file-item__badge file-item__badge--done">已完成</span>
-              <button
-                type="button"
-                class="file-item__remove"
-                title="移除此文件"
-                aria-label="移除此文件"
-                @click="emit('remove', index)"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                  <path
-                    d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5"
-                    stroke="currentColor"
-                    stroke-width="1.2"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </button>
-            </template>
-
             <template v-else>
               <button
                 type="button"
                 class="file-item__remove"
-                title="重试"
-                aria-label="重试转换"
+                aria-label="重试"
                 @click="emit('retry', index)"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -153,7 +109,6 @@ const emit = defineEmits<{
               <button
                 type="button"
                 class="file-item__remove"
-                title="移除此文件"
                 aria-label="移除此文件"
                 @click="emit('remove', index)"
               >
@@ -172,31 +127,31 @@ const emit = defineEmits<{
       </TransitionGroup>
     </div>
 
-    <p class="file-list__tip">拖拽更多 Markdown 文件到此处添加</p>
+    <p class="file-list__tip">可继续拖入 .md 或 .markdown 文件</p>
   </div>
 </template>
 
 <style scoped>
 .list-item-enter-active {
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity 0.18s ease-out,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .list-item-leave-active {
   transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
+    opacity 0.14s ease-in,
+    transform 0.2s ease-in;
 }
 .list-item-enter-from {
   opacity: 0;
-  transform: translateX(-12px);
+  transform: translateY(8px) scale(0.985);
 }
 .list-item-leave-to {
   opacity: 0;
-  transform: translateX(12px);
+  transform: translateX(10px) scale(0.985);
 }
 .list-item-move {
-  transition: transform 0.25s ease;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .file-list {
@@ -205,10 +160,19 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
 }
 .file-list--drag {
-  opacity: 0.6;
+  opacity: 1;
+}
+.file-list--drag .file-list__items {
+  box-shadow:
+    var(--app-shadow-card),
+    0 0 0 3px color-mix(in srgb, var(--app-accent) 14%, transparent);
+  transform: translateY(-1px) scale(0.997);
+}
+.file-list--drag .file-list__tip {
+  color: var(--app-accent);
 }
 .file-list__header {
   display: flex;
@@ -243,7 +207,6 @@ const emit = defineEmits<{
   line-height: 1;
 }
 .file-list__actions,
-.file-item__actions,
 .file-item__status {
   display: flex;
   align-items: center;
@@ -253,6 +216,10 @@ const emit = defineEmits<{
 }
 .file-list__items {
   overflow: hidden;
+  border: 0.5px solid var(--app-border);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .file-list__tip {
   margin: 0;
@@ -265,9 +232,10 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  min-height: 60px;
+  padding: 11px 14px;
   gap: 12px;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
 }
 .file-item + .file-item {
   border-top: 0.5px solid var(--app-border);
@@ -300,18 +268,13 @@ const emit = defineEmits<{
 }
 .file-item__name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 550;
   color: var(--app-text);
-}
-.file-item--done .file-item__name,
-.file-item__output {
-  color: var(--app-secondary);
 }
 .file-item__path {
   color: var(--app-tertiary);
 }
 .file-item__path,
-.file-item__output,
 .file-item__errormsg {
   font-size: 11px;
 }
@@ -322,13 +285,10 @@ const emit = defineEmits<{
   flex-shrink: 0;
   gap: 6px;
 }
-.file-item__actions {
-  gap: 2px;
-}
 .file-item__badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 500;
   line-height: 1.3;
@@ -336,10 +296,6 @@ const emit = defineEmits<{
 .file-item__badge--active {
   background: rgba(52, 120, 246, 0.12);
   color: #3478f6;
-}
-.file-item__badge--done {
-  background: rgba(52, 199, 89, 0.12);
-  color: #34c759;
 }
 .file-item__badge--error {
   background: rgba(255, 59, 48, 0.12);

@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import AppTitleBar from "./components/AppTitleBar.vue";
 import BottomActionBar from "./components/BottomActionBar.vue";
+import CompletionBanner from "./components/CompletionBanner.vue";
 import FileDropZone from "./components/FileDropZone.vue";
 import FileQueue from "./components/FileQueue.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
@@ -11,6 +12,9 @@ import { type FileEntry } from "./file-entry";
 const files = ref<FileEntry[]>([]);
 const dragOver = ref(false);
 const showSettings = ref(false);
+const completedCount = ref(0);
+const lastOutputPath = ref<string | null>(null);
+const showBanner = ref(false);
 
 const readyCount = computed(() => files.value.filter((file) => file.status === "idle").length);
 const isConverting = computed(() => files.value.some((file) => file.status === "converting"));
@@ -20,11 +24,12 @@ let cleanupError: (() => void) | undefined;
 
 onMounted(() => {
   cleanupDone = window.md2docx?.onFileDone((data) => {
-    const file = files.value.find((entry) => entry.path === data.path);
-    if (!file) return;
-    file.status = "done";
-    file.outputPath = data.outputPath;
-    file.error = undefined;
+    const index = files.value.findIndex((entry) => entry.path === data.path);
+    if (index === -1) return;
+    files.value.splice(index, 1);
+    completedCount.value++;
+    lastOutputPath.value = data.outputPath;
+    showBanner.value = true;
   });
 
   cleanupError = window.md2docx?.onFileError((data) => {
@@ -72,6 +77,10 @@ async function handleConvert(options: { preset: string; openAfterConvert: boolea
   const idle = files.value.filter((file) => file.status === "idle");
   if (idle.length === 0) return;
 
+  completedCount.value = 0;
+  lastOutputPath.value = null;
+  showBanner.value = false;
+
   for (const file of idle) {
     file.status = "converting";
     file.error = undefined;
@@ -92,10 +101,6 @@ async function handleConvert(options: { preset: string; openAfterConvert: boolea
       file.error = message;
     }
   }
-}
-
-async function openFile(path: string) {
-  await window.md2docx?.openFile(path);
 }
 
 async function showInFolder(path: string) {
@@ -135,12 +140,22 @@ function onListDrop(event: DragEvent) {
     <AppTitleBar @open-settings="showSettings = true" />
 
     <main
-      class="flex min-h-0 flex-col items-center overflow-auto px-8 py-10"
+      class="workspace flex min-h-0 flex-col items-center overflow-auto px-8 py-10"
       :class="{ 'justify-center': files.length === 0 }"
       @dragover="onListDragOver"
       @dragleave="onListDragLeave"
       @drop="onListDrop"
     >
+      <Transition name="completion-banner">
+        <CompletionBanner
+          v-if="showBanner"
+          :count="completedCount"
+          :last-output-path="lastOutputPath"
+          @dismiss="showBanner = false"
+          @reveal="showInFolder"
+        />
+      </Transition>
+
       <Transition name="fade-scale" mode="out-in">
         <FileDropZone v-if="files.length === 0" key="empty" @files-added="addFiles" />
         <FileQueue
@@ -153,8 +168,6 @@ function onListDrop(event: DragEvent) {
           @clear="files = []"
           @remove="removeFile"
           @retry="retryFile"
-          @open-file="openFile"
-          @show-in-folder="showInFolder"
         />
       </Transition>
     </main>
@@ -166,7 +179,7 @@ function onListDrop(event: DragEvent) {
       @convert="handleConvert"
     />
 
-    <Transition name="panel-slide">
+    <Transition name="settings">
       <SettingsPanel v-if="showSettings" @close="showSettings = false" />
     </Transition>
   </div>
@@ -176,20 +189,23 @@ function onListDrop(event: DragEvent) {
 .fade-scale-enter-active,
 .fade-scale-leave-active {
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity 0.16s ease-out,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .fade-scale-enter-from,
 .fade-scale-leave-to {
   opacity: 0;
-  transform: scale(0.96);
+  transform: translateY(6px) scale(0.985);
 }
-.panel-slide-enter-active,
-.panel-slide-leave-active {
-  transition: transform 0.25s ease;
-}
-.panel-slide-enter-from,
-.panel-slide-leave-to {
-  transform: translateX(100%);
+
+.workspace {
+  position: relative;
+  background:
+    radial-gradient(
+      circle at 50% 28%,
+      color-mix(in srgb, var(--app-accent) 4%, transparent),
+      transparent 38%
+    ),
+    var(--app-bg);
 }
 </style>

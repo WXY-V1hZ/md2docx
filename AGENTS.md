@@ -69,6 +69,8 @@ bun run electron                 # 构建前端并启动 Electron
 - Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`
 - 桌面转换必须调用 `convertMarkdown()` 复用完整 CLI 流水线，不得单独执行裸 `pandoc`
+- 完成项目从队列移除时必须保留可操作的完成提示，并能在文件夹中定位最后一个输出文件
+- 面板遮罩与面板本体分别过渡；动效使用短时长和减速曲线，并遵守 `prefers-reduced-motion`
 
 ---
 

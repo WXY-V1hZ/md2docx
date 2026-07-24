@@ -22,4 +22,19 @@ describe("Electron 前端构建", () => {
     expect(packageJson.main).toBe("dist-electron/main.js");
     expect(packageJson.scripts["build:electron"]).toContain("dist-electron/preload.cjs");
   });
+
+  test("转换完成后保留可操作提示并支持减少动态效果", async () => {
+    const [app, notice, styles] = await Promise.all([
+      readFile(new URL("../frontend/App.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/components/CompletionBanner.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/styles/base.css", import.meta.url), "utf8"),
+    ]);
+
+    expect(app).toContain("<CompletionBanner");
+    expect(notice).toContain('aria-label="关闭完成提示"');
+    expect(notice).toContain('emit("reveal", props.lastOutputPath)');
+    expect(notice).toContain("watch(");
+    expect(notice).toContain("clearTimeout");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+  });
 });
