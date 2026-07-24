@@ -66,6 +66,7 @@ bun run electron                 # 构建前端并启动 Electron
 - 布局优先 Tailwind；Electron 专属 CSS（app-region/titlebar-area）保持独立 CSS 文件
 - Vite `base` 保持 `"./"`
 - `AppTitleBar.vue` 必须显式加载 `frontend/styles/titlebar.css`，否则 Logo 会按 SVG 自然尺寸展开，且拖拽与安全区域失效
+- `assets/logo.svg` 同时服务 README 与标题栏，修改时必须保持 512×512 方形 viewBox，并检查 64px 小尺寸辨识度；避免依赖系统字体或外部位图
 - Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
 - `settings.json` 由 CLI 与桌面端共享，结构保持 `{ schemaVersion: 1, preset, desktop? }`；桌面设置写入必须保留 `preset`，切换预设必须保留 `desktop`
 - 兼容旧版扁平桌面设置 `{ outputMode, outputFolder, conflictAction }`，读取时视为 `default` 预设，下次保存时迁移到共享结构

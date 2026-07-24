@@ -1,55 +1,216 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
-  <title id="title">md2docx logo</title>
-  <desc id="description">A Markdown bracket flows into a folded document.</desc>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">md2docx</title>
+  <desc id="description">A dimensional Markdown card converts into a folded Word document.</desc>
 
-  <rect width="512" height="512" rx="96" fill="#fff"/>
+  <defs>
+    <linearGradient id="tile" x1="90" y1="54" x2="414" y2="466" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#66C2FF"/>
+      <stop offset="0.42" stop-color="#2688F5"/>
+      <stop offset="1" stop-color="#1551D8"/>
+    </linearGradient>
+    <linearGradient id="tileShade" x1="256" y1="54" x2="256" y2="458" gradientUnits="userSpaceOnUse">
+      <stop offset="0.56" stop-color="#071B4B" stop-opacity="0"/>
+      <stop offset="1" stop-color="#071B4B" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="markdownCard" x1="112" y1="124" x2="260" y2="376" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#263D66"/>
+      <stop offset="0.48" stop-color="#172B4E"/>
+      <stop offset="1" stop-color="#0B1933"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="274" y1="98" x2="378" y2="398" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#F5F9FF"/>
+      <stop offset="1" stop-color="#E7EFFB"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="361" y1="102" x2="404" y2="173" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9ECFF"/>
+      <stop offset="1" stop-color="#91C8FF"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="188" y1="232" x2="288" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BDE8FF"/>
+      <stop offset="0.52" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D9F2FF"/>
+    </linearGradient>
 
-  <!-- Markdown: an open square bracket -->
-  <path
-    d="M202 112h-46c-23.2 0-42 18.8-42 42v204c0 23.2 18.8 42 42 42h46"
-    fill="none"
-    stroke="#17233C"
-    stroke-width="28"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+    <filter id="tileShadow" x="-12%" y="-10%" width="124%" height="132%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#07142E" flood-opacity="0.34"/>
+    </filter>
+    <filter id="cardShadow" x="-28%" y="-20%" width="162%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="15" stdDeviation="14" flood-color="#06122B" flood-opacity="0.42"/>
+    </filter>
+    <filter id="paperShadow" x="-36%" y="-20%" width="178%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="-2" dy="17" stdDeviation="15" flood-color="#07183A" flood-opacity="0.38"/>
+    </filter>
+    <filter id="arrowShadow" x="-35%" y="-65%" width="180%" height="240%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#08275D" flood-opacity="0.36"/>
+    </filter>
+    <clipPath id="tileClip">
+      <rect x="32" y="32" width="448" height="448" rx="108"/>
+    </clipPath>
+  </defs>
 
-  <!-- The bracket becomes a forward-moving conversion stream -->
-  <path
-    d="M168 256h92"
-    fill="none"
-    stroke="#17233C"
-    stroke-width="28"
-    stroke-linecap="round"
-  />
-  <path d="M248 222 290 256 248 290Z" fill="#2B6FF3"/>
+  <!-- Polished desktop-icon tile -->
+  <g filter="url(#tileShadow)">
+    <rect x="32" y="32" width="448" height="448" rx="108" fill="url(#tile)"/>
+    <g clip-path="url(#tileClip)">
+      <ellipse cx="181" cy="72" rx="212" ry="150" fill="#FFFFFF" opacity="0.12"/>
+      <rect x="32" y="32" width="448" height="448" fill="url(#tileShade)"/>
+      <path
+        d="M70 46h372c13.3 0 24 10.7 24 24v14C390 55 302 45 205 52 145 56 91 68 46 88V70c0-13.3 10.7-24 24-24Z"
+        fill="#FFFFFF"
+        opacity="0.18"
+      />
+    </g>
+    <rect
+      x="33"
+      y="33"
+      width="446"
+      height="446"
+      rx="107"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-opacity="0.3"
+      stroke-width="2"
+    />
+    <rect
+      x="41"
+      y="41"
+      width="430"
+      height="430"
+      rx="100"
+      fill="none"
+      stroke="#0A3DAD"
+      stroke-opacity="0.24"
+      stroke-width="2"
+    />
+  </g>
 
-  <!-- DOCX: a page drawn with the same visual weight -->
-  <path
-    d="M304 112h54l68 68v178c0 23.2-18.8 42-42 42h-78c-23.2 0-42-18.8-42-42v-46"
-    fill="none"
-    stroke="#2B6FF3"
-    stroke-width="28"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+  <!-- Raised Markdown card -->
+  <g filter="url(#cardShadow)" transform="rotate(-4 181 256)">
+    <rect x="82" y="110" width="211" height="302" rx="42" fill="url(#markdownCard)"/>
+    <rect
+      x="84"
+      y="112"
+      width="207"
+      height="298"
+      rx="40"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-opacity="0.14"
+      stroke-width="3"
+    />
+    <path
+      d="M105 143c0-6.6 5.4-12 12-12h141"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-linecap="round"
+      stroke-opacity="0.15"
+      stroke-width="8"
+    />
 
-  <!-- Folded corner -->
-  <path
-    d="M360 114v42c0 12.2 9.8 22 22 22h42"
-    fill="none"
-    stroke="#2B6FF3"
-    stroke-width="18"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+    <!-- Markdown mark, drawn rather than typeset -->
+    <path
+      d="M123 197v-23c0-10.5 8.5-19 19-19h26M123 197v104c0 10.5 8.5 19 19 19h26"
+      fill="none"
+      stroke="#C9E9FF"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="13"
+    />
+    <path
+      d="M151 245v-55l27 32 27-32v55"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="13"
+    />
+    <path
+      d="M232 188v63m-22-20 22 22 22-22"
+      fill="none"
+      stroke="#66C2FF"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="13"
+    />
+    <path
+      d="M123 356h105"
+      fill="none"
+      stroke="#75A5D8"
+      stroke-linecap="round"
+      stroke-opacity="0.55"
+      stroke-width="9"
+    />
+  </g>
 
-  <!-- Minimal document lines -->
-  <path
-    d="M320 326h50M320 354h34"
-    fill="none"
-    stroke="#17233C"
-    stroke-width="14"
-    stroke-linecap="round"
-  />
+  <!-- Tactile Word document -->
+  <g filter="url(#paperShadow)">
+    <path
+      d="M254 94h105l65 66v219c0 18.2-14.8 33-33 33H254c-18.2 0-33-14.8-33-33V127c0-18.2 14.8-33 33-33Z"
+      fill="url(#paper)"
+    />
+    <path
+      d="M359 94v43c0 14.9 12.1 27 27 27h38"
+      fill="url(#fold)"
+      stroke="#75B7F8"
+      stroke-linejoin="round"
+      stroke-width="3"
+    />
+    <path
+      d="M246 113c0-5 4-9 9-9h92"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-linecap="round"
+      stroke-width="8"
+    />
+    <path
+      d="M249 402h143c12.2 0 22-9.8 22-22"
+      fill="none"
+      stroke="#A9BBD2"
+      stroke-linecap="round"
+      stroke-opacity="0.44"
+      stroke-width="4"
+    />
+
+    <!-- Document content -->
+    <rect x="265" y="204" width="116" height="18" rx="9" fill="#2176E8"/>
+    <rect x="265" y="244" width="105" height="12" rx="6" fill="#9FB4CC"/>
+    <rect x="265" y="270" width="124" height="12" rx="6" fill="#9FB4CC"/>
+    <rect x="265" y="296" width="88" height="12" rx="6" fill="#9FB4CC"/>
+    <rect x="265" y="343" width="55" height="28" rx="9" fill="#D8E9FB"/>
+    <path
+      d="m276 351 7 12 8-12 8 12 7-12"
+      fill="none"
+      stroke="#2378E7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="5"
+    />
+  </g>
+
+  <!-- Conversion bridge stays above both physical layers -->
+  <g filter="url(#arrowShadow)">
+    <path
+      d="M183 273h82m-25-27 29 27-29 27"
+      fill="none"
+      stroke="#1454B9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-opacity="0.28"
+      stroke-width="22"
+    />
+    <path
+      d="M183 267h82m-25-27 29 27-29 27"
+      fill="none"
+      stroke="url(#arrow)"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="15"
+    />
+  </g>
 </svg>
