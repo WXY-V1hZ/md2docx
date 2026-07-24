@@ -1,0 +1,56 @@
+.app-titlebar {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: var(--app-titlebar-height);
+  color: var(--app-text);
+  background: var(--app-background);
+  border-bottom: 1px solid var(--app-border);
+  app-region: drag;
+  user-select: none;
+}
+
+.app-titlebar__safe-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: env(titlebar-area-width, 100%);
+  height: env(titlebar-area-height, var(--app-titlebar-height));
+  margin-left: env(titlebar-area-x, 0);
+  padding: 0 14px;
+}
+
+.app-titlebar__brand {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 9px;
+  pointer-events: none;
+}
+
+.app-titlebar__logo {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.app-titlebar__name {
+  overflow: hidden;
+  font-family:
+    "Segoe UI Variable Display", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-titlebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  app-region: no-drag;
+}

@@ -17,466 +17,211 @@
 
 ## 功能
 
-| 功能              | 说明                                                             |
-| ----------------- | ---------------------------------------------------------------- |
-| 文档标题          | 从 YAML frontmatter、H1 或文件名提取标题                         |
-| 标题层级归一化    | 将最浅标题归一化为 H1，并修复标题层级跳跃                        |
-| 标题编号          | 生成 `1`、`1.1`、`1.1.1` 等编号，并可剥离常见的已有中英文编号    |
-| 表格与图片编号    | 自动生成“表 1”“图 1：标题”等题注                                 |
-| 图片尺寸限制      | 按自然尺寸等比缩小超过最大宽度或高度的图片                       |
-| Mermaid 图表      | 使用 beautiful-mermaid 和 resvg-wasm 将 Mermaid 渲染为高 DPI PNG |
-| Word 样式         | 支持受控语义化配置和完整底层样式，也可从现有 DOCX 提取样式       |
-| 配置预设          | 将处理配置和两层 Word 样式保存为可切换、可继承默认值的预设       |
-| Markdown 格式化   | 可只运行预处理流水线，输出格式化后的 Markdown                    |
-| 去除分隔符        | 默认移除 `---`、`***`、`___` 等分隔符行，减少无用页面间距        |
-| 集中缓存          | 中间文件统一存储到 `~/.md2docx/`，不会在当前目录创建 `tmp/`      |
-| Node 与可执行版本 | 支持 npm CLI，也支持构建不依赖 Node.js/Bun 的 Windows 可执行文件 |
+- **文档标题** — 从 YAML frontmatter、H1 或文件名提取
+- **标题归一化** — 最浅标题 → H1，修复层级跳跃
+- **标题编号** — `1`、`1.1`、`1.1.1`，可剥离已有中英文编号
+- **表格与图片题注** — "表 1"、"图 1：标题"
+- **图片尺寸限制** — 等比缩小超限图片
+- **Mermaid 渲染** — beautiful-mermaid + resvg-wasm → 高 DPI PNG
+- **Word 样式** — 受控语义化配置 / 完整底层样式 / 从 DOCX 提取
+- **预设系统** — 可切换、可继承默认值的配置与样式预设
+- **Markdown 格式化** — 只运行预处理流水线
+- **集中缓存** — `~/.md2docx/`，工作目录保持干净
+- **双构建** — npm CLI + Windows 单文件 EXE
+
+---
+
+## 桌面应用
+
+仓库包含基于 Electron + Vue 3 + Vite + Tailwind CSS 的桌面端（早期开发阶段）。标题栏使用 `titleBarStyle: "hidden"` 自定义内容区域并在各平台保留原生窗口控制按钮。
+
+```bash
+bun run electron       # 构建前端并启动 Electron
+```
 
 ## AI 辅助
 
-本仓库提供 [`SKILL.md`](SKILL.md)，是供 AI 代码助手（如 Zed、Cursor、GitHub Copilot）使用的技能描述文件。在 AI 对话中引用此文件，AI 就能正确使用 `md2docx` CLI 完成转换、格式化、样式定制和导出等操作。
+[`SKILL.md`](SKILL.md) 供 AI 代码助手引用，使其正确使用 md2docx CLI。
 
-## 安装方式
+---
 
-### npm CLI
+## 安装
 
-前置依赖：
-
-- [Node.js 22.12+](https://nodejs.org/)
-- [Pandoc](https://pandoc.org/installing.html)，并确保 `pandoc` 可通过 `PATH` 调用；图片尺寸限制需要 Pandoc 3.1.13+
+前置：Node.js 22.12+, [Pandoc](https://pandoc.org/installing.html)（需在 PATH 中；图片尺寸限制需 Pandoc 3.1.13+）
 
 ```bash
 npm install -g @v1hz/md2docx
-md2docx --version
-md2docx report.md
-```
-
-也可以不全局安装：
-
-```bash
+# 或
 npx @v1hz/md2docx report.md
 ```
 
 ## 快速开始
 
 ```bash
-# 只有输入路径时，可以省略 --file
-md2docx report.md
-
-# 使用任何转换选项时，输入必须通过 --file 指定
-md2docx --file report.md --output output/report.docx
-
-# 使用自定义配置、底层样式和语义化样式配置
-md2docx -f report.md -c config.json --style-raw style-raw.json --style-config style-config.json
-
-# 保存并使用预设
-md2docx preset save --name academic --config config.json --style-config style-config.json
+md2docx report.md                     # 仅路径
+md2docx -f report.md -o output.docx   # 带选项（必须有 --file）
+md2docx -f report.md -c config.json --style-raw raw.json --style-config style-config.json
+md2docx preset save --name academic --config config.json
 md2docx preset use academic
-
-# 只执行 Markdown 预处理
-md2docx format -f report.md
-
-# 导出内置默认配置、底层样式和语义化样式配置
-md2docx export config
-md2docx export style-raw
-md2docx export style-config
-
-# 从现有 DOCX 提取样式
-md2docx export style-raw -f template.docx
-
-# 删除 ~/.md2docx 中的中间文件和缓存
-md2docx clean
+md2docx format -f report.md           # 只格式化
+md2docx export config                 # 导出配置
+md2docx export style-raw -f template.docx  # 从 DOCX 提取样式
+md2docx clean                         # 清除缓存
 ```
 
 所有写文件命令默认覆盖已有输出。
 
+---
+
 ## CLI 参考
 
-```shell
+```text
 md2docx <markdown>
 md2docx -f <markdown> [转换选项]
 md2docx format -f <markdown> [选项]
-md2docx export config [选项]
-md2docx export style-raw [选项]
-md2docx export style-config [选项]
-md2docx preset list
-md2docx preset use <name>
-md2docx preset save --name <name> [配置选项]
+md2docx export config|style-raw|style-config [选项]
+md2docx preset list|use <name>|save --name <name> [选项]
 md2docx clean
 ```
 
-### 转换
+### 转换选项
 
-| 参数                    | 说明                                     |
-| ----------------------- | ---------------------------------------- |
-| `<markdown>`            | 位置参数；仅在没有其他转换选项时允许使用 |
-| `-f, --file <path>`     | Markdown 输入文件                        |
-| `--preset <name>`       | 本次转换使用指定预设                     |
-| `-c, --config <path>`   | 自定义配置 JSON                          |
-| `--style-raw <path>`    | 完整底层 Word 样式 JSON                  |
-| `--style-config <path>` | 受控语义化样式配置 JSON                  |
-| `-o, --output <path>`   | DOCX 输出路径                            |
-| `-h, --help`            | 显示帮助                                 |
-| `-v, --version`         | 显示版本号                               |
+| 参数 | 说明 |
+|---|---|
+| `<markdown>` | 位置参数，仅无其他选项时可用 |
+| `-f, --file <path>` | Markdown 输入 |
+| `--preset <name>` | 本次指定预设 |
+| `-c, --config <path>` | 配置 JSON |
+| `--style-raw <path>` | 底层 Word 样式 JSON |
+| `--style-config <path>` | 语义化样式配置 JSON |
+| `-o, --output <path>` | DOCX 输出 |
 
-位置参数不能和 `--file`、`--preset`、`--config`、`--style-raw`、`--style-config` 或 `--output` 混用。例如：
+位置参数不能与 `--file` 或其他选项混用。`format --file` 必填，支持 `--preset`/`--config`/`--output`，不接受样式参数，不调用 Pandoc。
 
-```bash
-md2docx report.md                 # 正确
-md2docx report.md -o report.docx  # 错误
-md2docx -f report.md -o report.docx # 正确
-```
-
-### format
-
-`format` 运行完整 Markdown 预处理，但不生成 DOCX，也不调用 Pandoc。
-
-| 参数                  | 说明                                        |
-| --------------------- | ------------------------------------------- |
-| `-f, --file <path>`   | 必填，Markdown 输入文件                     |
-| `--preset <name>`     | 使用预设中的 `config.json`                  |
-| `-c, --config <path>` | 自定义配置 JSON                             |
-| `-o, --output <path>` | 输出 Markdown，默认 `<文件名>_formatted.md` |
-
-### export
-
-```bash
-md2docx export config [-o config.json]
-md2docx export style-raw [-f template.docx] [-o style-raw.json]
-md2docx export style-config [-o style-config.json]
-```
-
-`export config` 导出内置 Markdown 处理配置。`export style-raw` 不带 `--file` 时导出内置底层 Word 样式；指定 DOCX 时从该文档提取底层样式。`export style-config` 导出默认语义化样式配置。
-
-### preset
-
-```bash
-md2docx preset list
-md2docx preset use academic
-md2docx preset use default
-md2docx preset save --name academic \
-  --config config.json \
-  --style-raw style-raw.json \
-  --style-config style-config.json
-```
-
-用户预设位于 `~/.md2docx/presets/<name>/`，其中三个标准 JSON 文件都可省略；缺失项逐一继承系统内置 `default`。文件存在但内容无效时会报错。`preset save` 至少需要一个配置文件，同名保存会完整替换旧预设，未提供的类型改为继承默认值。`--preset` 只影响本次执行，`preset use` 会持久化默认选择。
-
-### clean
-
-```bash
-md2docx clean
-```
-
-`clean` 只删除 `~/.md2docx/` 下可重建的预处理文件、物化资源和样式缓存，保留 `presets/` 与 `settings.json`。命令拒绝跟随符号链接，且可重复执行。
-
-npm 卸载不会可靠地清理用户数据。卸载前如需清理，请显式运行：
-
-```bash
-md2docx clean
-npm uninstall -g @v1hz/md2docx
-```
-
-## 默认输出
+### 默认输出
 
 ```text
-md2docx report.md                     → ./report.docx
-md2docx -f report.md                  → ./report.docx
-md2docx format -f report.md           → ./report_formatted.md
-md2docx export config                 → ./config.json
-md2docx export style-raw                  → ./style-raw.json
-md2docx export style-raw -f template.docx → ./template_style-raw.json
-md2docx export style-config               → ./style-config.json
+report.md                     → ./report.docx
+format -f report.md           → ./report_formatted.md
+export config                 → ./config.json
+export style-raw              → ./style-raw.json
+export style-raw -f t.docx    → ./t_style-raw.json
+export style-config           → ./style-config.json
 ```
 
-## 中间文件与缓存
+---
 
-所有运行时资源统一位于：
+## 中间文件
 
-```text
+```
 ~/.md2docx/
-├── settings.json
-├── presets/
-│   └── <预设名称>/
-│       ├── config.json（可选）
-│       ├── style-raw.json（可选）
-│       └── style-config.json（可选）
-├── preprocess/
-│   └── <输入文件名>-<绝对路径哈希>/
-│       ├── <输入文件名>_formatted.md
-│       └── mermaid_*.png
-├── resources/
-│   ├── default/
-│   │   ├── config.json
-│   │   ├── style-config.json
-│   │   └── style-raw.json
-│   ├── add-inline-code.lua
-│   └── limit-image-size.lua
-└── style/
-    └── <样式内容哈希>.docx
+├── settings.json + presets/          # 持久数据，clean 保留
+├── preprocess/<basename>-<hash:12>/  # 预处理 Markdown + Mermaid PNG
+├── resources/default/*.json + *.lua  # 物化的内置资源
+└── style/<hash:16>.docx              # reference DOCX 缓存
 ```
 
-输入文件的绝对路径参与目录哈希，因此不同目录下的同名 Markdown 不会复用中间文件。内置资源会在需要时写入 `resources/`；样式模板按样式内容哈希缓存。
+预处理目录用输入绝对路径 SHA-256 前 12 位，不同目录的同名文件隔离。Pandoc 读取缓存 Markdown 时以原始 Markdown 目录为优先资源搜索路径。
 
-输出 DOCX 和显式导出的配置、样式仍写到用户指定位置或当前工作目录，不会写入缓存目录。
-
-虽然 Pandoc 实际读取的是缓存中的格式化 Markdown，但本地相对资源始终优先相对于**原始 Markdown 所在目录**解析；找不到时再搜索命令运行目录。例如 `C:/docs/example.md` 中的 `./pictures/test.png` 会解析为 `C:/docs/pictures/test.png`，与从哪个目录执行 `md2docx` 无关。绝对路径、HTTP(S) URL 和 Mermaid 生成的缓存图片不受影响。
+---
 
 ## 配置
 
-内置配置来自 `config/default/config.json`，并由 `config/config.schema.json` 提供 JSON Schema。推荐先导出再编辑：
+内置配置来自 `config/default/config.json`（`config/config.schema.json` 提供校验）。推荐先导出再编辑：
 
 ```bash
 md2docx export config
 md2docx -f report.md -c config.json
 ```
 
-CLI 不支持覆盖单个配置项，所有配置都通过 JSON 文件管理。
+| 配置项 | 说明 | 默认值 |
+|---|---|---|
+| `detectTitle.enabled / strategy` | 自动设置标题 / first-h1/single-h1/filename/none | `true` / `"first-h1"` |
+| `normalizeHeadings.enabled` | 修正标题层级 | `true` |
+| `numberHeadings.{enabled,detectExisting,useBuiltinRules}` | 标题编号 / 剥离已有编号 | `true` / `true` / `true` |
+| `figureCaption.{enabled,format,separator}` | 图片题注 / `"图 {n}"` / `"："` | `true` |
+| `tableCaption.{enabled,format,separator}` | 表格题注 / `"表 {n}"` / `" "` | `true` |
+| `renderMermaid.{enabled,theme,density}` | Mermaid 渲染 / 主题 / DPI（≥72） | `true` / `"tokyo-night-light"` / `200` |
+| `imageSize.{enabled,maxWidthCm,maxHeightCm}` | 图片尺寸限制（厘米） | `true` / `12` / `12` |
+| `removeThematicBreaks.enabled` | 移除分隔符行 | `true` |
 
-| 配置项                           | 说明                                           | 默认值                |
-| -------------------------------- | ---------------------------------------------- | --------------------- |
-| `detectTitle.enabled`            | 自动设置文档标题                               | `true`                |
-| `detectTitle.strategy`           | `first-h1` / `single-h1` / `filename` / `none` | `"first-h1"`          |
-| `normalizeHeadings.enabled`      | 修正标题起始层级与层级跳跃                     | `true`                |
-| `numberHeadings.enabled`         | 为标题添加多级编号                             | `true`                |
-| `numberHeadings.detectExisting`  | 重新编号前移除已识别的编号                     | `true`                |
-| `numberHeadings.useBuiltinRules` | 使用内置中文和数字编号识别规则                 | `true`                |
-| `figureCaption.enabled`          | 为独立图片添加题注                             | `true`                |
-| `figureCaption.format`           | 图片编号格式                                   | `"图 {n}"`            |
-| `figureCaption.separator`        | 图片编号与标题之间的分隔符                     | `"："`                |
-| `tableCaption.enabled`           | 为表格添加题注                                 | `true`                |
-| `tableCaption.format`            | 表格编号格式                                   | `"表 {n}"`            |
-| `tableCaption.separator`         | 表格编号与标题之间的分隔符                     | `" "`                 |
-| `renderMermaid.enabled`          | 将 Mermaid 渲染为 PNG                          | `true`                |
-| `renderMermaid.theme`            | beautiful-mermaid 主题                         | `"tokyo-night-light"` |
-| `renderMermaid.density`          | PNG 输出 DPI，最小值 72                        | `200`                 |
-| `imageSize.enabled`              | 等比缩小超过尺寸限制的图片                     | `true`                |
-| `imageSize.maxWidthCm`           | DOCX 图片最大宽度（厘米）                      | `12`                  |
-| `imageSize.maxHeightCm`          | DOCX 图片最大高度（厘米）                      | `12`                  |
-| `removeThematicBreaks.enabled`   | 移除 `---`、`***`、`___` 等分隔符行            | `true`                |
+图片尺寸通过 Lua filter 在 Pandoc 阶段等比缩小，不放大小图。Markdown 已显式设 width/height 时不应用。单图读取失败时警告并继续。
 
-图片尺寸限制在 Pandoc 生成 DOCX 前通过 Lua filter 应用。程序读取图片像素尺寸和 DPI，仅缩小超限图片，不会放大小图；宽度和高度使用同一缩放比例。Markdown 中已经显式设置 `width` 或 `height` 的图片视为用户覆盖，不应用全局限制。单张图片无法读取尺寸时会输出警告并继续转换。
+---
 
 ## 样式定制
 
-普通用户推荐使用受控的语义化样式配置，只修改程序明确开放的高频选项。其余颜色、尺寸、对齐方式、间距和 Word 样式继承关系继续由内置预设管理。
+受控语义化配置（`config/default/style-config.json`）开放以下白名单选项：
 
-仓库中的 `config/default/style-config.json` 是可直接复制和修改的默认配置，`config/style-config.schema.json` 用于编辑器提示和校验。完整底层 Word 样式位于 `config/default/style-raw.json`。
+- `body.firstLineIndent` — 正文首行缩进
+- `body.lineSpacing` — 行距倍数（如 `1.5`）
+- `headings["1"]` — `startOnNewPage`、`alignment`（left/center）、`bold`
+- `headings["2".."6"]` — `bold`
+- `headings["4".."6"]` — `italic`
+- `inlineCode.background` — 行内代码背景
+- `codeBlock.border` — 代码块外框
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/WXY-V1hZ/md2docx/main/config/style-config.schema.json",
-  "schemaVersion": 1,
-  "options": {
-    "body": {
-      "firstLineIndent": false,
-      "lineSpacing": "onePointFive"
-    },
-    "headings": {
-      "1": {
-        "startOnNewPage": false,
-        "alignment": "left",
-        "bold": true
-      },
-      "2": {
-        "bold": true
-      },
-      "3": {
-        "bold": true
-      },
-      "4": {
-        "bold": true,
-        "italic": false
-      },
-      "5": {
-        "bold": true,
-        "italic": false
-      },
-      "6": {
-        "bold": true,
-        "italic": false
-      }
-    },
-    "inlineCode": {
-      "background": false
-    },
-    "codeBlock": {
-      "border": false
-    }
-  }
-}
-```
+字段缺失继承底层样式；`true` 写入完整效果；`false` 写入 Word 关闭值。输入组合规则：
 
-将配置保存为 `style-config.json` 后使用：
+| 参数 | 行为 |
+|---|---|
+| 都不指定 | 当前预设 raw + config |
+| 仅 `--style-raw` | 直接使用 raw，不读默认 config |
+| 仅 `--style-config` | config 应用到当前预设 raw |
+| 两者都指定 | config 应用到用户 raw |
 
 ```bash
+md2docx export style-config
 md2docx -f report.md --style-config style-config.json
-```
-
-字段缺失表示继承底层样式；`true` 表示显式启用完整效果；`false` 表示显式关闭。正文行距为浮点数倍数，例如 `1.5` 表示 1.5 倍行距；一级标题对齐只接受 `left`、`center`。当前还开放一至六级标题粗体，以及四至六级标题斜体。完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
-
-转换时按以下规则选择输入：
-
-| 参数                | 行为                                |
-| ------------------- | ----------------------------------- |
-| 都不指定            | 当前预设 raw + 当前预设 config      |
-| 仅 `--style-raw`    | 直接使用用户 raw，不应用默认 config |
-| 仅 `--style-config` | 用户 config 应用到当前预设 raw      |
-| 两者都指定          | 用户 config 应用到用户 raw          |
-
-最终有效的底层样式用于生成 reference DOCX，并通过 Pandoc 的 `--reference-doc` 应用。`--style-raw` 和 `--style-config` 类型固定，不能互换。
-
-### 从现有 DOCX 提取
-
-```bash
+# 从现有 DOCX 提取样式
 md2docx export style-raw -f template.docx
 md2docx -f report.md --style-raw template_style-raw.json
 ```
 
-### 高级手动维护
+完整设计见 [`docs/style-config-design.md`](docs/style-config-design.md)。
 
-主要区域包括：
-
-- `default.document`：全局字体、字号与段落设置
-- `default.heading1` 至 `default.heading6`：标题样式
-- `default.title`：文档标题样式
-- `paragraphStyles`：自定义段落样式
-- `characterStyles`：自定义字符样式
-- `tableStylesXml`：从 DOCX 提取并重新注入的表格样式 XML
-
-基于 `a0`（Body Text）的样式会继承首行缩进。如果子样式不需要缩进，应在 `indent` 中显式清零。
-
-## Mermaid 渲染
-
-渲染流程如下：
-
-```text
-Mermaid
-→ beautiful-mermaid
-→ SVG
-→ 内联 CSS var() / color-mix()
-→ @resvg/resvg-wasm
-→ 写入正确的 PNG DPI 元数据
-→ PNG
-```
-
-resvg 不直接支持 beautiful-mermaid 输出中的所有 CSS 自定义属性，因此转换前会解析：
-
-- `var(--name)`
-- `var(--name, fallback)`
-- 嵌套 fallback
-- `color-mix(in srgb, ...)`
-- 三位和六位十六进制颜色
-
-Windows 会显式加载微软雅黑、Arial 和 Consolas；macOS 与 Linux 使用各自的候选系统字体。PNG 像素尺寸和 `pHYs` DPI 元数据都与 `renderMermaid.density` 保持一致。
-
-运行时不依赖 Sharp。Sharp 只作为开发依赖，用于测试中比较 resvg 与旧渲染结果，不会打入 npm 运行时包或平台 EXE。
+---
 
 ## 处理流水线
 
-```text
-Markdown
-    ↓
-解析 AST
-    ↓
-addTitle()
-    ↓
-removeThematicBreaks()
-    ↓
-normalizeHeadings()
-    ↓
-numberHeadings()
-    ↓
-numberTables()
-    ↓
-renderMermaid()
-    ↓
-numberPictures()
-    ↓
-序列化 Markdown
-    ↓
-生成或复用 reference DOCX
-    ↓
-Pandoc + 行内代码/图片尺寸 Lua filter
-    ↓
-DOCX
+```
+Markdown → AST → addTitle → removeThematicBreaks → normalizeHeadings
+→ numberHeadings → numberTables → renderMermaid → numberPictures
+→ 序列化 → reference DOCX → Pandoc + Lua filter → DOCX
 ```
 
-`removeThematicBreaks()` 在标题处理之前执行，避免分隔符干扰文档结构。
-`numberTables()` 必须先于 Mermaid 渲染；`numberPictures()` 必须后于 Mermaid 渲染，这样 Mermaid 生成的图片也能获得图题。
+`removeThematicBreaks` 在标题处理之前；`numberTables` 在 Mermaid 渲染之前；`renderMermaid` 在 `numberPictures` 之前。
+
+---
 
 ## 构建
 
-从源码开发需要 [Bun](https://bun.sh/)。
+需要 [Bun](https://bun.sh/)。
 
 ```bash
-git clone https://github.com/WXY-V1hZ/md2docx.git
-cd md2docx
+git clone https://github.com/WXY-V1hZ/md2docx.git && cd md2docx
 bun install
 
-# 从源码运行
-bun run src/index.ts report.md
+bun run src/index.ts report.md   # 从源码运行
+bun test                          # 全部测试
+bun check                         # tsc + oxlint + oxfmt
 
-# 测试和静态检查
-bun test
-bun check
+bun run build                     # npm 构建 → dist/index.js + WASM
+bun run build:exe                 # Windows 单文件 → dist/md2docx.exe
 ```
 
-### npm 构建
+两种构建互斥（先 `clean:dist`）。`prepack` 自动执行 `bun run build`。
 
-```bash
-bun run build
-```
-
-输出：
-
-```text
-dist/
-├── index.js
-└── index_bg.wasm
-```
-
-依赖会打包进 `index.js`，resvg WASM 作为相邻资源输出。`prepack` 会自动执行此构建。
-
-### Windows 可执行文件
-
-```bash
-bun run build:exe
-```
-
-Windows 输出为 `dist/md2docx.exe`。
-
-`build` 和 `build:exe` 都会先删除整个 `dist/`，因此两种产物不会同时保留。尤其不要依赖手工生成的 EXE 参与 `npm publish`：发布时 `prepack` 会重新生成 npm 所需的 `index.js` 和 WASM。
+---
 
 ## 常见问题
 
-### 找不到 Pandoc
+**找不到 Pandoc** — 确认 `pandoc --version` 可用，从 [pandoc.org](https://pandoc.org/installing.html) 安装并重启终端。
 
-先检查：
+**跨目录转换图片缺失** — 相对路径以原始 Markdown 文件为基准解析，顺序优先于调用目录。检查路径大小写、文件存在性和 URL 编码。
 
-```bash
-pandoc --version
-```
-
-如果命令不存在，请从 [Pandoc 官方安装页](https://pandoc.org/installing.html) 安装，并重新打开终端使 `PATH` 生效。
-
-### 从其他目录转换时图片缺失
-
-相对图片路径应以原始 Markdown 文件为基准：
-
-```text
-docs/
-├── example.md
-└── pictures/
-    └── test.png
-```
-
-```markdown
-![](./pictures/test.png)
-```
-
-新版会把原始文档目录和命令运行目录传给 Pandoc 的 `--resource-path`，并优先搜索原始文档目录。如果仍然缺图，请检查路径大小写、文件是否存在，以及图片语法中是否包含错误的 URL 编码。
+---
 
 ## 许可
 
-md2docx 以 [GNU GPL v3.0](LICENSE) 发布。
+[GNU GPL v3.0](LICENSE)

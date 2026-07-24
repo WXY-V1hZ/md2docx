@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-app-background: var(--app-background);
+  --color-app-text: var(--app-text);
+  --color-app-border: var(--app-border);
+  --color-focus: #3478f6;
+  --font-sans: "Segoe UI Variable", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --font-display:
+    "Segoe UI Variable Display", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+}
+
+:root {
+  color: #25272b;
+  background: #f7f8fa;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  color-scheme: light dark;
+  text-rendering: optimizeLegibility;
+
+  --app-background: #f7f8fa;
+  --app-text: #25272b;
+  --app-border: rgb(37 39 43 / 10%);
+  --app-titlebar-height: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f3f4f6;
+    background: #1f2024;
+
+    --app-background: #1f2024;
+    --app-text: #f3f4f6;
+    --app-border: rgb(255 255 255 / 10%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: var(--app-background);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  app-region: no-drag;
+}
+
+:focus-visible {
+  outline: 2px solid #3478f6;
+  outline-offset: 2px;
+}
