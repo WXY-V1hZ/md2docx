@@ -45,7 +45,9 @@
     "electron": "bun run build:electron && bun run build:frontend && electron .",
     "dev:frontend": "vite --config frontend/vite.config.ts",
     "dev:electron": "bun run build:electron && electron .",
-    "dev": "bun run scripts/dev.ts"
+    "dev": "bun run scripts/dev.ts",
+    "pack": "bun run build:electron && bun run build:frontend && electron-builder --win portable",
+    "pack:setup": "bun run build:electron && bun run build:frontend && electron-builder --win nsis"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "2.6.2",
@@ -70,6 +72,7 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "happy-dom": "^20.11.1",
     "oxfmt": "^0.58.0",
     "oxlint": "^1.73.0",

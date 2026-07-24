@@ -1,0 +1,24 @@
+appId: com.v1hz.md2docx
+productName: md2docx
+directories:
+  output: release
+files:
+  - dist-electron/**/*
+  - dist-frontend/**/*
+  - package.json
+asarUnpack:
+  - dist-electron/preload.cjs
+extraResources:
+  - from: config
+    to: config
+electronDist: node_modules/electron/dist
+win:
+  target:
+    - portable
+  artifactName: md2docx-${version}-portable.${ext}
+portable:
+  artifactName: md2docx-${version}-portable.exe
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: md2docx-${version}-setup.exe

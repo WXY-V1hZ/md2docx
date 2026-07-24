@@ -113,7 +113,10 @@ function updatePosition() {
   const roomBelow = window.innerHeight - rect.bottom - margin;
   const roomAbove = rect.top - margin;
   opensUpward.value = roomBelow < preferredHeight && roomAbove > roomBelow;
-  const maxHeight = Math.max(96, Math.min(preferredHeight, opensUpward.value ? roomAbove : roomBelow));
+  const maxHeight = Math.max(
+    96,
+    Math.min(preferredHeight, opensUpward.value ? roomAbove : roomBelow),
+  );
   const width = Math.max(rect.width, 156);
   const left = Math.min(Math.max(margin, rect.right - width), window.innerWidth - width - margin);
   const top = opensUpward.value

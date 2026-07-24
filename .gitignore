@@ -45,3 +45,4 @@ test_docx/
 # electron
 dist-electron/
 dist-frontend/
+release/
