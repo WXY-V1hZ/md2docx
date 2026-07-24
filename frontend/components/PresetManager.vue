@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, Pencil, Plus, Trash2 } from "lucide-vue-next";
+import { Copy, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-vue-next";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 interface PresetEntry {
@@ -11,7 +11,9 @@ interface PresetEntry {
   error?: string;
 }
 
-type DialogMode = "create" | "rename" | "copy" | "delete";
+type DialogMode = "rename" | "copy" | "delete";
+
+const emit = defineEmits<{ edit: [sourceName: string, mode: "edit" | "copy"] }>();
 
 const presets = ref<PresetEntry[]>([]);
 const currentPreset = ref("default");
@@ -27,6 +29,7 @@ const dialogSubmitted = ref(false);
 const presetDialog = ref<HTMLElement | null>(null);
 const presetNameInput = ref<HTMLInputElement | null>(null);
 const dialogCancelButton = ref<HTMLButtonElement | null>(null);
+const openMenu = ref("");
 
 const dialogInputError = computed(() => {
   if (dialogMode.value === "delete") return "";
@@ -75,6 +78,7 @@ async function selectPreset(preset: PresetEntry) {
 }
 
 function openDialog(mode: DialogMode, name: string) {
+  openMenu.value = "";
   dialogMode.value = mode;
   dialogPreset.value = name;
   dialogInput.value = mode === "rename" ? name : "";
@@ -109,7 +113,6 @@ async function confirmDialog() {
       await window.md2docx?.renamePreset(sourceName, targetName);
     } else {
       await window.md2docx?.copyPreset(sourceName, targetName);
-      if (mode === "create") await window.md2docx?.usePreset(targetName);
     }
     await refreshPresets();
     resetDialog();
@@ -125,7 +128,10 @@ async function refreshPresets() {
   presets.value = (await window.md2docx?.getPresets()) ?? [];
   currentPreset.value = presets.value.find(({ current }) => current)?.name ?? "default";
   if (currentPreset.value !== previous) notifyPresetChanged();
-  else window.dispatchEvent(new CustomEvent("md2docx:preset-changed", { detail: currentPreset.value }));
+  else
+    window.dispatchEvent(
+      new CustomEvent("md2docx:preset-changed", { detail: currentPreset.value }),
+    );
 }
 
 function notifyPresetChanged() {
@@ -143,11 +149,14 @@ function resetDialog() {
 function dialogActionLabel(mode: DialogMode) {
   if (mode === "delete") return "删除";
   if (mode === "rename") return "重命名";
-  if (mode === "create") return "新建";
   return "复制";
 }
 
 function onDialogKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape" && openMenu.value) {
+    openMenu.value = "";
+    return;
+  }
   if (!dialogMode.value) return;
   if (event.key === "Escape") {
     event.preventDefault();
@@ -174,13 +183,20 @@ function onDialogKeydown(event: KeyboardEvent) {
   }
 }
 
+function onDocumentClick(event: MouseEvent) {
+  if (event.target instanceof Element && event.target.closest(".preset-more")) return;
+  openMenu.value = "";
+}
+
 onMounted(() => {
   document.addEventListener("keydown", onDialogKeydown);
+  document.addEventListener("click", onDocumentClick);
   void loadPresets();
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onDialogKeydown);
+  document.removeEventListener("click", onDocumentClick);
 });
 </script>
 
@@ -197,7 +213,7 @@ onBeforeUnmount(() => {
         type="button"
         class="preset-manager__create"
         :disabled="loading"
-        @click="openDialog('create', currentPreset)"
+        @click="emit('edit', currentPreset, 'copy')"
       >
         <Plus :size="12" stroke-width="2" />
         新建
@@ -226,34 +242,37 @@ onBeforeUnmount(() => {
             <small v-else-if="preset.source === 'builtin'">内置</small>
           </span>
         </label>
-        <span v-if="preset.source === 'user'" class="preset-row__actions">
+        <span class="preset-row__actions">
           <button
             type="button"
-            class="preset-action"
-            :aria-label="`复制预设 ${preset.name}`"
-            title="复制"
-            @click="openDialog('copy', preset.name)"
+            class="preset-edit-button"
+            :disabled="!preset.valid"
+            @click="emit('edit', preset.name, preset.source === 'builtin' ? 'copy' : 'edit')"
           >
-            <Copy :size="13" stroke-width="1.8" />
+            {{ preset.source === "builtin" ? "自定义" : "编辑" }}
           </button>
-          <button
-            type="button"
-            class="preset-action"
-            :aria-label="`重命名预设 ${preset.name}`"
-            title="重命名"
-            @click="openDialog('rename', preset.name)"
-          >
-            <Pencil :size="13" stroke-width="1.8" />
-          </button>
-          <button
-            type="button"
-            class="preset-action preset-action--danger"
-            :aria-label="`删除预设 ${preset.name}`"
-            title="删除"
-            @click="openDialog('delete', preset.name)"
-          >
-            <Trash2 :size="13" stroke-width="1.8" />
-          </button>
+          <span v-if="preset.source === 'user'" class="preset-more">
+            <button
+              type="button"
+              class="preset-action"
+              :aria-label="`更多 ${preset.name}`"
+              :aria-expanded="openMenu === preset.name"
+              @click="openMenu = openMenu === preset.name ? '' : preset.name"
+            >
+              <MoreHorizontal :size="14" stroke-width="1.8" />
+            </button>
+            <span v-if="openMenu === preset.name" class="preset-more__menu">
+              <button type="button" @click="openDialog('copy', preset.name)">
+                <Copy :size="13" />复制
+              </button>
+              <button type="button" @click="openDialog('rename', preset.name)">
+                <Pencil :size="13" />重命名
+              </button>
+              <button type="button" class="is-danger" @click="openDialog('delete', preset.name)">
+                <Trash2 :size="13" />删除
+              </button>
+            </span>
+          </span>
         </span>
       </div>
       <div v-if="loading" class="preset-empty">正在载入…</div>
@@ -283,9 +302,6 @@ onBeforeUnmount(() => {
             <template v-else-if="dialogMode === 'rename'">
               为「{{ dialogPreset }}」输入新名称。
             </template>
-            <template v-else-if="dialogMode === 'create'">
-              基于「{{ dialogPreset }}」创建用户预设。
-            </template>
             <template v-else>复制「{{ dialogPreset }}」为新预设。</template>
           </p>
           <input
@@ -295,7 +311,7 @@ onBeforeUnmount(() => {
             class="preset-dialog__input"
             :aria-invalid="Boolean(visibleDialogInputError)"
             aria-describedby="preset-dialog-input-error"
-            :placeholder="dialogMode === 'rename' ? '新名称' : '新预设名称'"
+            :placeholder="dialogMode === 'rename' ? '新名称' : '副本名称'"
             @input="dialogError = ''"
             @keydown.enter="confirmDialog"
           />
@@ -392,7 +408,7 @@ onBeforeUnmount(() => {
 }
 
 .preset-list {
-  overflow: hidden;
+  overflow: visible;
   border: 0.5px solid var(--app-border);
   border-radius: 12px;
   background: var(--app-fill);
@@ -463,16 +479,27 @@ onBeforeUnmount(() => {
 .preset-row__actions {
   display: flex;
   flex: 0 0 auto;
+  align-items: center;
   gap: 1px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.12s ease-out;
 }
 
-.preset-row:hover .preset-row__actions,
-.preset-row:focus-within .preset-row__actions {
-  opacity: 1;
-  pointer-events: auto;
+.preset-edit-button {
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-accent);
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.preset-edit-button:hover {
+  background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+}
+
+.preset-edit-button:disabled {
+  opacity: 0.4;
 }
 
 .preset-action {
@@ -503,6 +530,48 @@ onBeforeUnmount(() => {
 .preset-action:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--app-accent) 55%, transparent);
   outline-offset: 1px;
+}
+
+.preset-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.preset-more__menu {
+  position: absolute;
+  z-index: 5;
+  top: 29px;
+  right: 0;
+  display: flex;
+  width: 116px;
+  flex-direction: column;
+  padding: 4px;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--app-surface-raised) 97%, transparent);
+  box-shadow: var(--app-shadow-floating);
+}
+
+.preset-more__menu button {
+  display: flex;
+  height: 29px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 11.5px;
+  text-align: left;
+}
+
+.preset-more__menu button:hover {
+  background: var(--app-fill);
+}
+
+.preset-more__menu .is-danger {
+  color: #ff453a;
 }
 
 .preset-empty {
@@ -613,15 +682,7 @@ onBeforeUnmount(() => {
   transform: scale(0.96) translateY(4px);
 }
 
-@media (hover: none) {
-  .preset-row__actions {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .preset-row__actions,
   .preset-dialog-enter-active,
   .preset-dialog-leave-active,
   .preset-dialog-enter-active .preset-dialog,

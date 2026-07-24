@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   ExternalLink,
   Folder,
@@ -10,13 +11,22 @@ import {
 } from "lucide-vue-next";
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
+import AppSelect, { type AppSelectOption } from "./AppSelect.vue";
 import PresetManager from "./PresetManager.vue";
+import PresetEditor from "./PresetEditor.vue";
+import pkg from "../../package.json" with { type: "json" };
 
 const emit = defineEmits<{ close: [] }>();
 const props = defineProps<{ initialSection?: "presets" }>();
 
 type OutputMode = "source" | "folder" | "ask";
 type ConflictAction = "overwrite" | "rename" | "ask";
+
+const conflictActionOptions = [
+  { value: "overwrite", label: "覆盖" },
+  { value: "rename", label: "自动重命名" },
+  { value: "ask", label: "每次询问" },
+] satisfies readonly AppSelectOption[];
 
 const panel = ref<HTMLElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
@@ -32,6 +42,10 @@ const outputFolder = ref("");
 const conflictAction = ref<ConflictAction>("overwrite");
 const settingsReady = ref(false);
 const saveError = ref("");
+const editorRequest = ref<{ sourceName: string; mode: "edit" | "copy" } | null>(null);
+const editorDirty = ref(false);
+const discardDialogOpen = ref(false);
+const pendingExit = ref<"back" | "close">("back");
 
 let previousFocus: HTMLElement | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -121,9 +135,15 @@ async function persistSettings() {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === "Escape") {
-    emit("close");
+    event.preventDefault();
+    if (discardDialogOpen.value) {
+      discardDialogOpen.value = false;
+      return;
+    }
+    requestExit(editorRequest.value ? "back" : "close");
     return;
   }
+  if (document.querySelector(".preset-dialog, .editor-dialog, .discard-dialog")) return;
   if (event.key !== "Tab" || !panel.value) return;
 
   const focusable = [
@@ -141,6 +161,32 @@ function onKeydown(event: KeyboardEvent) {
     event.preventDefault();
     first.focus();
   }
+}
+
+function openEditor(sourceName: string, mode: "edit" | "copy") {
+  editorRequest.value = { sourceName, mode };
+  editorDirty.value = false;
+}
+
+function requestExit(action: "back" | "close") {
+  if (editorRequest.value && editorDirty.value) {
+    pendingExit.value = action;
+    discardDialogOpen.value = true;
+    return;
+  }
+  finishExit(action);
+}
+
+function finishExit(action: "back" | "close") {
+  discardDialogOpen.value = false;
+  editorDirty.value = false;
+  if (action === "back") editorRequest.value = null;
+  else emit("close");
+}
+
+function onEditorSaved() {
+  editorDirty.value = false;
+  editorRequest.value = null;
 }
 
 watch([outputMode, outputFolder, conflictAction], scheduleSettingsSave);
@@ -167,28 +213,50 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="settings-overlay" @mousedown.self="emit('close')">
+  <div class="settings-overlay" @mousedown.self="requestExit('close')">
     <aside
       ref="panel"
       class="settings-panel"
+      :class="{ 'settings-panel--editor': editorRequest }"
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-title"
     >
       <header class="settings-panel__header">
-        <h2 id="settings-title" class="settings-panel__title">设置</h2>
+        <div class="settings-panel__heading">
+          <button
+            v-if="editorRequest"
+            type="button"
+            class="app-icon-button"
+            aria-label="返回预设列表"
+            @click="requestExit('back')"
+          >
+            <ArrowLeft :size="17" stroke-width="1.7" />
+          </button>
+          <h2 id="settings-title" class="settings-panel__title">
+            {{ editorRequest ? "编辑预设" : "设置" }}
+          </h2>
+        </div>
         <button
           ref="closeButton"
           type="button"
           class="app-icon-button"
           aria-label="关闭设置"
-          @click="emit('close')"
+          @click="requestExit('close')"
         >
           <X :size="18" stroke-width="1.5" />
         </button>
       </header>
 
-      <div class="settings-panel__body">
+      <PresetEditor
+        v-if="editorRequest"
+        :source-name="editorRequest.sourceName"
+        :mode="editorRequest.mode"
+        @dirty-change="editorDirty = $event"
+        @cancel="requestExit('back')"
+        @saved="onEditorSaved"
+      />
+      <div v-else class="settings-panel__body">
         <section class="settings-section" aria-labelledby="pandoc-settings">
           <h3 id="pandoc-settings" class="settings-section__label">Pandoc</h3>
           <div
@@ -282,29 +350,58 @@ onBeforeUnmount(() => {
             <div class="settings-divider" />
             <label class="settings-select-row">
               <span>同名文件</span>
-              <select v-model="conflictAction">
-                <option value="overwrite">覆盖</option>
-                <option value="rename">自动重命名</option>
-                <option value="ask">每次询问</option>
-              </select>
+              <AppSelect
+                v-model="conflictAction"
+                aria-label="同名文件处理方式"
+                :options="conflictActionOptions"
+              />
             </label>
           </div>
           <p v-if="saveError" class="settings-error" role="alert">{{ saveError }}</p>
         </section>
 
-        <PresetManager />
+        <PresetManager @edit="openEditor" />
 
-        <section class="privacy-card" aria-label="隐私">
-          <span class="privacy-card__icon" aria-hidden="true">
-            <ShieldCheck :size="17" stroke-width="1.8" />
-          </span>
-          <strong>文件仅在本机处理</strong>
-        </section>
-
-        <footer class="settings-footer">md2docx 2.6.0</footer>
+        <footer class="settings-footer">md2docx {{ pkg.version }}</footer>
       </div>
     </aside>
   </div>
+
+  <Teleport to="body">
+    <Transition name="preset-dialog">
+      <div
+        v-if="discardDialogOpen"
+        class="discard-overlay"
+        @mousedown.self="discardDialogOpen = false"
+      >
+        <div
+          class="discard-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="discard-title"
+        >
+          <strong id="discard-title">放弃更改？</strong>
+          <p>尚未保存的预设设置会丢失。</p>
+          <div>
+            <button
+              type="button"
+              class="app-button app-button--secondary"
+              @click="discardDialogOpen = false"
+            >
+              继续编辑
+            </button>
+            <button
+              type="button"
+              class="app-button app-button--destructive"
+              @click="finishExit(pendingExit)"
+            >
+              放弃
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -332,7 +429,13 @@ onBeforeUnmount(() => {
   box-shadow: -24px 0 64px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(28px) saturate(1.25);
   -webkit-backdrop-filter: blur(28px) saturate(1.25);
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-panel--editor {
+  width: 460px;
 }
 
 .settings-panel__header {
@@ -351,6 +454,16 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.01em;
+}
+
+.settings-panel__heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-panel__heading .app-icon-button {
+  margin-left: -7px;
 }
 
 .settings-panel__body {
@@ -515,15 +628,9 @@ onBeforeUnmount(() => {
   font-size: 12.5px;
 }
 
-.settings-select-row select {
-  min-width: 92px;
-  height: 26px;
-  padding: 0 6px;
-  border: 0.5px solid var(--app-border-strong);
-  border-radius: 6px;
-  background: var(--app-surface-raised);
-  color: var(--app-text);
-  font-size: 11.5px;
+.settings-select-row :deep(.app-select__trigger) {
+  min-width: 112px;
+  height: 27px;
 }
 
 .settings-icon-button,
@@ -599,6 +706,48 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.discard-overlay {
+  position: fixed;
+  inset: var(--app-titlebar-height) 0 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.discard-dialog {
+  display: flex;
+  width: 300px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 15px;
+  background: var(--app-surface-raised);
+  box-shadow: var(--app-shadow-floating);
+}
+
+.discard-dialog strong {
+  color: var(--app-text);
+  font-size: 14px;
+}
+
+.discard-dialog p {
+  margin: 0;
+  color: var(--app-secondary);
+  font-size: 12px;
+}
+
+.discard-dialog > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
 .is-spinning {
   animation: settings-spin 0.7s linear infinite;
 }
@@ -630,6 +779,12 @@ onBeforeUnmount(() => {
 @keyframes settings-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-panel {
+    transition: none;
   }
 }
 </style>

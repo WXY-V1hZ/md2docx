@@ -7,11 +7,13 @@ import {
   copyPreset,
   deletePreset,
   discoverPresets,
+  readEditablePreset,
   readCurrentPresetName,
   renamePreset,
   resolvePreset,
   resolvePresetConfig,
   savePreset,
+  updatePreset,
   usePreset,
   type PresetStoragePaths,
 } from "../src/preset";
@@ -241,6 +243,76 @@ describe("preset save 和 use", () => {
     expect(renamePreset("../outside", "safe", storage)).rejects.toThrow("预设名称无效");
     expect(copyPreset("../outside", "safe", storage)).rejects.toThrow("预设名称无效");
     expect(existsSync(outside)).toBe(true);
+  });
+
+  it("读取继承不完整的用户预设时返回完整可编辑配置", async () => {
+    const storage = createStorage();
+    mkdirSync(join(storage.presetsDir, "partial"), { recursive: true });
+    writeFileSync(
+      join(storage.presetsDir, "partial", "style-config.json"),
+      JSON.stringify({ schemaVersion: 1, options: { body: { lineSpacing: 2 } } }),
+      "utf-8",
+    );
+
+    const preset = await readEditablePreset("partial", storage);
+
+    expect(preset.config.renderMermaid.density).toBeGreaterThanOrEqual(72);
+    expect(preset.styleConfig.options?.body?.lineSpacing).toBe(2);
+    expect(preset.styleConfig.options?.headings?.["1"]?.bold).toBeBoolean();
+  });
+
+  it("更新用户预设写入配置并保留有效底层样式", async () => {
+    const storage = createStorage();
+    await copyPreset("default", "academic", storage);
+    const beforeRaw = readFileSync(join(storage.presetsDir, "academic", "style-raw.json"), "utf-8");
+    const editable = await readEditablePreset("academic", storage);
+    editable.config.renderMermaid.density = 300;
+    editable.styleConfig.options!.body!.lineSpacing = 2;
+
+    await updatePreset(
+      {
+        sourceName: "academic",
+        config: editable.config,
+        styleConfig: editable.styleConfig,
+      },
+      storage,
+    );
+
+    expect((await readEditablePreset("academic", storage)).config.renderMermaid.density).toBe(300);
+    expect(readFileSync(join(storage.presetsDir, "academic", "style-raw.json"), "utf-8")).toBe(
+      beforeRaw,
+    );
+  });
+
+  it("自定义 default 创建完整副本且拒绝非法字段", async () => {
+    const storage = createStorage();
+    const editable = await readEditablePreset("default", storage);
+    editable.config.detectTitle.enabled = false;
+
+    await updatePreset(
+      {
+        sourceName: "default",
+        targetName: "custom",
+        config: editable.config,
+        styleConfig: editable.styleConfig,
+      },
+      storage,
+    );
+
+    expect((await readEditablePreset("default", storage)).config.detectTitle.enabled).toBe(true);
+    expect((await readEditablePreset("custom", storage)).config.detectTitle.enabled).toBe(false);
+    const invalid = structuredClone(editable.config) as PresetAppConfig & { unknown?: boolean };
+    invalid.unknown = true;
+    expect(
+      updatePreset(
+        {
+          sourceName: "custom",
+          config: invalid,
+          styleConfig: editable.styleConfig,
+        },
+        storage,
+      ),
+    ).rejects.toThrow("不是支持的配置项");
   });
 });
 

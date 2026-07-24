@@ -14,7 +14,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 
-import { loadConfig } from "./config";
+import { type AppConfig, loadConfig, validateConfigValue } from "./config";
 import { resolveInputPath } from "./output";
 import { PRESETS_DIR, SETTINGS_PATH } from "./paths";
 import {
@@ -23,6 +23,7 @@ import {
   materializeDefaultStyleRaw,
 } from "./resources";
 import { loadStyleConfig, loadStyleRaw } from "./style/compiler";
+import { type StyleConfig, validateStyleConfig } from "./style/config";
 
 export const DEFAULT_PRESET_NAME = "default";
 const PRESET_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -54,6 +55,20 @@ export interface SavePresetInput {
   config?: string;
   styleRaw?: string;
   styleConfig?: string;
+}
+
+export interface EditablePreset {
+  name: string;
+  source: "builtin" | "user";
+  config: AppConfig;
+  styleConfig: StyleConfig;
+}
+
+export interface UpdatePresetInput {
+  sourceName: string;
+  targetName?: string;
+  config: unknown;
+  styleConfig: unknown;
 }
 
 const DEFAULT_STORAGE_PATHS: PresetStoragePaths = {
@@ -249,6 +264,75 @@ export async function copyPreset(
   }
 }
 
+export async function readEditablePreset(
+  name: string,
+  paths: PresetStoragePaths = DEFAULT_STORAGE_PATHS,
+): Promise<EditablePreset> {
+  const resolved = await resolvePresetByName(name, paths);
+  return {
+    name,
+    source: name === DEFAULT_PRESET_NAME ? "builtin" : "user",
+    config: await loadConfig(resolved.configPath),
+    styleConfig: mergeStyleConfigs(
+      loadStyleConfig(defaultPresetFiles().styleConfigPath),
+      loadStyleConfig(resolved.styleConfigPath),
+    ),
+  };
+}
+
+export async function updatePreset(
+  input: UpdatePresetInput,
+  paths: PresetStoragePaths = DEFAULT_STORAGE_PATHS,
+): Promise<EditablePreset> {
+  assertPresetName(input.sourceName);
+  const source = await resolvePresetByName(input.sourceName, paths);
+  const targetName = input.targetName ?? input.sourceName;
+  assertPresetName(targetName);
+  if (targetName === DEFAULT_PRESET_NAME) throw new Error("不能覆盖系统预设 default");
+  if (input.sourceName === DEFAULT_PRESET_NAME && input.targetName === undefined) {
+    throw new Error("自定义 default 时需要新的预设名称");
+  }
+  if (input.sourceName !== DEFAULT_PRESET_NAME && targetName !== input.sourceName) {
+    throw new Error("编辑用户预设时不能更改名称");
+  }
+
+  const config = validateConfigValue(structuredClone(input.config), "预设配置");
+  const styleConfig = validateStyleConfig(structuredClone(input.styleConfig), "预设样式");
+  mkdirSync(paths.presetsDir, { recursive: true });
+  const target = join(paths.presetsDir, targetName);
+  if (input.sourceName === DEFAULT_PRESET_NAME && existsSync(target)) {
+    throw new Error(`预设 ${targetName} 已存在`);
+  }
+
+  const temporary = mkdtempSync(join(paths.presetsDir, `.update-${targetName}-`));
+  const backup = join(paths.presetsDir, `.backup-${targetName}-${randomUUID()}`);
+  let movedExisting = false;
+  try {
+    writeFileSync(join(temporary, "config.json"), `${JSON.stringify(config, null, 2)}\n`, "utf-8");
+    writeFileSync(
+      join(temporary, "style-config.json"),
+      `${JSON.stringify(styleConfig, null, 2)}\n`,
+      "utf-8",
+    );
+    copyFileSync(source.styleRawPath, join(temporary, "style-raw.json"));
+    if (existsSync(target)) {
+      const stats = lstatSync(target);
+      if (!stats.isDirectory() || stats.isSymbolicLink()) {
+        throw new Error(`预设 ${targetName} 不是有效目录`);
+      }
+      renameSync(target, backup);
+      movedExisting = true;
+    }
+    renameSync(temporary, target);
+    if (movedExisting) rmSync(backup, { recursive: true, force: true });
+  } catch (error) {
+    if (existsSync(temporary)) rmSync(temporary, { recursive: true, force: true });
+    if (movedExisting && existsSync(backup) && !existsSync(target)) renameSync(backup, target);
+    throw error;
+  }
+  return readEditablePreset(targetName, paths);
+}
+
 export async function renamePreset(
   oldName: string,
   newName: string,
@@ -377,6 +461,25 @@ function assertPresetName(name: string): void {
   if (!PRESET_NAME_PATTERN.test(name)) {
     throw new Error(`预设名称无效：${name}\n只允许字母、数字、- 和 _`);
   }
+}
+
+function mergeStyleConfigs(base: StyleConfig, override: StyleConfig): StyleConfig {
+  return {
+    schemaVersion: 1,
+    options: {
+      body: { ...base.options?.body, ...override.options?.body },
+      headings: {
+        "1": { ...base.options?.headings?.["1"], ...override.options?.headings?.["1"] },
+        "2": { ...base.options?.headings?.["2"], ...override.options?.headings?.["2"] },
+        "3": { ...base.options?.headings?.["3"], ...override.options?.headings?.["3"] },
+        "4": { ...base.options?.headings?.["4"], ...override.options?.headings?.["4"] },
+        "5": { ...base.options?.headings?.["5"], ...override.options?.headings?.["5"] },
+        "6": { ...base.options?.headings?.["6"], ...override.options?.headings?.["6"] },
+      },
+      inlineCode: { ...base.options?.inlineCode, ...override.options?.inlineCode },
+      codeBlock: { ...base.options?.codeBlock, ...override.options?.codeBlock },
+    },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

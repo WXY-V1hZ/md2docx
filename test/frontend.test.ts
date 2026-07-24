@@ -53,9 +53,10 @@ describe("Electron 前端构建", () => {
   });
 
   test("设置面板通过受控 IPC 管理 Pandoc、输出和预设", async () => {
-    const [settings, presets, preload] = await Promise.all([
+    const [settings, presets, editor, preload] = await Promise.all([
       readFile(new URL("../frontend/components/SettingsPanel.vue", import.meta.url), "utf8"),
       readFile(new URL("../frontend/components/PresetManager.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/components/PresetEditor.vue", import.meta.url), "utf8"),
       readFile(new URL("../electron/preload.ts", import.meta.url), "utf8"),
     ]);
 
@@ -64,8 +65,16 @@ describe("Electron 前端构建", () => {
     expect(settings).toContain("PresetManager");
     expect(presets).toContain("usePreset");
     expect(presets).toContain("renamePreset");
+    expect(editor).toContain("updatePreset");
+    expect(editor).toContain("标题细节");
+    expect(editor).toContain("AppSelect");
+    expect(editor).not.toContain("<select");
     expect(settings).toContain('aria-modal="true"');
+    expect(settings).toContain("放弃更改");
+    expect(settings).not.toContain("<select");
     expect(preload).toContain('"settings:save"');
     expect(preload).toContain('"shell:openExternal"');
+    expect(preload).toContain('"preset:read"');
+    expect(preload).toContain('"preset:update"');
   });
 });

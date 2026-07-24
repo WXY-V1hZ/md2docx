@@ -37,6 +37,49 @@ interface FileErrorEvent {
   missing?: boolean;
 }
 
+interface PresetAppConfig {
+  figureCaption: { enabled: boolean; format: string; separator: string };
+  tableCaption: { enabled: boolean; format: string; separator: string };
+  normalizeHeadings: { enabled: boolean };
+  numberHeadings: {
+    enabled: boolean;
+    detectExisting: boolean;
+    existingPattern?: string;
+    useBuiltinRules?: boolean;
+  };
+  renderMermaid: { enabled: boolean; theme: string; density: number };
+  imageSize: { enabled: boolean; maxWidthCm: number; maxHeightCm: number };
+  detectTitle: {
+    enabled: boolean;
+    strategy: "first-h1" | "single-h1" | "filename" | "none";
+  };
+  removeThematicBreaks: { enabled: boolean };
+}
+
+interface PresetStyleConfig {
+  schemaVersion: 1;
+  options?: {
+    body?: { firstLineIndent?: boolean; lineSpacing?: number };
+    headings?: {
+      "1"?: { startOnNewPage?: boolean; alignment?: "left" | "center"; bold?: boolean };
+      "2"?: { bold?: boolean };
+      "3"?: { bold?: boolean };
+      "4"?: { bold?: boolean; italic?: boolean };
+      "5"?: { bold?: boolean; italic?: boolean };
+      "6"?: { bold?: boolean; italic?: boolean };
+    };
+    inlineCode?: { background?: boolean };
+    codeBlock?: { border?: boolean };
+  };
+}
+
+interface EditablePreset {
+  name: string;
+  source: "builtin" | "user";
+  config: PresetAppConfig;
+  styleConfig: PresetStyleConfig;
+}
+
 interface Window {
   md2docx?: {
     selectFiles: () => Promise<string[]>;
@@ -61,6 +104,13 @@ interface Window {
     deletePreset: (name: string) => Promise<void>;
     renamePreset: (oldName: string, newName: string) => Promise<void>;
     copyPreset: (sourceName: string, newName: string) => Promise<void>;
+    readPreset: (name: string) => Promise<EditablePreset>;
+    updatePreset: (input: {
+      sourceName: string;
+      targetName?: string;
+      config: PresetAppConfig;
+      styleConfig: PresetStyleConfig;
+    }) => Promise<EditablePreset>;
     openFile: (filePath: string) => Promise<string>;
     showInFolder: (filePath: string) => Promise<void>;
     openExternal: (url: string) => Promise<void>;

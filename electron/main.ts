@@ -8,8 +8,10 @@ import {
   copyPreset,
   deletePreset,
   discoverPresets,
+  readEditablePreset,
   renamePreset,
   savePreset,
+  updatePreset,
   usePreset,
 } from "../src/preset";
 import {
@@ -106,6 +108,28 @@ function registerIpcHandlers() {
     const { sourceName, newName } = value;
     if (typeof sourceName !== "string" || typeof newName !== "string") throw new Error("名称无效");
     await copyPreset(sourceName, newName);
+  });
+
+  ipcMain.handle("preset:read", async (_event, name: unknown) => {
+    if (typeof name !== "string" || name.length === 0) throw new Error("预设名称无效");
+    return readEditablePreset(name);
+  });
+
+  ipcMain.handle("preset:update", async (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("参数无效");
+    const { sourceName, targetName, config, styleConfig } = value;
+    if (typeof sourceName !== "string" || sourceName.length === 0) {
+      throw new Error("预设名称无效");
+    }
+    if (targetName !== undefined && typeof targetName !== "string") {
+      throw new Error("目标预设名称无效");
+    }
+    return updatePreset({
+      sourceName,
+      ...(targetName === undefined ? {} : { targetName }),
+      config,
+      styleConfig,
+    });
   });
 
   ipcMain.handle("shell:openPath", async (_e, filePath: unknown) => {

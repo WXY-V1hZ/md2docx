@@ -70,7 +70,9 @@ bun run electron                 # 构建前端并启动 Electron
 - `settings.json` 由 CLI 与桌面端共享，结构保持 `{ schemaVersion: 1, preset, desktop? }`；桌面设置写入必须保留 `preset`，切换预设必须保留 `desktop`
 - 兼容旧版扁平桌面设置 `{ outputMode, outputFolder, conflictAction }`，读取时视为 `default` 预设，下次保存时迁移到共享结构
 - 预设复制、重命名和删除统一由 `src/preset.ts` 实现；主进程不得直接拼接 renderer 提供的名称执行文件操作，当前预设被重命名或删除时必须同步 `settings.json`
-- 内置 `default` 不可直接改写；桌面端通过复制当前预设的完整有效配置创建用户预设，底部“管理预设”必须打开并定位设置中的预设区
+- 内置 `default` 不可直接改写；桌面端可视化编辑它时必须另存为用户预设并自动切换，用户预设可原地编辑。编辑只暴露 AppConfig 与语义化 StyleConfig，必须保留有效 `style-raw.json`，并以临时目录原子替换
+- 预设编辑器使用明确的保存/取消；返回、关闭、遮罩和 Esc 离开有未保存更改的编辑器时必须确认。底部“管理预设”必须打开并定位设置中的预设区
+- 设置与预设编辑器的枚举选择统一使用 `AppSelect.vue`，不得退回平台原生 `<select>`；菜单需支持方向键、Enter、Esc、Tab、视口边缘定位和减少动态效果
 - 输出目录和同名文件策略只能在主进程应用，renderer 不得自行决定或拼接最终输出路径
 - Pandoc 检测只搜索系统 `PATH`，调用必须设置超时并限制输出大小
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`

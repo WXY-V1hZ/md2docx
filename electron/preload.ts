@@ -19,6 +19,13 @@ interface FileErrorEvent {
   missing?: boolean;
 }
 
+interface EditablePreset {
+  name: string;
+  source: "builtin" | "user";
+  config: Record<string, unknown>;
+  styleConfig: Record<string, unknown>;
+}
+
 contextBridge.exposeInMainWorld("md2docx", {
   selectFiles: (): Promise<string[]> => ipcRenderer.invoke("dialog:selectFiles"),
 
@@ -51,6 +58,15 @@ contextBridge.exposeInMainWorld("md2docx", {
 
   copyPreset: (sourceName: string, newName: string): Promise<void> =>
     ipcRenderer.invoke("preset:copy", { sourceName, newName }),
+
+  readPreset: (name: string): Promise<EditablePreset> => ipcRenderer.invoke("preset:read", name),
+
+  updatePreset: (input: {
+    sourceName: string;
+    targetName?: string;
+    config: Record<string, unknown>;
+    styleConfig: Record<string, unknown>;
+  }): Promise<EditablePreset> => ipcRenderer.invoke("preset:update", input),
 
   convert: (request: ConversionRequest): Promise<void> =>
     ipcRenderer.invoke("convert:start", request),

@@ -49,7 +49,10 @@ function focusHistoryButton() {
 }
 
 function openSettings(section?: "presets") {
-  if (showSettings.value) { showSettings.value = false; return; }
+  if (showSettings.value) {
+    showSettings.value = false;
+    return;
+  }
   showHistory.value = false;
   settingsInitialSection.value = section;
   showSettings.value = true;
