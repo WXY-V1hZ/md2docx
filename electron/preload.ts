@@ -24,8 +24,33 @@ contextBridge.exposeInMainWorld("md2docx", {
 
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
-  getPresets: (): Promise<{ name: string; current: boolean }[]> =>
-    ipcRenderer.invoke("preset:list"),
+  getPresets: (): Promise<
+    {
+      name: string;
+      source: "builtin" | "user";
+      current: boolean;
+      customFiles: string[];
+      valid: boolean;
+      error?: string;
+    }[]
+  > => ipcRenderer.invoke("preset:list"),
+
+  usePreset: (name: string): Promise<void> => ipcRenderer.invoke("preset:use", name),
+
+  savePreset: (options: {
+    name: string;
+    config?: string;
+    styleRaw?: string;
+    styleConfig?: string;
+  }): Promise<void> => ipcRenderer.invoke("preset:save", options),
+
+  deletePreset: (name: string): Promise<void> => ipcRenderer.invoke("preset:delete", name),
+
+  renamePreset: (oldName: string, newName: string): Promise<void> =>
+    ipcRenderer.invoke("preset:rename", { oldName, newName }),
+
+  copyPreset: (sourceName: string, newName: string): Promise<void> =>
+    ipcRenderer.invoke("preset:copy", { sourceName, newName }),
 
   convert: (request: ConversionRequest): Promise<void> =>
     ipcRenderer.invoke("convert:start", request),
@@ -44,6 +69,25 @@ contextBridge.exposeInMainWorld("md2docx", {
 
   showInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke("shell:showInFolder", filePath),
+
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke("shell:openExternal", url),
+
+  detectPandoc: (): Promise<{ available: boolean; version: string | null; path: string | null }> =>
+    ipcRenderer.invoke("pandoc:detect"),
+
+  selectFolder: (): Promise<string | null> => ipcRenderer.invoke("dialog:selectFolder"),
+
+  loadSettings: (): Promise<{
+    outputMode: "source" | "folder" | "ask";
+    outputFolder: string;
+    conflictAction: "overwrite" | "rename" | "ask";
+  }> => ipcRenderer.invoke("settings:load"),
+
+  saveSettings: (settings: {
+    outputMode: "source" | "folder" | "ask";
+    outputFolder: string;
+    conflictAction: "overwrite" | "rename" | "ask";
+  }): Promise<void> => ipcRenderer.invoke("settings:save", settings),
 
   onFileDone: (callback: (data: FileDoneEvent) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: FileDoneEvent) => callback(data);

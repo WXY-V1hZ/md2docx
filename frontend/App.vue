@@ -32,8 +32,10 @@ const {
 
 const dragOver = ref(false);
 const showSettings = ref(false);
+const settingsInitialSection = ref<"presets" | undefined>();
 
 function toggleHistory() {
+  showSettings.value = false;
   showHistory.value = !showHistory.value;
   if (showHistory.value) markHistoryRead();
 }
@@ -46,8 +48,10 @@ function focusHistoryButton() {
   document.querySelector<HTMLElement>("[data-history-btn]")?.focus();
 }
 
-function openSettings() {
-  closeHistory();
+function openSettings(section?: "presets") {
+  if (showSettings.value) { showSettings.value = false; return; }
+  showHistory.value = false;
+  settingsInitialSection.value = section;
   showSettings.value = true;
 }
 
@@ -175,12 +179,17 @@ onBeforeUnmount(() => {
       :file-count="readyCount"
       :is-converting="isConverting"
       @convert="handleConvert"
+      @manage-presets="openSettings('presets')"
     />
 
     <ConversionFlight :flights="flights" />
 
     <Transition name="settings">
-      <SettingsPanel v-if="showSettings" @close="showSettings = false" />
+      <SettingsPanel
+        v-if="showSettings"
+        :initial-section="settingsInitialSection"
+        @close="showSettings = false"
+      />
     </Transition>
   </div>
 </template>

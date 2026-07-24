@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   convert: [options: { preset: string; openAfterConvert: boolean }];
+  managePresets: [];
 }>();
 
 const autoOpen = ref(false);
@@ -20,10 +21,10 @@ const menuOpen = ref(false);
 async function loadPresets() {
   try {
     if (window.md2docx?.getPresets) {
-      const list = await window.md2docx.getPresets();
-      if (list && list.length > 0) {
-        presets.value = list;
-        const active = list.find((p) => p.current);
+      const list = (await window.md2docx.getPresets()).filter(({ valid }) => valid);
+      if (list.length > 0) {
+        presets.value = list.map(({ name, current }) => ({ name, current }));
+        const active = list.find(({ current }) => current);
         if (active) currentPreset.value = active.name;
       }
     }
@@ -36,9 +37,22 @@ function toggleMenu() {
   menuOpen.value = !menuOpen.value;
 }
 
-function selectPreset(name: string) {
+async function selectPreset(name: string) {
+  const previous = currentPreset.value;
   currentPreset.value = name;
   menuOpen.value = false;
+  try {
+    await window.md2docx?.usePreset(name);
+    window.dispatchEvent(new CustomEvent("md2docx:preset-changed", { detail: name }));
+  } catch {
+    currentPreset.value = previous;
+  }
+}
+
+function onPresetChanged(event: Event) {
+  if (!(event instanceof CustomEvent) || typeof event.detail !== "string") return;
+  currentPreset.value = event.detail;
+  void loadPresets();
 }
 
 function startConversion() {
@@ -46,6 +60,11 @@ function startConversion() {
     preset: currentPreset.value,
     openAfterConvert: autoOpen.value,
   });
+}
+
+function managePresets() {
+  menuOpen.value = false;
+  emit("managePresets");
 }
 
 function onDocumentClick(e: MouseEvent) {
@@ -75,11 +94,13 @@ onMounted(() => {
   void loadPresets();
   document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onKeydown);
+  window.addEventListener("md2docx:preset-changed", onPresetChanged);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", onDocumentClick);
   document.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("md2docx:preset-changed", onPresetChanged);
 });
 </script>
 
@@ -119,7 +140,10 @@ onBeforeUnmount(() => {
               {{ p.name }}
             </button>
             <div class="app-dropdown__divider" />
-            <button type="button" class="app-dropdown__item" disabled>管理预设…</button>
+            <button type="button" class="app-dropdown__item" role="menuitem" @click="managePresets">
+              <span class="app-dropdown__check-space" />
+              管理预设…
+            </button>
           </div>
         </Transition>
       </div>

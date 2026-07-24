@@ -103,13 +103,14 @@ describe("Electron 桌面转换", () => {
   test("复用完整转换入口并逐文件报告结果", async () => {
     const first = join(process.cwd(), "documents", "first.md");
     const second = join(process.cwd(), "documents", "second.markdown");
+    const customOutput = join(process.cwd(), "output", "first.docx");
     const calls: { file?: string; output?: string; preset?: string }[] = [];
     const results: DesktopConversionResult[] = [];
 
     await convertDesktopFiles(
       {
         files: [
-          { id: "first-record", path: first },
+          { id: "first-record", path: first, outputPath: customOutput },
           { id: "second-record", path: second },
         ],
         preset: "academic",
@@ -127,7 +128,7 @@ describe("Electron 桌面转换", () => {
     expect(calls).toEqual([
       {
         file: first,
-        output: resolve(dirname(first), `${parse(first).name}.docx`),
+        output: customOutput,
         preset: "academic",
       },
       {
@@ -140,7 +141,7 @@ describe("Electron 桌面转换", () => {
       {
         status: "done",
         path: first,
-        outputPath: resolve(dirname(first), "first.docx"),
+        outputPath: customOutput,
         recordId: "first-record",
       },
       {

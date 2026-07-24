@@ -41,9 +41,29 @@ interface Window {
   md2docx?: {
     selectFiles: () => Promise<string[]>;
     getPathForFile: (file: File) => string;
-    getPresets: () => Promise<{ name: string; current: boolean }[]>;
+    getPresets: () => Promise<
+      {
+        name: string;
+        source: "builtin" | "user";
+        current: boolean;
+        customFiles: string[];
+        valid: boolean;
+        error?: string;
+      }[]
+    >;
+    usePreset: (name: string) => Promise<void>;
+    savePreset: (options: {
+      name: string;
+      config?: string;
+      styleRaw?: string;
+      styleConfig?: string;
+    }) => Promise<void>;
+    deletePreset: (name: string) => Promise<void>;
+    renamePreset: (oldName: string, newName: string) => Promise<void>;
+    copyPreset: (sourceName: string, newName: string) => Promise<void>;
     openFile: (filePath: string) => Promise<string>;
     showInFolder: (filePath: string) => Promise<void>;
+    openExternal: (url: string) => Promise<void>;
     convert: (request: {
       files: { id: string; path: string }[];
       preset?: string;
@@ -53,6 +73,22 @@ interface Window {
     getHistory: () => Promise<ConversionRecord[]>;
     clearHistory: () => Promise<void>;
     removeHistoryRecord: (recordId: string) => Promise<void>;
+    detectPandoc: () => Promise<{
+      available: boolean;
+      version: string | null;
+      path: string | null;
+    }>;
+    selectFolder: () => Promise<string | null>;
+    loadSettings: () => Promise<{
+      outputMode: "source" | "folder" | "ask";
+      outputFolder: string;
+      conflictAction: "overwrite" | "rename" | "ask";
+    }>;
+    saveSettings: (settings: {
+      outputMode: "source" | "folder" | "ask";
+      outputFolder: string;
+      conflictAction: "overwrite" | "rename" | "ask";
+    }) => Promise<void>;
     onFileDone: (callback: (data: FileDoneEvent) => void) => () => void;
     onFileError: (callback: (data: FileErrorEvent) => void) => () => void;
   };

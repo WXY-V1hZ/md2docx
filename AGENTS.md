@@ -67,6 +67,12 @@ bun run electron                 # 构建前端并启动 Electron
 - Vite `base` 保持 `"./"`
 - `AppTitleBar.vue` 必须显式加载 `frontend/styles/titlebar.css`，否则 Logo 会按 SVG 自然尺寸展开，且拖拽与安全区域失效
 - Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
+- `settings.json` 由 CLI 与桌面端共享，结构保持 `{ schemaVersion: 1, preset, desktop? }`；桌面设置写入必须保留 `preset`，切换预设必须保留 `desktop`
+- 兼容旧版扁平桌面设置 `{ outputMode, outputFolder, conflictAction }`，读取时视为 `default` 预设，下次保存时迁移到共享结构
+- 预设复制、重命名和删除统一由 `src/preset.ts` 实现；主进程不得直接拼接 renderer 提供的名称执行文件操作，当前预设被重命名或删除时必须同步 `settings.json`
+- 内置 `default` 不可直接改写；桌面端通过复制当前预设的完整有效配置创建用户预设，底部“管理预设”必须打开并定位设置中的预设区
+- 输出目录和同名文件策略只能在主进程应用，renderer 不得自行决定或拼接最终输出路径
+- Pandoc 检测只搜索系统 `PATH`，调用必须设置超时并限制输出大小
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`
 - 桌面转换必须调用 `convertMarkdown()` 复用完整 CLI 流水线，不得单独执行裸 `pandoc`
 - 完成项目从队列移除后进入标题栏转换记录；每个文件保留独立记录，可打开输出、定位文件并基于最新源文件重新生成

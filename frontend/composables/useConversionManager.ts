@@ -92,7 +92,12 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     try {
       await window.md2docx.convert({ files, preset, openAfterConvert });
     } catch (error) {
-      failPendingFiles(files, error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("已取消")) {
+        cancelPendingFiles(files);
+      } else {
+        failPendingFiles(files, message);
+      }
     }
   }
 
@@ -174,6 +179,17 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
         unread: !historyVisible.value,
       });
     }
+  }
+
+  function cancelPendingFiles(files: { id: string; path: string }[]) {
+    const ids = new Set(files.map(({ id }) => id));
+    for (const file of queue.value) {
+      if (!file.recordId || !ids.has(file.recordId)) continue;
+      file.status = "idle";
+      file.recordId = undefined;
+      file.error = undefined;
+    }
+    history.value = history.value.filter(({ id }) => !ids.has(id));
   }
 
   function updateRecord(recordId: string, update: Partial<HistoryRecord>): boolean {

@@ -1,8 +1,17 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
-import { resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
+import { delimiter, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { discoverPresets } from "../src/preset";
+import {
+  copyPreset,
+  deletePreset,
+  discoverPresets,
+  renamePreset,
+  savePreset,
+  usePreset,
+} from "../src/preset";
 import {
   convertDesktopFiles,
   createRecordsFromRequest,
@@ -16,7 +25,21 @@ import {
   removeHistoryRecord,
   saveHistory,
 } from "./conversion-history";
-import type { ConversionRecord, DesktopConversionResult } from "./types";
+import {
+  availableOutputPath,
+  loadDesktopSettings,
+  outputPathFor,
+  pathKey,
+  requireOutputFolder,
+  saveDesktopSettings,
+  type DesktopSettings,
+} from "./settings";
+import type {
+  ConversionRecord,
+  DesktopConversionFile,
+  DesktopConversionRequest,
+  DesktopConversionResult,
+} from "./types";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const TITLE_BAR_HEIGHT = 48;
@@ -47,11 +70,43 @@ function registerIpcHandlers() {
     ).filePaths;
   });
 
-  ipcMain.handle("preset:list", async () =>
-    (await discoverPresets())
-      .filter((p) => p.valid)
-      .map(({ name, current }) => ({ name, current })),
-  );
+  ipcMain.handle("preset:list", () => discoverPresets());
+
+  ipcMain.handle("preset:use", async (_event, name: unknown) => {
+    if (typeof name !== "string" || name.length === 0) throw new Error("预设名称无效");
+    await usePreset(name);
+  });
+
+  ipcMain.handle("preset:save", async (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("参数无效");
+    const { name, config, styleRaw, styleConfig } = value as Record<string, unknown>;
+    if (typeof name !== "string" || name.length === 0) throw new Error("预设名称无效");
+    await savePreset({
+      name,
+      ...(typeof config === "string" ? { config } : {}),
+      ...(typeof styleRaw === "string" ? { styleRaw } : {}),
+      ...(typeof styleConfig === "string" ? { styleConfig } : {}),
+    });
+  });
+
+  ipcMain.handle("preset:delete", async (_event, name: unknown) => {
+    if (typeof name !== "string" || name.length === 0) throw new Error("预设名称无效");
+    await deletePreset(name);
+  });
+
+  ipcMain.handle("preset:rename", async (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("参数无效");
+    const { oldName, newName } = value;
+    if (typeof oldName !== "string" || typeof newName !== "string") throw new Error("名称无效");
+    await renamePreset(oldName, newName);
+  });
+
+  ipcMain.handle("preset:copy", async (_event, value: unknown) => {
+    if (!isRecord(value)) throw new Error("参数无效");
+    const { sourceName, newName } = value;
+    if (typeof sourceName !== "string" || typeof newName !== "string") throw new Error("名称无效");
+    await copyPreset(sourceName, newName);
+  });
 
   ipcMain.handle("shell:openPath", async (_e, filePath: unknown) => {
     if (typeof filePath !== "string" || filePath.length === 0) throw new Error("文件路径无效");
@@ -61,6 +116,15 @@ function registerIpcHandlers() {
   ipcMain.handle("shell:showInFolder", async (_e, filePath: unknown) => {
     if (typeof filePath !== "string" || filePath.length === 0) throw new Error("文件路径无效");
     shell.showItemInFolder(filePath);
+  });
+
+  ipcMain.handle("shell:openExternal", async (_event, value: unknown) => {
+    if (typeof value !== "string") throw new Error("链接无效");
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.hostname !== "pandoc.org") {
+      throw new Error("不允许打开此链接");
+    }
+    await shell.openExternal(url.toString());
   });
 
   ipcMain.handle("history:list", () => loadHistory());
@@ -75,7 +139,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("convert:start", async (event, value: unknown) => {
-    const request = parseConversionRequest(value);
+    const request = await applyDesktopOutputSettings(parseConversionRequest(value));
     const records = createRecordsFromRequest(request);
     const history = loadHistory();
     saveHistory([...records, ...history]);
@@ -131,6 +195,153 @@ function registerIpcHandlers() {
       );
     });
   });
+
+  ipcMain.handle("settings:load", () => loadDesktopSettings());
+
+  ipcMain.handle("settings:save", (_event, value: unknown) => saveDesktopSettings(value));
+
+  ipcMain.handle("pandoc:detect", async () => {
+    const executable = findExecutableOnPath("pandoc");
+    if (!executable) return { available: false, version: null, path: null };
+    try {
+      const { stdout } = await runCommand(executable, ["--version"]);
+      const firstLine = stdout.trim().split(/\r?\n/, 1)[0] ?? "";
+      const version = /^pandoc\s+(.+)$/i.exec(firstLine)?.[1]?.trim() || firstLine || null;
+      return { available: true, version, path: executable };
+    } catch {
+      return { available: false, version: null, path: null };
+    }
+  });
+
+  ipcMain.handle("dialog:selectFolder", async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openDirectory"],
+    });
+    return result.canceled ? null : (result.filePaths[0] ?? null);
+  });
+}
+
+function runCommand(
+  command: string,
+  args: string[],
+  timeoutMs = 5_000,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback();
+    };
+    const append = (current: string, chunk: string) => `${current}${chunk}`.slice(0, 65_536);
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      finish(() => reject(new Error("Pandoc 检测超时")));
+    }, timeoutMs);
+
+    child.stdout.setEncoding("utf-8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout = append(stdout, chunk);
+    });
+    child.stderr.setEncoding("utf-8");
+    child.stderr.on("data", (chunk: string) => {
+      stderr = append(stderr, chunk);
+    });
+    child.once("error", (error) => finish(() => reject(error)));
+    child.once("close", (code) => {
+      finish(() => {
+        if (code === 0) resolvePromise({ stdout, stderr });
+        else reject(new Error(stderr.trim() || `exit code ${code}`));
+      });
+    });
+  });
+}
+
+function findExecutableOnPath(command: string): string | null {
+  const pathEntries = process.env.PATH?.split(delimiter) ?? [];
+  const extensions =
+    process.platform === "win32"
+      ? (process.env.PATHEXT?.split(";") ?? [".EXE", ".CMD", ".BAT"])
+      : [""];
+  const hasExtension = extname(command).length > 0;
+
+  for (const entry of pathEntries) {
+    const directory = entry.trim().replace(/^"(.*)"$/, "$1");
+    if (!directory) continue;
+    for (const extension of hasExtension ? [""] : extensions) {
+      const candidate = join(directory, `${command}${extension}`);
+      if (existsSync(candidate) && statSync(candidate).isFile()) return resolve(candidate);
+    }
+  }
+  return null;
+}
+
+async function applyDesktopOutputSettings(
+  request: DesktopConversionRequest,
+): Promise<DesktopConversionRequest> {
+  const settings = loadDesktopSettings();
+  const selectedFolder = await resolveSelectedOutputFolder(settings);
+  const files: DesktopConversionFile[] = [];
+  const reservedPaths = new Set<string>();
+
+  for (const file of request.files) {
+    const directory = selectedFolder ?? dirname(file.path);
+    let outputPath = outputPathFor(file.path, directory);
+    if (reservedPaths.has(pathKey(outputPath))) {
+      outputPath = availableOutputPath(outputPath, reservedPaths);
+    } else if (existsSync(outputPath)) {
+      outputPath = await resolveConflictOutputPath(
+        outputPath,
+        settings.conflictAction,
+        reservedPaths,
+      );
+    }
+    reservedPaths.add(pathKey(outputPath));
+    files.push({ ...file, outputPath });
+  }
+  return { ...request, files };
+}
+
+async function resolveSelectedOutputFolder(settings: DesktopSettings): Promise<string | null> {
+  if (settings.outputMode === "source") return null;
+  if (settings.outputMode === "folder") return requireOutputFolder(settings.outputFolder);
+  if (!mainWindow) throw new Error("窗口不可用");
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "选择输出文件夹",
+    properties: ["openDirectory", "createDirectory"],
+  });
+  if (result.canceled || !result.filePaths[0]) throw new Error("已取消选择输出位置");
+  return result.filePaths[0];
+}
+
+async function resolveConflictOutputPath(
+  outputPath: string,
+  action: DesktopSettings["conflictAction"],
+  reservedPaths: ReadonlySet<string>,
+): Promise<string> {
+  if (action === "overwrite") return outputPath;
+  if (action === "rename") return availableOutputPath(outputPath, reservedPaths);
+  if (!mainWindow) throw new Error("窗口不可用");
+
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: "question",
+    message: "同名文件已存在",
+    detail: outputPath,
+    buttons: ["自动重命名", "覆盖", "取消"],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+  });
+  if (result.response === 0) return availableOutputPath(outputPath, reservedPaths);
+  if (result.response === 1) return outputPath;
+  throw new Error("已取消转换");
 }
 
 function updateHistoryFromResult(
@@ -149,6 +360,10 @@ function updateHistoryFromResult(
     record.status = result.missing ? "missing" : "error";
     record.error = result.missing ? undefined : result.error;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function createWindow() {

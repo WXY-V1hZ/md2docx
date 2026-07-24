@@ -1,6 +1,7 @@
 import {
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -11,7 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { loadConfig } from "./config";
 import { resolveInputPath } from "./output";
@@ -70,11 +71,12 @@ export function readCurrentPresetName(paths: PresetStoragePaths = DEFAULT_STORAG
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`预设设置不是有效的 JSON：${paths.settingsPath}\n${message}`);
   }
+  if (isLegacyDesktopSettings(value)) return DEFAULT_PRESET_NAME;
   if (!isRecord(value) || value.schemaVersion !== 1 || typeof value.preset !== "string") {
     throw new Error(`预设设置无效：${paths.settingsPath}`);
   }
   const unknownKeys = Object.keys(value).filter(
-    (key) => key !== "schemaVersion" && key !== "preset",
+    (key) => key !== "schemaVersion" && key !== "preset" && key !== "desktop",
   );
   if (unknownKeys.length > 0) {
     throw new Error(`预设设置无效：${paths.settingsPath}\n未知字段：${unknownKeys.join(", ")}`);
@@ -190,9 +192,18 @@ export async function usePreset(
   await resolvePresetByName(name, paths);
   mkdirSync(dirname(paths.settingsPath), { recursive: true });
   const temporary = `${paths.settingsPath}.${process.pid}.${randomUUID()}.tmp`;
+  const desktop = readExistingDesktopSettings(paths.settingsPath);
   writeFileSync(
     temporary,
-    `${JSON.stringify({ schemaVersion: 1, preset: name }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        preset: name,
+        ...(desktop ? { desktop } : {}),
+      },
+      null,
+      2,
+    )}\n`,
     "utf-8",
   );
   try {
@@ -201,6 +212,73 @@ export async function usePreset(
     rmSync(temporary, { force: true });
     throw error;
   }
+}
+
+function readExistingDesktopSettings(settingsPath: string): Record<string, unknown> | undefined {
+  if (!existsSync(settingsPath)) return undefined;
+  try {
+    const value: unknown = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    if (isLegacyDesktopSettings(value)) return value;
+    return isRecord(value) && isRecord(value.desktop) ? value.desktop : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function copyPreset(
+  sourceName: string,
+  newName: string,
+  paths: PresetStoragePaths = DEFAULT_STORAGE_PATHS,
+): Promise<void> {
+  assertPresetName(newName);
+  if (newName === DEFAULT_PRESET_NAME) throw new Error("不能覆盖系统预设 default");
+  const source = await resolvePresetByName(sourceName, paths);
+  mkdirSync(paths.presetsDir, { recursive: true });
+  const target = join(paths.presetsDir, newName);
+  if (existsSync(target)) throw new Error(`预设 ${newName} 已存在`);
+
+  const temporary = mkdtempSync(join(paths.presetsDir, `.copy-${newName}-`));
+  try {
+    copyFileSync(source.configPath, join(temporary, "config.json"));
+    copyFileSync(source.styleRawPath, join(temporary, "style-raw.json"));
+    copyFileSync(source.styleConfigPath, join(temporary, "style-config.json"));
+    renameSync(temporary, target);
+  } catch (error) {
+    if (existsSync(temporary)) rmSync(temporary, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+export async function renamePreset(
+  oldName: string,
+  newName: string,
+  paths: PresetStoragePaths = DEFAULT_STORAGE_PATHS,
+): Promise<void> {
+  assertPresetName(newName);
+  if (newName === DEFAULT_PRESET_NAME) throw new Error("不能覆盖系统预设 default");
+  if (oldName === newName) return;
+
+  const source = requireStoredPresetDirectory(oldName, paths);
+  const target = join(paths.presetsDir, newName);
+  if (existsSync(target)) throw new Error(`预设 ${newName} 已存在`);
+  const wasCurrent = readCurrentPresetName(paths) === oldName;
+
+  renameSync(source, target);
+  try {
+    if (wasCurrent) await usePreset(newName, paths);
+  } catch (error) {
+    renameSync(target, source);
+    throw error;
+  }
+}
+
+export async function deletePreset(
+  name: string,
+  paths: PresetStoragePaths = DEFAULT_STORAGE_PATHS,
+): Promise<void> {
+  const directory = requireStoredPresetDirectory(name, paths);
+  if (readCurrentPresetName(paths) === name) await usePreset(DEFAULT_PRESET_NAME, paths);
+  rmSync(directory, { recursive: true, force: true });
 }
 
 export async function savePreset(
@@ -282,6 +360,19 @@ function requireUserPresetDirectory(name: string, paths: PresetStoragePaths): st
   return directory;
 }
 
+function requireStoredPresetDirectory(name: string, paths: PresetStoragePaths): string {
+  if (name === DEFAULT_PRESET_NAME) throw new Error("不能修改系统预设 default");
+  if (!name || basename(name) !== name || name === "." || name === "..") {
+    throw new Error("预设名称无效");
+  }
+  const root = resolve(paths.presetsDir);
+  const directory = resolve(root, name);
+  if (dirname(directory) !== root || !existsSync(directory)) throw new Error(`预设 ${name} 不存在`);
+  const stats = lstatSync(directory);
+  if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error(`预设 ${name} 不是有效目录`);
+  return directory;
+}
+
 function assertPresetName(name: string): void {
   if (!PRESET_NAME_PATTERN.test(name)) {
     throw new Error(`预设名称无效：${name}\n只允许字母、数字、- 和 _`);
@@ -290,4 +381,16 @@ function assertPresetName(name: string): void {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isLegacyDesktopSettings(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  const keys = Object.keys(value);
+  return (
+    keys.length === 3 &&
+    keys.every((key) => ["outputMode", "outputFolder", "conflictAction"].includes(key)) &&
+    ["source", "folder", "ask"].includes(String(value.outputMode)) &&
+    typeof value.outputFolder === "string" &&
+    ["overwrite", "rename", "ask"].includes(String(value.conflictAction))
+  );
 }

@@ -206,6 +206,23 @@ textarea {
   transform: none;
 }
 
+.app-button--destructive {
+  background: #ff3b30;
+  color: #ffffff;
+}
+
+.app-button--destructive:hover {
+  background: #d62d20;
+}
+
+.app-button--destructive:active {
+  background: #c6291d;
+}
+
+.app-button--destructive:disabled {
+  opacity: 0.45;
+}
+
 /* Apple-style pill toggle */
 .app-toggle {
   position: relative;

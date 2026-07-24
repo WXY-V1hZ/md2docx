@@ -71,8 +71,9 @@ export async function convertDesktopFiles(
   onResult: ResultHandler,
   convert: ConvertMarkdown = convertMarkdown,
 ): Promise<void> {
-  for (const { id, path: filePath } of request.files) {
-    const outputPath = resolve(dirname(filePath), `${parse(filePath).name}.docx`);
+  for (const { id, path: filePath, outputPath: requestedOutputPath } of request.files) {
+    const outputPath =
+      requestedOutputPath ?? resolve(dirname(filePath), `${parse(filePath).name}.docx`);
     let result: DesktopConversionResult;
     try {
       await convert({ file: filePath, output: outputPath, preset: request.preset });
@@ -99,7 +100,7 @@ export async function convertDesktopFiles(
 export function regenerateRecord(record: ConversionRecord): DesktopConversionRequest | null {
   if (!existsSync(record.sourcePath)) return null;
   return {
-    files: [{ id: record.id, path: record.sourcePath }],
+    files: [{ id: record.id, path: record.sourcePath, outputPath: record.outputPath }],
     preset: record.preset,
     openAfterConvert: false,
   };

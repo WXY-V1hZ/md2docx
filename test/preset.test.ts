@@ -4,8 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  copyPreset,
+  deletePreset,
   discoverPresets,
   readCurrentPresetName,
+  renamePreset,
   resolvePreset,
   resolvePresetConfig,
   savePreset,
@@ -47,6 +50,21 @@ describe("preset 解析", () => {
     const preset = await resolvePreset(undefined, storage);
     expect(preset.name).toBe("default");
     expect(JSON.parse(readFileSync(preset.configPath, "utf-8"))).toBeObject();
+  });
+
+  it("旧版扁平桌面设置使用 default 预设", () => {
+    const storage = createStorage();
+    writeFileSync(
+      storage.settingsPath,
+      JSON.stringify({
+        outputMode: "folder",
+        outputFolder: "C:\\output",
+        conflictAction: "rename",
+      }),
+      "utf-8",
+    );
+
+    expect(readCurrentPresetName(storage)).toBe("default");
   });
 
   it("用户预设逐文件继承 default", async () => {
@@ -163,6 +181,66 @@ describe("preset save 和 use", () => {
     rmSync(join(storage.presetsDir, "academic"), { recursive: true });
 
     expect(resolvePreset(undefined, storage)).rejects.toThrow("preset use default");
+  });
+
+  it("复制预设的自定义文件", async () => {
+    const storage = createStorage();
+    const source = join(storage.presetsDir, "academic");
+    mkdirSync(source, { recursive: true });
+    writeFileSync(join(source, "config.json"), DEFAULT_CONFIG_TEXT, "utf-8");
+
+    await copyPreset("academic", "academic_copy", storage);
+
+    expect(readFileSync(join(storage.presetsDir, "academic_copy", "config.json"), "utf-8")).toBe(
+      DEFAULT_CONFIG_TEXT,
+    );
+    expect(existsSync(join(storage.presetsDir, "academic_copy", "style-raw.json"))).toBe(true);
+    expect(existsSync(join(storage.presetsDir, "academic_copy", "style-config.json"))).toBe(true);
+  });
+
+  it("可以基于 default 创建完整用户预设", async () => {
+    const storage = createStorage();
+
+    await copyPreset("default", "custom", storage);
+
+    const target = join(storage.presetsDir, "custom");
+    expect(existsSync(join(target, "config.json"))).toBe(true);
+    expect(existsSync(join(target, "style-raw.json"))).toBe(true);
+    expect(existsSync(join(target, "style-config.json"))).toBe(true);
+  });
+
+  it("重命名当前预设后同步当前名称", async () => {
+    const storage = createStorage();
+    mkdirSync(join(storage.presetsDir, "academic"), { recursive: true });
+    await usePreset("academic", storage);
+
+    await renamePreset("academic", "paper", storage);
+
+    expect(existsSync(join(storage.presetsDir, "academic"))).toBe(false);
+    expect(existsSync(join(storage.presetsDir, "paper"))).toBe(true);
+    expect(readCurrentPresetName(storage)).toBe("paper");
+  });
+
+  it("删除当前预设前切换到 default", async () => {
+    const storage = createStorage();
+    mkdirSync(join(storage.presetsDir, "academic"), { recursive: true });
+    await usePreset("academic", storage);
+
+    await deletePreset("academic", storage);
+
+    expect(existsSync(join(storage.presetsDir, "academic"))).toBe(false);
+    expect(readCurrentPresetName(storage)).toBe("default");
+  });
+
+  it("拒绝越过预设目录执行管理操作", async () => {
+    const storage = createStorage();
+    const outside = join(storage.presetsDir, "..", "outside");
+    mkdirSync(outside, { recursive: true });
+
+    expect(deletePreset("../outside", storage)).rejects.toThrow("预设名称无效");
+    expect(renamePreset("../outside", "safe", storage)).rejects.toThrow("预设名称无效");
+    expect(copyPreset("../outside", "safe", storage)).rejects.toThrow("预设名称无效");
+    expect(existsSync(outside)).toBe(true);
   });
 });
 

@@ -82,4 +82,20 @@ describe("BottomActionBar", () => {
     };
     expect(payload).toEqual({ preset: "default", openAfterConvert: false });
   });
+
+  test("管理预设菜单项可点击并触发事件", async () => {
+    mockMd2docx();
+    const wrapper = shallowMount(BottomActionBar, {
+      props: { canConvert: false, fileCount: 0, isConverting: false },
+    });
+
+    await wrapper.get(".app-dropdown__trigger").trigger("click");
+    const manage = wrapper
+      .findAll<HTMLButtonElement>(".app-dropdown__item")
+      .find((item) => item.text().includes("管理预设"));
+    expect(manage?.attributes("disabled")).toBeUndefined();
+    await manage!.trigger("click");
+
+    expect(wrapper.emitted("managePresets")).toHaveLength(1);
+  });
 });
