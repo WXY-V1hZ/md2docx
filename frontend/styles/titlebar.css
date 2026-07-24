@@ -84,6 +84,11 @@
   color: var(--app-text);
 }
 
+.app-titlebar__btn--active {
+  background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+  color: var(--app-accent);
+}
+
 @media (prefers-color-scheme: dark) {
   .app-titlebar__btn:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -95,8 +100,40 @@
   background: rgba(0, 0, 0, 0.1);
 }
 
+.app-titlebar__badge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--app-accent);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 0 0 1.5px var(--app-surface);
+  animation: history-badge-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-titlebar__btn {
+  position: relative;
+}
+
 @media (prefers-color-scheme: dark) {
   .app-titlebar__btn:active {
     background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+@keyframes history-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
   }
 }

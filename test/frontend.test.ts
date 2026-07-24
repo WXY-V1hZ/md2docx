@@ -23,18 +23,32 @@ describe("Electron 前端构建", () => {
     expect(packageJson.scripts["build:electron"]).toContain("dist-electron/preload.cjs");
   });
 
-  test("转换完成后保留可操作提示并支持减少动态效果", async () => {
-    const [app, notice, styles] = await Promise.all([
+  test("转换记录面板展示历史并支持减少动态效果", async () => {
+    const [app, manager, popover, item, flight, preload, styles] = await Promise.all([
       readFile(new URL("../frontend/App.vue", import.meta.url), "utf8"),
-      readFile(new URL("../frontend/components/CompletionBanner.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/composables/useConversionManager.ts", import.meta.url), "utf8"),
+      readFile(
+        new URL("../frontend/components/ConversionHistoryPopover.vue", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../frontend/components/ConversionHistoryItem.vue", import.meta.url),
+        "utf8",
+      ),
+      readFile(new URL("../frontend/components/ConversionFlight.vue", import.meta.url), "utf8"),
+      readFile(new URL("../electron/preload.ts", import.meta.url), "utf8"),
       readFile(new URL("../frontend/styles/base.css", import.meta.url), "utf8"),
     ]);
 
-    expect(app).toContain("<CompletionBanner");
-    expect(notice).toContain('aria-label="关闭完成提示"');
-    expect(notice).toContain('emit("reveal", props.lastOutputPath)');
-    expect(notice).toContain("watch(");
-    expect(notice).toContain("clearTimeout");
+    expect(app).toContain("ConversionHistoryPopover");
+    expect(app).not.toContain("@history-enter");
+    expect(manager).toContain("removeHistoryRecord");
+    expect(manager).toContain("crypto.randomUUID()");
+    expect(popover).toContain("转换记录");
+    expect(popover).toContain("show-in-folder");
+    expect(item).toContain("regenerate");
+    expect(flight).toContain("--flight-x");
+    expect(preload).toContain('"history:remove"');
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });

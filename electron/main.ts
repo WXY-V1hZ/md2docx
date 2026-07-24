@@ -1,24 +1,28 @@
-import { app, BrowserWindow, nativeTheme, ipcMain, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { discoverPresets } from "../src/preset";
 import {
   convertDesktopFiles,
+  createRecordsFromRequest,
   parseConversionRequest,
-  type DesktopConversionResult,
+  regenerateRecord,
 } from "./conversion";
-import { discoverPresets } from "../src/preset";
+import {
+  clearCompletedHistory,
+  loadHistory,
+  recoverHistory,
+  removeHistoryRecord,
+  saveHistory,
+} from "./conversion-history";
+import type { ConversionRecord, DesktopConversionResult } from "./types";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const TITLE_BAR_HEIGHT = 48;
 
 let mainWindow: BrowserWindow | null = null;
 
-/**
- * titleBarOverlay 的颜色必须与标题栏 CSS 背景（--app-surface）一致。
- * 窗口 backgroundColor 必须与 body 背景（--app-bg）一致。
- * 它们分别在 base.css 中定义。
- */
 const SURFACE = { light: "#ffffff", dark: "#2c2c2e" };
 const BG = { light: "#f5f5f7", dark: "#1c1c1e" };
 
@@ -34,41 +38,53 @@ function getTitleBarOverlayOptions() {
 function registerIpcHandlers() {
   ipcMain.handle("dialog:selectFiles", async () => {
     if (!mainWindow) return [];
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: "选择 Markdown 文件",
-      filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
-      properties: ["openFile", "multiSelections"],
-    });
-    return result.filePaths;
+    return (
+      await dialog.showOpenDialog(mainWindow, {
+        title: "选择 Markdown 文件",
+        filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
+        properties: ["openFile", "multiSelections"],
+      })
+    ).filePaths;
   });
 
   ipcMain.handle("preset:list", async () =>
     (await discoverPresets())
-      .filter((preset) => preset.valid)
+      .filter((p) => p.valid)
       .map(({ name, current }) => ({ name, current })),
   );
 
-  ipcMain.handle("settings:get", async () => {
-    return {};
-  });
-
-  ipcMain.handle("shell:openPath", async (_event, filePath: unknown) => {
-    if (typeof filePath !== "string" || filePath.length === 0) {
-      throw new Error("文件路径无效");
-    }
+  ipcMain.handle("shell:openPath", async (_e, filePath: unknown) => {
+    if (typeof filePath !== "string" || filePath.length === 0) throw new Error("文件路径无效");
     return shell.openPath(filePath);
   });
 
-  ipcMain.handle("shell:showInFolder", async (_event, filePath: unknown) => {
-    if (typeof filePath !== "string" || filePath.length === 0) {
-      throw new Error("文件路径无效");
-    }
+  ipcMain.handle("shell:showInFolder", async (_e, filePath: unknown) => {
+    if (typeof filePath !== "string" || filePath.length === 0) throw new Error("文件路径无效");
     shell.showItemInFolder(filePath);
+  });
+
+  ipcMain.handle("history:list", () => loadHistory());
+
+  ipcMain.handle("history:clear", clearCompletedHistory);
+
+  ipcMain.handle("history:remove", (_event, recordId: unknown) => {
+    if (typeof recordId !== "string" || recordId.length === 0) {
+      throw new Error("记录 ID 无效");
+    }
+    removeHistoryRecord(recordId);
   });
 
   ipcMain.handle("convert:start", async (event, value: unknown) => {
     const request = parseConversionRequest(value);
+    const records = createRecordsFromRequest(request);
+    const history = loadHistory();
+    saveHistory([...records, ...history]);
+
     await convertDesktopFiles(request, async (result: DesktopConversionResult) => {
+      const current = loadHistory();
+      updateHistoryFromResult(current, result);
+      saveHistory(current);
+
       if (event.sender.isDestroyed()) return;
       event.sender.send(
         result.status === "done" ? "convert:file-done" : "convert:file-error",
@@ -79,6 +95,60 @@ function registerIpcHandlers() {
       }
     });
   });
+
+  ipcMain.handle("convert:regenerate", async (event, recordId: unknown) => {
+    if (typeof recordId !== "string") throw new Error("记录 ID 无效");
+    const history = loadHistory();
+    const record = history.find((r) => r.id === recordId);
+    if (!record) throw new Error("找不到转换记录");
+    const request = regenerateRecord(record);
+    if (!request) {
+      record.status = "missing";
+      record.error = undefined;
+      saveHistory(history);
+      event.sender.send("convert:file-error", {
+        recordId,
+        path: record.sourcePath,
+        error: "源文件不存在",
+        missing: true,
+      });
+      return;
+    }
+    record.status = "converting";
+    record.error = undefined;
+    record.startedAt = Date.now();
+    saveHistory(history);
+
+    await convertDesktopFiles(request, async (result: DesktopConversionResult) => {
+      const cur = loadHistory();
+      updateHistoryFromResult(cur, result);
+      saveHistory(cur);
+
+      if (event.sender.isDestroyed()) return;
+      event.sender.send(
+        result.status === "done" ? "convert:file-done" : "convert:file-error",
+        result,
+      );
+    });
+  });
+}
+
+function updateHistoryFromResult(
+  history: ConversionRecord[],
+  result: DesktopConversionResult,
+): void {
+  const record = history.find(({ id }) => id === result.recordId);
+  if (!record) return;
+
+  record.completedAt = Date.now();
+  if (result.status === "done") {
+    record.status = "success";
+    record.outputPath = result.outputPath;
+    record.error = undefined;
+  } else {
+    record.status = result.missing ? "missing" : "error";
+    record.error = result.missing ? undefined : result.error;
+  }
 }
 
 function createWindow() {
@@ -111,14 +181,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  recoverHistory();
   registerIpcHandlers();
   createWindow();
 
   nativeTheme.on("updated", () => {
-    if (mainWindow === null || process.platform === "darwin") {
-      return;
-    }
-
+    if (mainWindow === null || process.platform === "darwin") return;
     mainWindow.setTitleBarOverlay(getTitleBarOverlayOptions());
     mainWindow.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BG.dark : BG.light);
   });

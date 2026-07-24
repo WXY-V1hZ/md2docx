@@ -12,7 +12,7 @@ const emit = defineEmits<{
   convert: [options: { preset: string; openAfterConvert: boolean }];
 }>();
 
-const autoOpen = ref(true);
+const autoOpen = ref(false);
 const presets = ref<{ name: string; current: boolean }[]>([{ name: "default", current: true }]);
 const currentPreset = ref("default");
 const menuOpen = ref(false);

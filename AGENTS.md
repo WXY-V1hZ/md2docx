@@ -69,7 +69,9 @@ bun run electron                 # 构建前端并启动 Electron
 - Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`
 - 桌面转换必须调用 `convertMarkdown()` 复用完整 CLI 流水线，不得单独执行裸 `pandoc`
-- 完成项目从队列移除时必须保留可操作的完成提示，并能在文件夹中定位最后一个输出文件
+- 完成项目从队列移除后进入标题栏转换记录；每个文件保留独立记录，可打开输出、定位文件并基于最新源文件重新生成
+- 转换记录保存到 `~/.md2docx/conversion-history.json`，最多 30 条；清除记录不得影响转换中的任务或删除实际文件
+- 转换记录面板只由点击标题栏按钮触发，不使用悬停自动展开
 - 面板遮罩与面板本体分别过渡；动效使用短时长和减速曲线，并遵守 `prefers-reduced-motion`
 
 ---

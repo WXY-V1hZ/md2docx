@@ -1,71 +1,70 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 import AppTitleBar from "./components/AppTitleBar.vue";
 import BottomActionBar from "./components/BottomActionBar.vue";
-import CompletionBanner from "./components/CompletionBanner.vue";
+import ConversionFlight from "./components/ConversionFlight.vue";
+import ConversionHistoryPopover from "./components/ConversionHistoryPopover.vue";
 import FileDropZone from "./components/FileDropZone.vue";
 import FileQueue from "./components/FileQueue.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
-import { type FileEntry } from "./file-entry";
+import { useConversionManager } from "./composables/useConversionManager";
 
-const files = ref<FileEntry[]>([]);
+const showHistory = ref(false);
+
+const {
+  queue,
+  history,
+  flights,
+  readyCount,
+  isConverting,
+  unreadCount,
+  addFiles,
+  removeFile,
+  clearQueue,
+  retryFile,
+  startConversion,
+  markHistoryRead,
+  regenerateRecord,
+  removeRecord,
+  clearHistory,
+} = useConversionManager(showHistory);
+
 const dragOver = ref(false);
 const showSettings = ref(false);
-const completedCount = ref(0);
-const lastOutputPath = ref<string | null>(null);
-const showBanner = ref(false);
 
-const readyCount = computed(() => files.value.filter((file) => file.status === "idle").length);
-const isConverting = computed(() => files.value.some((file) => file.status === "converting"));
+function toggleHistory() {
+  showHistory.value = !showHistory.value;
+  if (showHistory.value) markHistoryRead();
+}
 
-let cleanupDone: (() => void) | undefined;
-let cleanupError: (() => void) | undefined;
+function closeHistory() {
+  showHistory.value = false;
+}
 
-onMounted(() => {
-  cleanupDone = window.md2docx?.onFileDone((data) => {
-    const index = files.value.findIndex((entry) => entry.path === data.path);
-    if (index === -1) return;
-    files.value.splice(index, 1);
-    completedCount.value++;
-    lastOutputPath.value = data.outputPath;
-    showBanner.value = true;
-  });
+function focusHistoryButton() {
+  document.querySelector<HTMLElement>("[data-history-btn]")?.focus();
+}
 
-  cleanupError = window.md2docx?.onFileError((data) => {
-    const file = files.value.find((entry) => entry.path === data.path);
-    if (!file) return;
-    file.status = "error";
-    file.error = data.error;
-    file.outputPath = undefined;
-  });
-});
+function openSettings() {
+  closeHistory();
+  showSettings.value = true;
+}
 
-onBeforeUnmount(() => {
-  cleanupDone?.();
-  cleanupError?.();
-});
-
-function addFiles(paths: string[]) {
-  const existing = new Set(files.value.map((file) => file.path));
-  for (const path of paths) {
-    if (existing.has(path)) continue;
-    const name = path.split(/[/\\]/).pop() ?? path;
-    files.value.push({ path, name, status: "idle" });
-    existing.add(path);
+async function openFile(path: string) {
+  try {
+    await window.md2docx?.openFile(path);
+  } catch {
+    // 文件操作失败时保留记录，用户仍可尝试显示位置。
   }
 }
 
-function removeFile(index: number) {
-  files.value.splice(index, 1);
-}
-
-function retryFile(index: number) {
-  const file = files.value[index];
-  if (!file) return;
-  file.status = "idle";
-  file.error = undefined;
-  file.outputPath = undefined;
+async function showInFolder(path: string) {
+  try {
+    await window.md2docx?.showInFolder(path);
+  } catch {
+    // 文件操作失败时不关闭记录面板。
+  }
 }
 
 async function selectFiles() {
@@ -74,98 +73,97 @@ async function selectFiles() {
 }
 
 async function handleConvert(options: { preset: string; openAfterConvert: boolean }) {
-  const idle = files.value.filter((file) => file.status === "idle");
-  if (idle.length === 0) return;
-
-  completedCount.value = 0;
-  lastOutputPath.value = null;
-  showBanner.value = false;
-
-  for (const file of idle) {
-    file.status = "converting";
-    file.error = undefined;
-  }
-
-  try {
-    if (!window.md2docx?.convert) throw new Error("桌面转换服务不可用");
-    await window.md2docx.convert({
-      files: idle.map((file) => file.path),
-      preset: options.preset,
-      openAfterConvert: options.openAfterConvert,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    for (const file of idle) {
-      if (file.status !== "converting") continue;
-      file.status = "error";
-      file.error = message;
-    }
-  }
+  await startConversion(options.preset, options.openAfterConvert);
 }
 
-async function showInFolder(path: string) {
-  await window.md2docx?.showInFolder(path);
-}
-
-function onListDragOver(event: DragEvent) {
-  event.preventDefault();
+function onListDragOver(e: DragEvent) {
+  e.preventDefault();
   dragOver.value = true;
 }
 
-function onListDragLeave(event: DragEvent) {
-  const container = event.currentTarget;
+function onListDragLeave(e: DragEvent) {
+  const container = e.currentTarget;
   if (!(container instanceof HTMLElement)) return;
-  if (event.relatedTarget instanceof Node && container.contains(event.relatedTarget)) return;
+  if (e.relatedTarget instanceof Node && container.contains(e.relatedTarget)) return;
   dragOver.value = false;
 }
 
-function onListDrop(event: DragEvent) {
-  event.preventDefault();
+function onListDrop(e: DragEvent) {
+  e.preventDefault();
   dragOver.value = false;
-
   const paths: string[] = [];
-  for (const file of event.dataTransfer?.files ?? []) {
+  for (const file of e.dataTransfer?.files ?? []) {
     if (!/\.(md|markdown)$/i.test(file.name)) continue;
     const path = window.md2docx?.getPathForFile(file) ?? "";
     if (path) paths.push(path);
   }
   addFiles(paths);
 }
+
+function onDocumentKeydown(event: KeyboardEvent) {
+  if (event.key !== "Escape" || !showHistory.value) return;
+  closeHistory();
+  focusHistoryButton();
+}
+
+function onDocumentPointerDown(event: PointerEvent) {
+  if (!showHistory.value || !(event.target instanceof Element)) return;
+  if (event.target.closest("[data-history-btn], [data-history-surface]")) return;
+  closeHistory();
+}
+
+onMounted(() => {
+  document.addEventListener("keydown", onDocumentKeydown);
+  document.addEventListener("pointerdown", onDocumentPointerDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", onDocumentKeydown);
+  document.removeEventListener("pointerdown", onDocumentPointerDown);
+});
 </script>
 
 <template>
   <div
     class="grid h-full w-full grid-rows-[var(--app-titlebar-height)_1fr_auto] overflow-hidden bg-app-bg font-sans text-app-text"
   >
-    <AppTitleBar @open-settings="showSettings = true" />
+    <AppTitleBar
+      :unread-count="unreadCount"
+      :history-expanded="showHistory"
+      @open-settings="openSettings"
+      @toggle-history="toggleHistory"
+    />
 
     <main
       class="workspace flex min-h-0 flex-col items-center overflow-auto px-8 py-10"
-      :class="{ 'justify-center': files.length === 0 }"
+      :class="{ 'justify-center': queue.length === 0 }"
       @dragover="onListDragOver"
       @dragleave="onListDragLeave"
       @drop="onListDrop"
     >
-      <Transition name="completion-banner">
-        <CompletionBanner
-          v-if="showBanner"
-          :count="completedCount"
-          :last-output-path="lastOutputPath"
-          @dismiss="showBanner = false"
-          @reveal="showInFolder"
-        />
+      <Transition name="popover">
+        <div v-if="showHistory" class="history-anchor" data-history-surface>
+          <ConversionHistoryPopover
+            :records="history"
+            @open-file="openFile"
+            @show-in-folder="showInFolder"
+            @regenerate="regenerateRecord"
+            @remove-record="removeRecord"
+            @clear="clearHistory"
+          />
+        </div>
       </Transition>
 
       <Transition name="fade-scale" mode="out-in">
-        <FileDropZone v-if="files.length === 0" key="empty" @files-added="addFiles" />
+        <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
         <FileQueue
           v-else
           key="queue"
-          :files="files"
+          :files="queue"
           :drag-over="dragOver"
           :is-converting="isConverting"
           @select-files="selectFiles"
-          @clear="files = []"
+          @clear="clearQueue"
           @remove="removeFile"
           @retry="retryFile"
         />
@@ -178,6 +176,8 @@ function onListDrop(event: DragEvent) {
       :is-converting="isConverting"
       @convert="handleConvert"
     />
+
+    <ConversionFlight :flights="flights" />
 
     <Transition name="settings">
       <SettingsPanel v-if="showSettings" @close="showSettings = false" />
@@ -207,5 +207,25 @@ function onListDrop(event: DragEvent) {
       transparent 38%
     ),
     var(--app-bg);
+}
+
+.history-anchor {
+  position: fixed;
+  top: calc(var(--app-titlebar-height) + 10px);
+  right: 12px;
+  z-index: 25;
+}
+
+.popover-enter-active,
+.popover-leave-active {
+  transition:
+    opacity 0.14s ease-out,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top right;
+}
+.popover-enter-from,
+.popover-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(-4px);
 }
 </style>

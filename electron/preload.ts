@@ -1,19 +1,22 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 interface ConversionRequest {
-  files: string[];
+  files: { id: string; path: string }[];
   preset?: string;
   openAfterConvert: boolean;
 }
 
 interface FileDoneEvent {
+  recordId: string;
   path: string;
   outputPath: string;
 }
 
 interface FileErrorEvent {
+  recordId: string;
   path: string;
   error: string;
+  missing?: boolean;
 }
 
 contextBridge.exposeInMainWorld("md2docx", {
@@ -24,10 +27,18 @@ contextBridge.exposeInMainWorld("md2docx", {
   getPresets: (): Promise<{ name: string; current: boolean }[]> =>
     ipcRenderer.invoke("preset:list"),
 
-  getSettings: (): Promise<Record<string, unknown>> => ipcRenderer.invoke("settings:get"),
-
   convert: (request: ConversionRequest): Promise<void> =>
     ipcRenderer.invoke("convert:start", request),
+
+  regenerate: (recordId: string): Promise<void> =>
+    ipcRenderer.invoke("convert:regenerate", recordId),
+
+  getHistory: (): Promise<unknown[]> => ipcRenderer.invoke("history:list"),
+
+  clearHistory: (): Promise<void> => ipcRenderer.invoke("history:clear"),
+
+  removeHistoryRecord: (recordId: string): Promise<void> =>
+    ipcRenderer.invoke("history:remove", recordId),
 
   openFile: (filePath: string): Promise<string> => ipcRenderer.invoke("shell:openPath", filePath),
 

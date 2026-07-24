@@ -47,13 +47,11 @@ const emit = defineEmits<{
           :key="file.path"
           class="file-item"
           :class="`file-item--${file.status}`"
+          :data-record-id="file.recordId"
         >
           <div class="file-item__info">
             <span class="file-item__name">{{ file.name }}</span>
             <span class="file-item__path">{{ file.path }}</span>
-            <span v-if="file.status === 'done' && file.outputPath" class="file-item__output">
-              输出：{{ file.outputPath }}
-            </span>
             <span v-if="file.status === 'error' && file.error" class="file-item__errormsg">
               {{ file.error }}
             </span>
@@ -260,7 +258,6 @@ const emit = defineEmits<{
 }
 .file-item__name,
 .file-item__path,
-.file-item__output,
 .file-item__errormsg {
   overflow: hidden;
   text-overflow: ellipsis;

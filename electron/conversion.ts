@@ -1,17 +1,11 @@
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { dirname, parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../src/cli";
 import { convertMarkdown } from "../src/commands/convert";
-
-export interface DesktopConversionRequest {
-  files: string[];
-  preset?: string;
-  openAfterConvert: boolean;
-}
-
-export type DesktopConversionResult =
-  | { status: "done"; path: string; outputPath: string }
-  | { status: "error"; path: string; error: string };
+import { createRecord } from "./conversion-history";
+import type { ConversionRecord, DesktopConversionRequest, DesktopConversionResult } from "./types";
 
 type ConvertMarkdown = (options: ConvertOptions) => Promise<void>;
 type ResultHandler = (result: DesktopConversionResult) => void | Promise<void>;
@@ -20,10 +14,39 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
   if (!isRecord(value) || !Array.isArray(value.files)) {
     throw new Error("转换请求无效");
   }
-
-  const files = value.files;
-  if (files.length === 0 || files.some((file) => typeof file !== "string" || file.length === 0)) {
+  const rawFiles = value.files;
+  if (rawFiles.length === 0) {
     throw new Error("请选择至少一个 Markdown 文件");
+  }
+  const legacyFiles = rawFiles.every((file) => typeof file === "string" && file.length > 0);
+  const structuredFiles = rawFiles.every(
+    (file) =>
+      isRecord(file) &&
+      typeof file.id === "string" &&
+      file.id.length > 0 &&
+      typeof file.path === "string" &&
+      file.path.length > 0,
+  );
+  if (!legacyFiles && !structuredFiles) throw new Error("转换文件列表无效");
+
+  const legacyJobId =
+    legacyFiles && typeof value.jobId === "string" && value.jobId.length > 0
+      ? value.jobId
+      : undefined;
+  const legacyPrefix = legacyJobId ?? randomUUID();
+  const files = legacyFiles
+    ? rawFiles.map((path, index) => ({
+        id: `${legacyPrefix}:${index}`,
+        path: String(path),
+      }))
+    : rawFiles.map((file) => ({
+        id: String((file as Record<string, unknown>).id),
+        path: String((file as Record<string, unknown>).path),
+      }));
+
+  const fileIds = files.map((file) => String((file as Record<string, unknown>).id));
+  if (new Set(fileIds).size !== fileIds.length) {
+    throw new Error("转换记录 ID 重复");
   }
   if (value.preset !== undefined && typeof value.preset !== "string") {
     throw new Error("预设名称无效");
@@ -31,12 +54,16 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
   if (typeof value.openAfterConvert !== "boolean") {
     throw new Error("转换后打开设置无效");
   }
-
   return {
     files,
     preset: value.preset,
     openAfterConvert: value.openAfterConvert,
+    ...(legacyJobId ? { legacyJobId } : {}),
   };
+}
+
+export function createRecordsFromRequest(request: DesktopConversionRequest): ConversionRecord[] {
+  return request.files.map(({ id, path }) => createRecord(id, path, request.preset ?? "default"));
 }
 
 export async function convertDesktopFiles(
@@ -44,19 +71,38 @@ export async function convertDesktopFiles(
   onResult: ResultHandler,
   convert: ConvertMarkdown = convertMarkdown,
 ): Promise<void> {
-  for (const filePath of request.files) {
+  for (const { id, path: filePath } of request.files) {
     const outputPath = resolve(dirname(filePath), `${parse(filePath).name}.docx`);
+    let result: DesktopConversionResult;
     try {
       await convert({ file: filePath, output: outputPath, preset: request.preset });
-      await onResult({ status: "done", path: filePath, outputPath });
+      result = {
+        status: "done",
+        path: filePath,
+        outputPath,
+        recordId: id,
+        ...(request.legacyJobId ? { jobId: request.legacyJobId } : {}),
+      };
     } catch (error) {
-      await onResult({
+      result = {
         status: "error",
         path: filePath,
+        recordId: id,
+        ...(request.legacyJobId ? { jobId: request.legacyJobId } : {}),
         error: error instanceof Error ? error.message : String(error),
-      });
+      };
     }
+    await onResult(result);
   }
+}
+
+export function regenerateRecord(record: ConversionRecord): DesktopConversionRequest | null {
+  if (!existsSync(record.sourcePath)) return null;
+  return {
+    files: [{ id: record.id, path: record.sourcePath }],
+    preset: record.preset,
+    openAfterConvert: false,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

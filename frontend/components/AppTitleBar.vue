@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { Settings } from "lucide-vue-next";
+import { History, Settings } from "lucide-vue-next";
 import logoSvg from "../../assets/logo.svg";
+
+defineProps<{
+  unreadCount: number;
+  historyExpanded: boolean;
+}>();
 
 const emit = defineEmits<{
   openSettings: [];
+  toggleHistory: [];
 }>();
 </script>
 
@@ -15,6 +21,22 @@ const emit = defineEmits<{
         <span class="app-titlebar__name">md2docx</span>
       </div>
       <div class="app-titlebar__actions">
+        <button
+          type="button"
+          class="app-titlebar__btn"
+          :class="{ 'app-titlebar__btn--active': historyExpanded }"
+          data-history-btn
+          title="转换记录"
+          aria-label="转换记录"
+          aria-controls="conversion-history"
+          :aria-expanded="historyExpanded"
+          @click.stop="emit('toggleHistory')"
+        >
+          <History :size="16" stroke-width="1.5" />
+          <span v-if="unreadCount > 0" class="app-titlebar__badge">
+            {{ unreadCount > 99 ? "99+" : unreadCount }}
+          </span>
+        </button>
         <button
           type="button"
           class="app-titlebar__btn"

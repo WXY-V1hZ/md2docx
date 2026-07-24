@@ -33,7 +33,7 @@
 
 ## 桌面应用
 
-仓库包含基于 Electron + Vue 3 + Vite + Tailwind CSS 的桌面端（早期开发阶段）。标题栏使用 `titleBarStyle: "hidden"` 自定义内容区域并在各平台保留原生窗口控制按钮。系统拖入的文件通过 preload 中的 `webUtils.getPathForFile()` 解析本地路径。桌面转换复用完整 CLI 流水线与预设，输出到 Markdown 文件所在目录，并可在转换后自动打开。成功项目从队列移除后会汇总为一条完成横幅，可在文件夹中定位最后一个输出文件；`Ctrl/⌘ + Enter` 可直接开始转换。
+仓库包含基于 Electron + Vue 3 + Vite + Tailwind CSS 的桌面端（早期开发阶段）。标题栏使用 `titleBarStyle: "hidden"` 自定义内容区域并在各平台保留原生窗口控制按钮。系统拖入的文件通过 preload 中的 `webUtils.getPathForFile()` 解析本地路径。桌面转换复用完整 CLI 流水线与预设，输出到 Markdown 文件所在目录，并可在转换后自动打开。成功文件会从队列收入标题栏转换记录；点击记录按钮后，每个文件都可独立打开、定位或使用最新源文件重新生成。记录仅保存在本机，最多保留 30 条；`Ctrl/⌘ + Enter` 可直接开始转换。
 
 ```bash
 bun run build:electron # 构建主进程与 preload
