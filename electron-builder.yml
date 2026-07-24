@@ -15,6 +15,7 @@ electronDist: node_modules/electron/dist
 win:
   target:
     - portable
+  icon: assets/icon.png
   artifactName: md2docx-${version}-portable.${ext}
 portable:
   artifactName: md2docx-${version}-portable.exe

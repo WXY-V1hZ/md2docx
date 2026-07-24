@@ -396,6 +396,7 @@ function createWindow() {
     height: 680,
     minWidth: 720,
     minHeight: 520,
+    icon: resolve(__dirname, "../assets/icon.png"),
     backgroundColor: nativeTheme.shouldUseDarkColors ? BG.dark : BG.light,
     titleBarStyle: "hidden",
     titleBarOverlay: process.platform === "darwin" ? true : getTitleBarOverlayOptions(),

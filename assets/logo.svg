@@ -2,7 +2,7 @@
   <title id="title">md2docx logo</title>
   <desc id="description">A Markdown bracket flows into a folded document.</desc>
 
-  <rect width="512" height="512" fill="#fff"/>
+  <rect width="512" height="512" rx="96" fill="#fff"/>
 
   <!-- Markdown: an open square bracket -->
   <path
