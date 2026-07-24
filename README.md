@@ -33,10 +33,12 @@
 
 ## 桌面应用
 
-仓库包含基于 Electron + Vue 3 + Vite + Tailwind CSS 的桌面端（早期开发阶段）。标题栏使用 `titleBarStyle: "hidden"` 自定义内容区域并在各平台保留原生窗口控制按钮。系统拖入的文件通过 preload 中的 `webUtils.getPathForFile()` 解析本地路径。
+仓库包含基于 Electron + Vue 3 + Vite + Tailwind CSS 的桌面端（早期开发阶段）。标题栏使用 `titleBarStyle: "hidden"` 自定义内容区域并在各平台保留原生窗口控制按钮。系统拖入的文件通过 preload 中的 `webUtils.getPathForFile()` 解析本地路径。桌面转换复用完整 CLI 流水线与预设，输出到 Markdown 文件所在目录，并可在转换后自动打开。
 
 ```bash
-bun run electron       # 构建前端并启动 Electron
+bun run build:electron # 构建主进程与 preload
+bun run electron       # 构建 Electron 与前端并启动
+bun run dev            # 启动前端开发服务器与 Electron
 ```
 
 ## AI 辅助

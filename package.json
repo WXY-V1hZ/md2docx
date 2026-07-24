@@ -30,7 +30,7 @@
     "LICENSE"
   ],
   "type": "module",
-  "main": "electron/main.ts",
+  "main": "dist-electron/main.js",
   "module": "dist/index.js",
   "scripts": {
     "cli": "bun run src/index.ts",
@@ -40,10 +40,11 @@
     "prepack": "bun run build",
     "test": "bun test",
     "check": "bun tsc --noEmit && bun run oxlint && bun run oxfmt",
+    "build:electron": "bun build --target=node --format=esm --outdir=dist-electron --asset-naming=[name].[ext] -e electron ./electron/main.ts && bun build --target=node --format=cjs --outfile=dist-electron/preload.cjs -e electron ./electron/preload.ts",
     "build:frontend": "vite build --config frontend/vite.config.ts",
-    "electron": "bun run build:frontend && electron .",
+    "electron": "bun run build:electron && bun run build:frontend && electron .",
     "dev:frontend": "vite --config frontend/vite.config.ts",
-    "dev:electron": "VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "dev:electron": "bun run build:electron && electron .",
     "dev": "bun run scripts/dev.ts"
   },
   "dependencies": {

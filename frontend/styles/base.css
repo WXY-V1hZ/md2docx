@@ -201,12 +201,16 @@ textarea {
 
 .app-toggle__track {
   position: relative;
+  display: block;
   width: 36px;
   height: 22px;
+  padding: 0;
+  border: 0;
   border-radius: 11px;
   background: var(--app-tertiary);
   transition: background 0.2s ease;
   flex-shrink: 0;
+  cursor: default;
 }
 
 .app-toggle__track--on {
@@ -258,6 +262,153 @@ textarea {
 
 @media (prefers-color-scheme: dark) {
   .app-select:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Apple-style dropdown menu */
+.app-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.app-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 32px;
+  border: 0.5px solid var(--app-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--app-text);
+  cursor: default;
+  transition: background 0.15s ease;
+}
+
+.app-dropdown__trigger:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-dropdown__trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.app-dropdown__menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
+  min-width: 180px;
+  padding: 4px;
+  background: var(--app-surface);
+  border: 0.5px solid var(--app-border);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  z-index: 50;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-dropdown__menu {
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  }
+}
+
+.app-dropdown__menu--open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.app-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--app-text);
+  text-align: left;
+  cursor: default;
+  transition: background 0.1s ease;
+}
+
+.app-dropdown__item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-dropdown__item:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.app-dropdown__item--active {
+  color: #3478f6;
+  font-weight: 500;
+}
+
+.app-dropdown__item--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.app-dropdown__divider {
+  height: 0.5px;
+  margin: 3px 8px;
+  background: var(--app-border);
+}
+
+/* Apple-style icon button */
+.app-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-secondary);
+  cursor: default;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.app-icon-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--app-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-icon-button:hover {
     background: rgba(255, 255, 255, 0.08);
   }
 }

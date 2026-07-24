@@ -1,6 +1,13 @@
-import { app, BrowserWindow, nativeTheme, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, nativeTheme, ipcMain, dialog, shell } from "electron";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  convertDesktopFiles,
+  parseConversionRequest,
+  type DesktopConversionResult,
+} from "./conversion";
+import { discoverPresets } from "../src/preset";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const TITLE_BAR_HEIGHT = 48;
@@ -35,18 +42,42 @@ function registerIpcHandlers() {
     return result.filePaths;
   });
 
-  ipcMain.handle("preset:list", async () => {
-    // 后续从 preset 系统获取
-    return [{ name: "default", current: true }];
-  });
+  ipcMain.handle("preset:list", async () =>
+    (await discoverPresets())
+      .filter((preset) => preset.valid)
+      .map(({ name, current }) => ({ name, current })),
+  );
 
   ipcMain.handle("settings:get", async () => {
     return {};
   });
 
-  ipcMain.handle("convert:start", async (_event, files: string[]) => {
-    // 后续实现转换逻辑
-    console.log("convert files:", files);
+  ipcMain.handle("shell:openPath", async (_event, filePath: unknown) => {
+    if (typeof filePath !== "string" || filePath.length === 0) {
+      throw new Error("文件路径无效");
+    }
+    return shell.openPath(filePath);
+  });
+
+  ipcMain.handle("shell:showInFolder", async (_event, filePath: unknown) => {
+    if (typeof filePath !== "string" || filePath.length === 0) {
+      throw new Error("文件路径无效");
+    }
+    shell.showItemInFolder(filePath);
+  });
+
+  ipcMain.handle("convert:start", async (event, value: unknown) => {
+    const request = parseConversionRequest(value);
+    await convertDesktopFiles(request, async (result: DesktopConversionResult) => {
+      if (event.sender.isDestroyed()) return;
+      event.sender.send(
+        result.status === "done" ? "convert:file-done" : "convert:file-error",
+        result,
+      );
+      if (result.status === "done" && request.openAfterConvert) {
+        await shell.openPath(result.outputPath);
+      }
+    });
   });
 }
 
@@ -61,9 +92,10 @@ function createWindow() {
     titleBarOverlay: process.platform === "darwin" ? true : getTitleBarOverlayOptions(),
     ...(process.platform === "darwin" ? { trafficLightPosition: { x: 16, y: 16 } } : {}),
     webPreferences: {
-      preload: resolve(__dirname, "preload.ts"),
+      preload: resolve(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
@@ -88,9 +120,7 @@ app.whenReady().then(() => {
     }
 
     mainWindow.setTitleBarOverlay(getTitleBarOverlayOptions());
-    mainWindow.setBackgroundColor(
-      nativeTheme.shouldUseDarkColors ? BG.dark : BG.light,
-    );
+    mainWindow.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BG.dark : BG.light);
   });
 });
 

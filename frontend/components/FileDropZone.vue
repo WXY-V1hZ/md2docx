@@ -33,19 +33,11 @@ function onDrop(e: DragEvent) {
     const paths: string[] = [];
     for (let i = 0; i < e.dataTransfer.files.length; i++) {
       const file = e.dataTransfer.files[i];
-      if (
-        (file.name.endsWith(".md") || file.name.endsWith(".markdown")) &&
-        window.md2docx?.getPathForFile
-      ) {
-        const path = window.md2docx.getPathForFile(file);
-        if (path !== "") {
-          paths.push(path);
-        }
-      }
+      if (!/\.(md|markdown)$/i.test(file.name)) continue;
+      const p = window.md2docx?.getPathForFile(file) ?? "";
+      if (p) paths.push(p);
     }
-    if (paths.length > 0) {
-      emit("filesAdded", paths);
-    }
+    if (paths.length > 0) emit("filesAdded", paths);
   }
 }
 </script>
