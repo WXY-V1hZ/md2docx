@@ -133,9 +133,7 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
   cleanup();
   process.exit();
-}
-
-);
+});
 
 main().catch((err) => {
   console.error(err.message);
