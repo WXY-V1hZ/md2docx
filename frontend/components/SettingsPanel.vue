@@ -411,43 +411,43 @@ onBeforeUnmount(() => {
         </footer>
       </div>
     </aside>
-  </div>
 
-  <Teleport to="body">
-    <Transition name="preset-dialog">
-      <div
-        v-if="discardDialogOpen"
-        class="discard-overlay"
-        @mousedown.self="discardDialogOpen = false"
-      >
+    <Teleport to="body">
+      <Transition name="preset-dialog">
         <div
-          class="discard-dialog"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="discard-title"
+          v-if="discardDialogOpen"
+          class="discard-overlay"
+          @mousedown.self="discardDialogOpen = false"
         >
-          <strong id="discard-title">放弃更改？</strong>
-          <p>尚未保存的预设设置会丢失。</p>
-          <div>
-            <button
-              type="button"
-              class="app-button app-button--secondary"
-              @click="discardDialogOpen = false"
-            >
-              继续编辑
-            </button>
-            <button
-              type="button"
-              class="app-button app-button--destructive"
-              @click="finishExit(pendingExit)"
-            >
-              放弃
-            </button>
+          <div
+            class="discard-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-title"
+          >
+            <strong id="discard-title">放弃更改？</strong>
+            <p>尚未保存的预设设置会丢失。</p>
+            <div>
+              <button
+                type="button"
+                class="app-button app-button--secondary"
+                @click="discardDialogOpen = false"
+              >
+                继续编辑
+              </button>
+              <button
+                type="button"
+                class="app-button app-button--destructive"
+                @click="finishExit(pendingExit)"
+              >
+                放弃
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+      </Transition>
+    </Teleport>
+  </div>
 </template>
 
 <style scoped>
@@ -462,7 +462,6 @@ onBeforeUnmount(() => {
   background: rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  transition: background 0.18s ease-out;
 }
 
 .settings-panel {
@@ -848,6 +847,7 @@ onBeforeUnmount(() => {
   animation: settings-spin 0.7s linear infinite;
 }
 
+/* ===== Overlay: enter/leave via animation ===== */
 .settings-enter-from,
 .settings-leave-to {
   background: transparent;
@@ -856,25 +856,55 @@ onBeforeUnmount(() => {
 }
 
 .settings-enter-active {
-  transition:
-    background 0.18s ease-out,
-    backdrop-filter 0.22s ease-out,
-    -webkit-backdrop-filter 0.22s ease-out;
+  animation: overlay-in 0.32s ease-out forwards;
+}
+.settings-leave-active {
+  animation: overlay-out 0.2s ease-in forwards;
 }
 
+@keyframes overlay-in {
+  from {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+}
+@keyframes overlay-out {
+  to {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+}
+
+/* Panel enter: from below + scale up */
+.settings-enter-from .settings-panel {
+  opacity: 0;
+  transform: translateY(14px) scale(0.965);
+}
 .settings-enter-active .settings-panel {
-  animation: settings-panel-open 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.965);
+  }
 }
 
+/* Panel leave: fade + shrink down */
 .settings-leave-to .settings-panel {
   opacity: 0;
   transform: translateY(10px) scale(0.975);
 }
-
-.settings-leave-active,
 .settings-leave-active .settings-panel {
-  transition-duration: 0.2s;
-  transition-timing-function: ease-in;
+  animation: panel-out 0.2s ease-in forwards;
+}
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -901,26 +931,12 @@ onBeforeUnmount(() => {
   }
 }
 
-@keyframes settings-panel-open {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.965);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .settings-overlay,
-  .settings-panel {
-    transition: none;
-  }
-
-  .settings-enter-active .settings-panel {
-    animation: none;
+  .settings-enter-active,
+  .settings-leave-active,
+  .settings-enter-active .settings-panel,
+  .settings-leave-active .settings-panel {
+    animation: none !important;
   }
 }
 </style>
