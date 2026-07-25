@@ -80,6 +80,18 @@ interface EditablePreset {
   styleConfig: PresetStyleConfig;
 }
 
+interface UpdateSnapshot {
+  state: "idle" | "checking" | "available" | "downloading" | "downloaded" | "error";
+  revision?: number;
+  supported?: boolean;
+  preview?: boolean;
+  version?: string;
+  progress?: number;
+  bytesPerSecond?: number;
+  message?: string;
+  retry?: "check" | "download";
+}
+
 interface Window {
   md2docx?: {
     selectFiles: () => Promise<string[]>;
@@ -141,5 +153,10 @@ interface Window {
     }) => Promise<void>;
     onFileDone: (callback: (data: FileDoneEvent) => void) => () => void;
     onFileError: (callback: (data: FileErrorEvent) => void) => () => void;
+    getUpdateState: () => Promise<UpdateSnapshot>;
+    checkUpdate: () => Promise<UpdateSnapshot>;
+    downloadUpdate: () => Promise<void>;
+    installUpdate: () => Promise<void>;
+    onUpdateState: (callback: (data: UpdateSnapshot) => void) => () => void;
   };
 }

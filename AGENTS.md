@@ -82,6 +82,10 @@ bun run electron                 # 构建前端并启动 Electron
 - 转换记录保存到 `~/.md2docx/conversion-history.json`，最多 30 条；清除记录不得影响转换中的任务或删除实际文件
 - 转换记录面板只由点击标题栏按钮触发，不使用悬停自动展开
 - 面板遮罩与面板本体分别过渡；动效使用短时长和减速曲线，并遵守 `prefers-reduced-motion`
+- 自动更新只在已打包的 Windows NSIS 安装版启用；开发模式和便携版不得联网检查或调用安装
+- 更新监听必须先于检查注册，启动检查在 `did-finish-load` 后执行；renderer 通过带 revision 的状态快照恢复，组件卸载时必须清理 IPC 监听
+- 静默检查失败不得显示错误横幅；手动检查和下载失败使用友好文案并允许重试。下载与安装 IPC 必须校验当前更新状态
+- 开发模式自动展示更新通知预览，并可从设置重新触发；预览必须完全由 renderer 模拟，不联网、不退出、不调用更新 IPC，正式构建不显示预览入口
 
 ---
 
@@ -220,6 +224,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 
 - `bun run build`：`dist/index.js` + `dist/index_bg.wasm`。Node 目标必须捆绑 JS 依赖，不能 `--packages=external`
 - `bun run build:exe`：`dist/md2docx.exe`
+- `bun run pack`：Windows NSIS 安装版，生成 `latest.yml` 供自动更新；`bun run pack:portable`：便携版，不支持自动安装
 - 发布前：`bun test && bun check && bun run build && node dist/index.js -v && npm pack --dry-run && git status`
 - npm 已发布版本不可覆盖
 - npm 发 Node CLI，GitHub Releases 发 EXE
@@ -228,7 +233,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 
 ## 依赖边界
 
-**运行时**：unified/remark-\*、beautiful-mermaid、@resvg/resvg-wasm、docx、pizzip、commander、@xmldom/xmldom、xpath
+**运行时**：unified/remark-\*、beautiful-mermaid、@resvg/resvg-wasm、docx、pizzip、commander、@xmldom/xmldom、xpath、electron-updater（桌面端）
 
 **禁止重新引入 Sharp 到生产代码**。它只作为 devDep 用于测试对比。
 

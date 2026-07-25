@@ -77,4 +77,27 @@ describe("Electron 前端构建", () => {
     expect(preload).toContain('"preset:read"');
     expect(preload).toContain('"preset:update"');
   });
+
+  test("自动更新使用可恢复状态、安装版发布和可清理监听", async () => {
+    const [app, banner, updater, main, preload, builderConfig] = await Promise.all([
+      readFile(new URL("../frontend/App.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/components/UpdateBanner.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/composables/useAutoUpdate.ts", import.meta.url), "utf8"),
+      readFile(new URL("../electron/main.ts", import.meta.url), "utf8"),
+      readFile(new URL("../electron/preload.ts", import.meta.url), "utf8"),
+      readFile(new URL("../electron-builder.yml", import.meta.url), "utf8"),
+    ]);
+
+    expect(packageJson.dependencies).toHaveProperty("electron-updater");
+    expect(packageJson.scripts.pack).toContain("--win nsis");
+    expect(builderConfig).toContain("- nsis");
+    expect(app).toContain('class="flex min-h-0 flex-col"');
+    expect(banner).toContain('role="progressbar"');
+    expect(banner).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(updater).toContain("removeStateListener?.()");
+    expect(main).toContain('"did-finish-load"');
+    expect(main).toContain('"update:state"');
+    expect(preload).toContain('"update:state-changed"');
+    expect(preload).not.toContain('"update:available"');
+  });
 });

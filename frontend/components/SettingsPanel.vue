@@ -16,8 +16,8 @@ import PresetManager from "./PresetManager.vue";
 import PresetEditor from "./PresetEditor.vue";
 import pkg from "../../package.json" with { type: "json" };
 
-const emit = defineEmits<{ close: [] }>();
-const props = defineProps<{ initialSection?: "presets" }>();
+const emit = defineEmits<{ close: []; previewUpdate: [] }>();
+const props = defineProps<{ initialSection?: "presets"; updatePreviewEnabled?: boolean }>();
 
 type OutputMode = "source" | "folder" | "ask";
 type ConflictAction = "overwrite" | "rename" | "ask";
@@ -46,6 +46,8 @@ const editorRequest = ref<{ sourceName: string; mode: "edit" | "copy" } | null>(
 const editorDirty = ref(false);
 const discardDialogOpen = ref(false);
 const pendingExit = ref<"back" | "close">("back");
+const checkingUpdate = ref(false);
+const updateCheckStatus = ref("");
 
 let previousFocus: HTMLElement | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -131,6 +133,37 @@ async function persistSettings() {
   } catch {
     saveError.value = "设置未保存";
   }
+}
+
+async function checkForUpdates() {
+  if (checkingUpdate.value) return;
+  checkingUpdate.value = true;
+  updateCheckStatus.value = "";
+  try {
+    const result = await window.md2docx?.checkUpdate();
+    if (!result || result.supported === false) {
+      updateCheckStatus.value = "自动更新仅支持 Windows 安装版";
+    } else if (result.state === "available") {
+      updateCheckStatus.value = `发现 ${result.version ?? "新版本"}`;
+    } else if (result.state === "downloading") {
+      updateCheckStatus.value = `正在下载 ${Math.round(result.progress ?? 0)}%`;
+    } else if (result.state === "downloaded") {
+      updateCheckStatus.value = "更新已准备好";
+    } else if (result.state === "error") {
+      updateCheckStatus.value = result.message ?? "无法检查更新";
+    } else {
+      updateCheckStatus.value = "已是最新版本";
+    }
+  } catch {
+    updateCheckStatus.value = "无法检查更新";
+  } finally {
+    checkingUpdate.value = false;
+  }
+}
+
+function previewUpdate() {
+  emit("previewUpdate");
+  emit("close");
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -362,7 +395,19 @@ onBeforeUnmount(() => {
 
         <PresetManager @edit="openEditor" />
 
-        <footer class="settings-footer">md2docx {{ pkg.version }}</footer>
+        <footer class="settings-footer">
+          <span>md2docx {{ pkg.version }}</span>
+          <div class="settings-footer__actions">
+            <button v-if="updatePreviewEnabled" type="button" @click="previewUpdate">
+              预览更新
+            </button>
+            <button type="button" :disabled="checkingUpdate" @click="checkForUpdates">
+              <RefreshCw :size="11" stroke-width="1.8" :class="{ 'is-spinning': checkingUpdate }" />
+              {{ checkingUpdate ? "正在检查" : "检查更新" }}
+            </button>
+          </div>
+          <small v-if="updateCheckStatus" role="status">{{ updateCheckStatus }}</small>
+        </footer>
       </div>
     </aside>
   </div>
@@ -700,10 +745,53 @@ onBeforeUnmount(() => {
 }
 
 .settings-footer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 5px 8px;
   padding: 0 5px 3px;
   color: var(--app-tertiary);
   font-size: 10.5px;
-  text-align: center;
+}
+
+.settings-footer button {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-accent);
+  font: inherit;
+  cursor: default;
+}
+
+.settings-footer__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.settings-footer button:hover {
+  background: color-mix(in srgb, var(--app-accent) 9%, transparent);
+}
+
+.settings-footer button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.settings-footer button:disabled {
+  opacity: 0.6;
+}
+
+.settings-footer small {
+  grid-column: 1 / -1;
+  color: var(--app-secondary);
+  font-size: 10px;
+  text-align: right;
 }
 
 .discard-overlay {

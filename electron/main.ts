@@ -42,11 +42,14 @@ import type {
   DesktopConversionRequest,
   DesktopConversionResult,
 } from "./types";
+import { autoUpdater } from "electron-updater";
+import { createUpdateManager, type UpdateManager, type UpdateSnapshot } from "./updater";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const TITLE_BAR_HEIGHT = 48;
 
 let mainWindow: BrowserWindow | null = null;
+let updateManager: UpdateManager | null = null;
 
 const SURFACE = { light: "#ffffff", dark: "#2c2c2e" };
 const BG = { light: "#f5f5f7", dark: "#1c1c1e" };
@@ -58,6 +61,36 @@ function getTitleBarOverlayOptions() {
     symbolColor: isDark ? "#f5f5f7" : "#1d1d1f",
     height: TITLE_BAR_HEIGHT,
   };
+}
+
+function publishUpdateSnapshot(snapshot: UpdateSnapshot): void {
+  mainWindow?.webContents.send("update:state-changed", snapshot);
+}
+
+function setupUpdateManager(): UpdateManager {
+  const manager = createUpdateManager(
+    {
+      configure() {
+        autoUpdater.autoDownload = false;
+        autoUpdater.autoInstallOnAppQuit = true;
+      },
+      check: () => autoUpdater.checkForUpdates() as unknown as Promise<void>,
+      download: () => autoUpdater.downloadUpdate() as unknown as Promise<void>,
+      install: () => setImmediate(() => autoUpdater.quitAndInstall()),
+      onAvailable: (listener) =>
+        autoUpdater.on("update-available", (info) => listener(info.version)),
+      onNotAvailable: (listener) => autoUpdater.on("update-not-available", () => listener()),
+      onProgress: (listener) =>
+        autoUpdater.on("download-progress", (p) => listener(p.percent, p.bytesPerSecond)),
+      onDownloaded: (listener) =>
+        autoUpdater.on("update-downloaded", (info) => listener(info?.version)),
+      onError: (listener) => autoUpdater.on("error", (err) => listener(err)),
+    },
+    () => !process.env.VITE_DEV_SERVER_URL,
+    publishUpdateSnapshot,
+  );
+  manager.setup();
+  return manager;
 }
 
 function registerIpcHandlers() {
@@ -244,6 +277,13 @@ function registerIpcHandlers() {
     });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
+
+  // ── Auto-update ──
+
+  ipcMain.handle("update:state", () => updateManager?.getSnapshot() ?? { state: "idle" });
+  ipcMain.handle("update:check", () => updateManager?.check() ?? { state: "idle" });
+  ipcMain.handle("update:download", () => updateManager?.download());
+  ipcMain.handle("update:install", () => updateManager?.install());
 }
 
 function runCommand(
@@ -418,10 +458,15 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    publishUpdateSnapshot(updateManager?.getSnapshot() ?? { state: "idle" });
+  });
 }
 
 app.whenReady().then(() => {
   recoverHistory();
+  updateManager = setupUpdateManager();
   registerIpcHandlers();
   createWindow();
 

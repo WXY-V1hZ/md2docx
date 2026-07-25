@@ -14,12 +14,14 @@ extraResources:
 electronDist: node_modules/electron/dist
 win:
   target:
-    - portable
+    - nsis
   icon: assets/icon.png
-  artifactName: md2docx-${version}-portable.${ext}
 portable:
   artifactName: md2docx-${version}-portable.exe
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   artifactName: md2docx-${version}-setup.exe
+publish:
+  provider: generic
+  url: https://github.com/WXY-V1hZ/md2docx/releases/latest/download

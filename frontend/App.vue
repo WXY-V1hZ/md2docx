@@ -8,6 +8,8 @@ import ConversionHistoryPopover from "./components/ConversionHistoryPopover.vue"
 import FileDropZone from "./components/FileDropZone.vue";
 import FileQueue from "./components/FileQueue.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
+import UpdateBanner from "./components/UpdateBanner.vue";
+import { useAutoUpdate } from "./composables/useAutoUpdate";
 import { useConversionManager } from "./composables/useConversionManager";
 
 const showHistory = ref(false);
@@ -29,6 +31,15 @@ const {
   removeRecord,
   clearHistory,
 } = useConversionManager(showHistory);
+
+const {
+  update,
+  visible: updateVisible,
+  download: downloadUpdate,
+  retry: retryUpdate,
+  install: installUpdate,
+  dismiss: dismissUpdate,
+} = useAutoUpdate();
 
 const dragOver = ref(false);
 const showSettings = ref(false);
@@ -141,41 +152,54 @@ onBeforeUnmount(() => {
       @toggle-history="toggleHistory"
     />
 
-    <main
-      class="workspace flex min-h-0 flex-col items-center overflow-auto px-8 py-10"
-      :class="{ 'justify-center': queue.length === 0 }"
-      @dragover="onListDragOver"
-      @dragleave="onListDragLeave"
-      @drop="onListDrop"
-    >
-      <Transition name="popover">
-        <div v-if="showHistory" class="history-anchor" data-history-surface>
-          <ConversionHistoryPopover
-            :records="history"
-            @open-file="openFile"
-            @show-in-folder="showInFolder"
-            @regenerate="regenerateRecord"
-            @remove-record="removeRecord"
-            @clear="clearHistory"
-          />
-        </div>
-      </Transition>
-
-      <Transition name="fade-scale" mode="out-in">
-        <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
-        <FileQueue
-          v-else
-          key="queue"
-          :files="queue"
-          :drag-over="dragOver"
-          :is-converting="isConverting"
-          @select-files="selectFiles"
-          @clear="clearQueue"
-          @remove="removeFile"
-          @retry="retryFile"
+    <div class="flex min-h-0 flex-col">
+      <Transition name="update-banner">
+        <UpdateBanner
+          v-if="updateVisible"
+          :update="update"
+          @download="downloadUpdate"
+          @retry="retryUpdate"
+          @install="installUpdate"
+          @dismiss="dismissUpdate"
         />
       </Transition>
-    </main>
+
+      <main
+        class="workspace flex min-h-0 flex-1 flex-col items-center overflow-auto px-8 py-10"
+        :class="{ 'justify-center': queue.length === 0 }"
+        @dragover="onListDragOver"
+        @dragleave="onListDragLeave"
+        @drop="onListDrop"
+      >
+        <Transition name="popover">
+          <div v-if="showHistory" class="history-anchor" data-history-surface>
+            <ConversionHistoryPopover
+              :records="history"
+              @open-file="openFile"
+              @show-in-folder="showInFolder"
+              @regenerate="regenerateRecord"
+              @remove-record="removeRecord"
+              @clear="clearHistory"
+            />
+          </div>
+        </Transition>
+
+        <Transition name="fade-scale" mode="out-in">
+          <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
+          <FileQueue
+            v-else
+            key="queue"
+            :files="queue"
+            :drag-over="dragOver"
+            :is-converting="isConverting"
+            @select-files="selectFiles"
+            @clear="clearQueue"
+            @remove="removeFile"
+            @retry="retryFile"
+          />
+        </Transition>
+      </main>
+    </div>
 
     <BottomActionBar
       :can-convert="readyCount > 0"
@@ -239,5 +263,17 @@ onBeforeUnmount(() => {
 .popover-leave-to {
   opacity: 0;
   transform: scale(0.96) translateY(-4px);
+}
+
+.update-banner-enter-active,
+.update-banner-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s ease;
+}
+.update-banner-enter-from,
+.update-banner-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
 }
 </style>

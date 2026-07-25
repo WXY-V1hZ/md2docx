@@ -48,6 +48,9 @@ function mockDesktopBridge(overrides: Record<string, unknown> = {}) {
     renamePreset: mock(() => Promise.resolve()),
     copyPreset: mock(() => Promise.resolve()),
     deletePreset: mock(() => Promise.resolve()),
+    checkUpdate: mock(() =>
+      Promise.resolve({ state: "idle" as const, revision: 1, supported: true }),
+    ),
     readPreset: mock(() => Promise.resolve(editablePreset("academic"))),
     updatePreset: mock((_input: { config: PresetAppConfig }) =>
       Promise.resolve(editablePreset("academic")),
@@ -191,6 +194,63 @@ describe("SettingsPanel 预设管理", () => {
 
     expect(wrapper.get('[role="alertdialog"]').text()).toContain("放弃更改");
     expect(wrapper.emitted("close")).toBeUndefined();
+  });
+
+  test("可以从设置页手动检查更新", async () => {
+    const bridge = mockDesktopBridge();
+    const wrapper = mount(SettingsPanel, {
+      global: { stubs: { Teleport: true } },
+    });
+    activeWrapper = wrapper;
+    await flushPromises();
+
+    await wrapper.get(".settings-footer button").trigger("click");
+    await flushPromises();
+
+    expect(bridge.checkUpdate).toHaveBeenCalledTimes(1);
+    expect(wrapper.get(".settings-footer small").text()).toBe("已是最新版本");
+  });
+
+  test("手动检查时正确显示正在进行的下载", async () => {
+    mockDesktopBridge({
+      checkUpdate: mock(() =>
+        Promise.resolve({
+          state: "downloading" as const,
+          revision: 2,
+          supported: true,
+          progress: 42.4,
+        }),
+      ),
+    });
+    const wrapper = mount(SettingsPanel, {
+      global: { stubs: { Teleport: true } },
+    });
+    activeWrapper = wrapper;
+    await flushPromises();
+
+    await wrapper.get(".settings-footer button").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get(".settings-footer small").text()).toBe("正在下载 42%");
+  });
+
+  test("开发模式可从设置重新打开更新预览", async () => {
+    mockDesktopBridge();
+    const wrapper = mount(SettingsPanel, {
+      props: { updatePreviewEnabled: true },
+      global: { stubs: { Teleport: true } },
+    });
+    activeWrapper = wrapper;
+    await flushPromises();
+
+    const previewButton = wrapper
+      .findAll<HTMLButtonElement>(".settings-footer button")
+      .find((button) => button.text() === "预览更新");
+    expect(previewButton).toBeDefined();
+    await previewButton!.trigger("click");
+
+    expect(wrapper.emitted("previewUpdate")).toHaveLength(1);
+    expect(wrapper.emitted("close")).toHaveLength(1);
   });
 });
 

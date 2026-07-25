@@ -26,6 +26,17 @@ interface EditablePreset {
   styleConfig: Record<string, unknown>;
 }
 
+interface UpdateSnapshot {
+  state: "idle" | "checking" | "available" | "downloading" | "downloaded" | "error";
+  revision?: number;
+  supported?: boolean;
+  version?: string;
+  progress?: number;
+  bytesPerSecond?: number;
+  message?: string;
+  retry?: "check" | "download";
+}
+
 contextBridge.exposeInMainWorld("md2docx", {
   selectFiles: (): Promise<string[]> => ipcRenderer.invoke("dialog:selectFiles"),
 
@@ -115,5 +126,19 @@ contextBridge.exposeInMainWorld("md2docx", {
     const handler = (_event: Electron.IpcRendererEvent, data: FileErrorEvent) => callback(data);
     ipcRenderer.on("convert:file-error", handler);
     return () => ipcRenderer.removeListener("convert:file-error", handler);
+  },
+
+  getUpdateState: (): Promise<UpdateSnapshot> => ipcRenderer.invoke("update:state"),
+
+  checkUpdate: (): Promise<UpdateSnapshot> => ipcRenderer.invoke("update:check"),
+
+  downloadUpdate: (): Promise<void> => ipcRenderer.invoke("update:download"),
+
+  installUpdate: (): Promise<void> => ipcRenderer.invoke("update:install"),
+
+  onUpdateState: (callback: (data: UpdateSnapshot) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: UpdateSnapshot) => callback(data);
+    ipcRenderer.on("update:state-changed", handler);
+    return () => ipcRenderer.removeListener("update:state-changed", handler);
   },
 });
