@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 interface ConversionRequest {
-  files: { id: string; path: string }[];
+  files: { id: string; path: string; editor?: boolean }[];
   preset: string;
   config: Record<string, unknown>;
   styleConfig: Record<string, unknown>;
@@ -26,6 +26,11 @@ interface EditablePreset {
   source: "builtin" | "user";
   config: Record<string, unknown>;
   styleConfig: Record<string, unknown>;
+}
+
+interface EditorSource {
+  path: string;
+  name: string;
 }
 
 interface UpdateSnapshot {
@@ -83,6 +88,9 @@ contextBridge.exposeInMainWorld("md2docx", {
 
   convert: (request: ConversionRequest): Promise<void> =>
     ipcRenderer.invoke("convert:start", request),
+
+  createEditorSource: (input: { content: string; name: string }): Promise<EditorSource> =>
+    ipcRenderer.invoke("editor:create-source", input),
 
   getHistory: (): Promise<unknown[]> => ipcRenderer.invoke("history:list"),
 

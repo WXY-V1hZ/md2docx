@@ -17,6 +17,7 @@ describe("Electron 前端构建", () => {
 
     expect(component).toContain('<style scoped src="../styles/titlebar.css"></style>');
     expect(component).not.toContain("PanelRight");
+    expect(component).toContain("'app-titlebar__btn--active': settingsExpanded");
   });
 
   test("转换侧边栏常驻并由主界面固定按钮控制", async () => {
@@ -30,6 +31,31 @@ describe("Electron 前端构建", () => {
     expect(app).toContain("position: absolute");
     expect(app).toContain("right: 12px");
     expect(app).not.toContain('v-if="queue.length > 0"');
+  });
+
+  test("主界面可切换 Markdown 编辑器且编辑按钮随文件区移动", async () => {
+    const [app, editor, preload, main] = await Promise.all([
+      readFile(new URL("../frontend/App.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/components/MarkdownEditor.vue", import.meta.url), "utf8"),
+      readFile(new URL("../electron/preload.ts", import.meta.url), "utf8"),
+      readFile(new URL("../electron/main.ts", import.meta.url), "utf8"),
+    ]);
+
+    expect(app).toContain("MarkdownEditor");
+    expect(app).toContain('class="workspace-editor-toggle"');
+    expect(app).toContain("right: 44px");
+    expect(app).toContain("startEditorConversion");
+    expect(app).not.toContain('{{ editorMode ? "文件" : "编辑" }}');
+    expect(editor).toContain('aria-label="Markdown 内容"');
+    expect(editor).toContain("SFMono-Regular");
+    expect(editor).toContain("font-size: 15px");
+    expect(editor).not.toContain("文本仅保留在当前窗口");
+    expect(app).toMatch(
+      /function handleRequeue[\s\S]*?editorMode\.value = false;[\s\S]*?closeHistory\(\);/,
+    );
+    expect(preload).toContain('"editor:create-source"');
+    expect(main).toContain("createEditorSource");
+    expect(main).toContain("showSaveDialog");
   });
 
   test("开发会话使用隔离的 Chromium 缓存目录", async () => {
@@ -106,6 +132,14 @@ describe("Electron 前端构建", () => {
     expect(editor).not.toContain("<select");
     expect(form).not.toContain("<select");
     expect(settings).toContain('aria-modal="true"');
+    expect(settings).toContain('id="settings-dialog"');
+    expect(settings).toContain("justify-content: center");
+    expect(settings).toContain("width: min(640px");
+    expect(settings).toContain("border-radius: 16px");
+    expect(settings).not.toContain("transform: translateX(100%)");
+    expect(settings).toContain("animation: settings-panel-open 0.32s");
+    expect(settings).toContain("@keyframes settings-panel-open");
+    expect(settings).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none;/);
     expect(settings).toContain("放弃更改");
     expect(settings).not.toContain("<select");
     expect(preload).toContain('"settings:save"');

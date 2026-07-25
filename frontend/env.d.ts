@@ -135,12 +135,16 @@ interface Window {
     showInFolder: (filePath: string) => Promise<void>;
     openExternal: (url: string) => Promise<void>;
     convert: (request: {
-      files: { id: string; path: string }[];
+      files: { id: string; path: string; editor?: boolean }[];
       preset: string;
       config: PresetAppConfig;
       styleConfig: PresetStyleConfig;
       openAfterConvert: boolean;
     }) => Promise<void>;
+    createEditorSource: (input: {
+      content: string;
+      name: string;
+    }) => Promise<{ path: string; name: string }>;
     getHistory: () => Promise<ConversionRecord[]>;
     clearHistory: () => Promise<void>;
     removeHistoryRecord: (recordId: string) => Promise<void>;

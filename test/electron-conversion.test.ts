@@ -32,19 +32,29 @@ describe("Electron 桌面转换", () => {
 
     expect(
       parseConversionRequest({
-        files: [{ id: "report", path: "report.md" }],
+        files: [{ id: "report", path: "report.md", editor: true }],
         preset: "academic",
         config,
         styleConfig,
         openAfterConvert: false,
       }),
     ).toEqual({
-      files: [{ id: "report", path: "report.md" }],
+      files: [{ id: "report", path: "report.md", editor: true }],
       preset: "academic",
       config,
       styleConfig,
       openAfterConvert: false,
     });
+
+    expect(() =>
+      parseConversionRequest({
+        files: [{ id: "report", path: "report.md", editor: true, unexpected: true }],
+        preset: "default",
+        config,
+        styleConfig,
+        openAfterConvert: false,
+      }),
+    ).toThrow("转换文件列表无效");
 
     expect(() =>
       parseConversionRequest({

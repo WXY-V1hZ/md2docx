@@ -74,16 +74,19 @@ bun run electron                 # 构建前端并启动 Electron
 - 预设复制、重命名和删除统一由 `src/preset.ts` 实现；主进程不得直接拼接 renderer 提供的名称执行文件操作，当前预设被重命名或删除时必须同步 `settings.json`
 - 内置 `default` 不可直接改写；桌面端可视化编辑它时必须另存为用户预设并自动切换，用户预设可原地编辑。编辑只暴露 AppConfig 与语义化 StyleConfig，必须保留有效 `style-raw.json`，并以临时目录原子替换
 - 预设编辑器使用明确的保存/取消；返回、关闭、遮罩和 Esc 离开有未保存更改的编辑器时必须确认。底部“管理预设”必须打开并定位设置中的预设区
+- 设置界面使用内容区居中模态窗口，不得实现为右侧抽屉；打开时使用短时淡入、上移和缩放过渡，遵守 `prefers-reduced-motion`；打开期间标题栏设置按钮必须显示与编辑模式按钮一致的蓝色激活状态
 - 设置与预设编辑器的枚举选择统一使用 `AppSelect.vue`，不得退回平台原生 `<select>`；菜单需支持方向键、Enter、Esc、Tab、视口边缘定位和减少动态效果
 - 输出目录和同名文件策略只能在主进程应用，renderer 不得自行决定或拼接最终输出路径
 - Pandoc 检测只搜索系统 `PATH`，调用必须设置超时并限制输出大小
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`
 - 桌面转换必须调用 `convertMarkdown()` 复用完整 CLI 流水线，不得单独执行裸 `pandoc`
 - 主界面右侧始终挂载转换设置 Inspector；主界面右上角无边框固定按钮与 `Ctrl+Alt+B` 控制显示/隐藏，按钮不得随 Inspector 展开移动，状态跨启动保留。字段必须复用预设编辑器的共享表单，选择预设会重置工作区并同步默认预设，直接调整不得写回预设
+- 主界面文件工作区右上角提供“编辑”按钮，在文件列表与 Markdown 文本编辑器间切换；该按钮相对文件工作区定位，必须随 Inspector 展开左移。编辑文本由主进程校验并物化到 `~/.md2docx/editor/<uuid>/<name>.md`，再复用完整转换请求和流水线，不得由 renderer 写文件
+- 编辑器文本不混入既有文件队列；转换记录仍保存物化后的源文件。桌面输出模式为 `source` 时必须由主进程显示 DOCX 保存对话框，不能把输出静默写入应用缓存
 - `bun run dev` 必须为每次开发会话隔离 Electron `sessionData`，避免并行或残留实例争用 Chromium 缓存；正式构建继续使用默认会话目录
 - Inspector 配置与语义化样式随转换请求发送并在主进程严格校验；转换使用请求快照，底层样式仍来自所选预设
 - 完成项目从队列移除后进入标题栏转换记录；每个文件保留独立记录，可打开输出、定位文件或重新加入队列
-- 转换记录的再次操作只把源文件去重加入当前队列，不得直接开始转换；后续转换使用当前 Inspector 设置
+- 转换记录的再次操作只把源文件去重加入当前队列、关闭记录面板并切回文件列表，不得直接开始转换；后续转换使用当前 Inspector 设置
 - 转换记录保存到 `~/.md2docx/conversion-history.json`，最多 30 条；清除记录不得影响转换中的任务或删除实际文件
 - 转换记录面板只由点击标题栏按钮触发，不使用悬停自动展开
 - 面板遮罩与面板本体分别过渡；动效使用短时长和减速曲线，并遵守 `prefers-reduced-motion`
@@ -138,6 +141,7 @@ export style-config        → ./style-config.json
 ~/.md2docx/
 ├── settings.json
 ├── presets/<name>/{config,style-raw,style-config}.json  (可选)
+├── editor/<uuid>/<name>.md
 ├── preprocess/<basename>-<sha256:12>/{formatted.md, mermaid_*.png}
 ├── resources/default/{config,style-raw,style-config}.json + *.lua
 └── style/<sha256:16>.docx

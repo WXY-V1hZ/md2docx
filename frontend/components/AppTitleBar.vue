@@ -5,6 +5,7 @@ import logoSvg from "../../assets/logo.svg";
 defineProps<{
   unreadCount: number;
   historyExpanded: boolean;
+  settingsExpanded: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -40,8 +41,11 @@ const emit = defineEmits<{
         <button
           type="button"
           class="app-titlebar__btn"
+          :class="{ 'app-titlebar__btn--active': settingsExpanded }"
           title="设置"
           aria-label="打开设置"
+          aria-controls="settings-dialog"
+          :aria-expanded="settingsExpanded"
           @click="emit('openSettings')"
         >
           <Settings :size="16" stroke-width="1.5" />

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
-import { delimiter, dirname, extname, join, resolve } from "node:path";
+import { delimiter, dirname, extname, join, parse, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -26,6 +26,7 @@ import {
   removeHistoryRecord,
   saveHistory,
 } from "./conversion-history";
+import { createEditorSource } from "./editor-source";
 import {
   availableOutputPath,
   loadDesktopConversionSettings,
@@ -243,6 +244,8 @@ function registerIpcHandlers() {
     });
   });
 
+  ipcMain.handle("editor:create-source", (_event, value: unknown) => createEditorSource(value));
+
   ipcMain.handle("settings:load", () => loadDesktopSettings());
 
   ipcMain.handle("settings:save", (_event, value: unknown) => saveDesktopSettings(value));
@@ -351,6 +354,20 @@ async function applyDesktopOutputSettings(
   const reservedPaths = new Set<string>();
 
   for (const file of request.files) {
+    if (file.editor && settings.outputMode === "source") {
+      if (!mainWindow) throw new Error("窗口不可用");
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: "保存 Word 文档",
+        defaultPath: join(app.getPath("documents"), `${parse(file.path).name}.docx`),
+        filters: [{ name: "Word 文档", extensions: ["docx"] }],
+        properties: ["showOverwriteConfirmation", "createDirectory"],
+      });
+      if (result.canceled || !result.filePath) throw new Error("已取消选择输出位置");
+      const outputPath = result.filePath;
+      reservedPaths.add(pathKey(outputPath));
+      files.push({ ...file, outputPath });
+      continue;
+    }
     const directory = selectedFolder ?? dirname(file.path);
     let outputPath = outputPathFor(file.path, directory);
     if (reservedPaths.has(pathKey(outputPath))) {

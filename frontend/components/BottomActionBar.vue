@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ArrowRight } from "lucide-vue-next";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
 const props = defineProps<{
   canConvert: boolean;
   fileCount: number;
   isConverting: boolean;
+  sourceLabel?: string;
 }>();
 
 const emit = defineEmits<{
@@ -37,7 +37,8 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 <template>
   <div class="action-bar">
     <div class="action-bar__info">
-      <span v-if="fileCount > 0" class="action-bar__count">{{ fileCount }} 个文件</span>
+      <span v-if="sourceLabel" class="action-bar__count">{{ sourceLabel }}</span>
+      <span v-else-if="fileCount > 0" class="action-bar__count">{{ fileCount }} 个文件</span>
       <span v-else class="action-bar__count action-bar__count--empty">无文件</span>
       <span v-if="isConverting" class="action-bar__status">转换中…</span>
     </div>
@@ -64,7 +65,6 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
         </template>
         <template v-else>
           <span>{{ fileCount > 1 ? `转换 ${fileCount} 个文件` : "转换" }}</span>
-          <ArrowRight v-if="fileCount > 0" :size="16" stroke-width="2" />
         </template>
       </button>
     </div>

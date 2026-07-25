@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { PanelRight } from "lucide-vue-next";
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { Files, PanelRight, SquarePen } from "lucide-vue-next";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import AppTitleBar from "./components/AppTitleBar.vue";
 import BottomActionBar from "./components/BottomActionBar.vue";
@@ -9,6 +9,7 @@ import ConversionFlight from "./components/ConversionFlight.vue";
 import ConversionHistoryPopover from "./components/ConversionHistoryPopover.vue";
 import FileDropZone from "./components/FileDropZone.vue";
 import FileQueue from "./components/FileQueue.vue";
+import MarkdownEditor from "./components/MarkdownEditor.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
 import { useAutoUpdate } from "./composables/useAutoUpdate";
@@ -29,6 +30,7 @@ const {
   clearQueue,
   retryFile,
   startConversion,
+  startEditorConversion,
   markHistoryRead,
   requeueRecord,
   removeRecord,
@@ -50,6 +52,14 @@ const settingsInitialSection = ref<"presets" | undefined>();
 const conversionSettings = ref<ConversionWorkspaceSettings | null>(null);
 const conversionSettingsValid = ref(false);
 const inspectorCollapsed = ref(true);
+const editorMode = ref(false);
+const editorContent = ref("");
+const editorName = ref("未命名");
+const editorError = ref("");
+const editorStarting = ref(false);
+
+const editorHasContent = computed(() => editorContent.value.trim().length > 0);
+const conversionBusy = computed(() => isConverting.value || editorStarting.value);
 
 function toggleHistory() {
   showSettings.value = false;
@@ -98,6 +108,20 @@ async function selectFiles() {
 
 async function handleConvert(options: { openAfterConvert: boolean }) {
   if (!conversionSettings.value || !conversionSettingsValid.value) return;
+  if (editorMode.value) {
+    if (!editorHasContent.value || conversionBusy.value) return;
+    editorError.value = "";
+    editorStarting.value = true;
+    const result = await startEditorConversion(
+      editorContent.value,
+      editorName.value,
+      conversionSettings.value,
+      options.openAfterConvert,
+    );
+    editorStarting.value = false;
+    editorError.value = result.error ?? "";
+    return;
+  }
   await startConversion(conversionSettings.value, options.openAfterConvert);
 }
 
@@ -110,8 +134,15 @@ function toggleInspector() {
   inspectorCollapsed.value = !inspectorCollapsed.value;
 }
 
+function toggleEditor() {
+  if (conversionBusy.value) return;
+  editorMode.value = !editorMode.value;
+  editorError.value = "";
+}
+
 function handleRequeue(recordId: string) {
   if (!requeueRecord(recordId)) return;
+  editorMode.value = false;
   closeHistory();
 }
 
@@ -137,6 +168,7 @@ function onListDrop(e: DragEvent) {
     if (path) paths.push(path);
   }
   addFiles(paths);
+  if (paths.length > 0) editorMode.value = false;
 }
 
 function onDocumentKeydown(event: KeyboardEvent) {
@@ -180,6 +212,7 @@ onBeforeUnmount(() => {
     <AppTitleBar
       :unread-count="unreadCount"
       :history-expanded="showHistory"
+      :settings-expanded="showSettings"
       @open-settings="openSettings"
       @toggle-history="toggleHistory"
     />
@@ -211,12 +244,26 @@ onBeforeUnmount(() => {
         </button>
 
         <main
-          class="workspace flex min-h-0 min-w-0 flex-1 flex-col items-center overflow-auto px-7 py-8"
-          :class="{ 'justify-center': queue.length === 0 }"
+          class="workspace flex min-h-0 min-w-0 flex-1 flex-col items-center overflow-auto px-7 pt-14 pb-8"
+          :class="{ 'justify-center': !editorMode && queue.length === 0 }"
           @dragover="onListDragOver"
           @dragleave="onListDragLeave"
           @drop="onListDrop"
         >
+          <button
+            type="button"
+            class="workspace-editor-toggle"
+            :class="{ 'workspace-editor-toggle--active': editorMode }"
+            :disabled="conversionBusy"
+            :title="editorMode ? '返回文件列表' : '粘贴 Markdown 文本'"
+            :aria-label="editorMode ? '返回文件列表' : '打开 Markdown 文本编辑器'"
+            :aria-pressed="editorMode"
+            @click="toggleEditor"
+          >
+            <Files v-if="editorMode" :size="15" stroke-width="1.7" />
+            <SquarePen v-else :size="15" stroke-width="1.7" />
+          </button>
+
           <Transition name="popover">
             <div v-if="showHistory" class="history-anchor" data-history-surface>
               <ConversionHistoryPopover
@@ -231,7 +278,15 @@ onBeforeUnmount(() => {
           </Transition>
 
           <Transition name="fade-scale" mode="out-in">
-            <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
+            <MarkdownEditor
+              v-if="editorMode"
+              key="editor"
+              v-model:content="editorContent"
+              v-model:name="editorName"
+              :disabled="conversionBusy"
+              :error="editorError"
+            />
+            <FileDropZone v-else-if="queue.length === 0" key="empty" @files-added="addFiles" />
             <FileQueue
               v-else
               key="queue"
@@ -255,9 +310,10 @@ onBeforeUnmount(() => {
     </div>
 
     <BottomActionBar
-      :can-convert="readyCount > 0 && conversionSettingsValid"
-      :file-count="readyCount"
-      :is-converting="isConverting"
+      :can-convert="conversionSettingsValid && (editorMode ? editorHasContent : readyCount > 0)"
+      :file-count="editorMode ? (editorHasContent ? 1 : 0) : readyCount"
+      :source-label="editorMode ? `${editorContent.length} 个字符` : undefined"
+      :is-converting="conversionBusy"
       @convert="handleConvert"
     />
 
@@ -332,6 +388,51 @@ onBeforeUnmount(() => {
 }
 
 .workspace-inspector-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 72%, transparent);
+  outline-offset: 1px;
+}
+
+.workspace-editor-toggle {
+  position: absolute;
+  top: 12px;
+  right: 44px;
+  z-index: 15;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-secondary);
+  cursor: default;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.workspace-editor-toggle:hover {
+  background: var(--app-fill);
+  color: var(--app-text);
+}
+
+.workspace-editor-toggle--active {
+  background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+  color: var(--app-accent);
+}
+
+.workspace-editor-toggle:active {
+  background: color-mix(in srgb, var(--app-text) 10%, transparent);
+}
+
+.workspace-editor-toggle:disabled {
+  opacity: 0.42;
+}
+
+.workspace-editor-toggle:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--app-accent) 72%, transparent);
   outline-offset: 1px;
 }

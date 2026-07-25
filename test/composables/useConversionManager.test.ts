@@ -44,6 +44,9 @@ beforeEach(() => {
   Object.defineProperty(window, "md2docx", {
     value: {
       convert: mock(() => Promise.resolve()),
+      createEditorSource: mock(() =>
+        Promise.resolve({ path: "C:\\temp\\editor\\实验报告.md", name: "实验报告.md" }),
+      ),
       getHistory: mock(() => Promise.resolve([])),
       clearHistory: mock(() => Promise.resolve()),
       removeHistoryRecord: mock(() => Promise.resolve()),
@@ -149,6 +152,43 @@ describe("useConversionManager", () => {
       config: defaultConfig,
       styleConfig: defaultStyleConfig,
       openAfterConvert: true,
+    });
+  });
+
+  test("编辑器文本作为独立临时源转换且不混入文件队列", async () => {
+    const api = window.md2docx!;
+    (api.convert as ReturnType<typeof mock>).mockImplementation(async (request: any) => {
+      const file = request.files[0];
+      onFileDoneCb?.({
+        recordId: file.id,
+        path: file.path,
+        outputPath: "C:\\output\\实验报告.docx",
+      });
+    });
+    const { queue, history, startEditorConversion } = createManager();
+
+    const result = await startEditorConversion(
+      "# 实验报告",
+      "实验报告",
+      workspace("academic"),
+      false,
+    );
+
+    expect(result).toEqual({});
+    expect(api.createEditorSource).toHaveBeenCalledWith({
+      content: "# 实验报告",
+      name: "实验报告",
+    });
+    expect(api.convert).toHaveBeenCalledTimes(1);
+    expect((api.convert as any).mock.calls[0][0].files[0]).toMatchObject({
+      path: "C:\\temp\\editor\\实验报告.md",
+      editor: true,
+    });
+    expect(queue.value).toHaveLength(0);
+    expect(history.value[0]).toMatchObject({
+      sourceName: "实验报告.md",
+      status: "success",
+      outputPath: "C:\\output\\实验报告.docx",
     });
   });
 

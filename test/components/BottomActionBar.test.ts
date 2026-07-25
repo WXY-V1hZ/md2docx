@@ -65,4 +65,18 @@ describe("BottomActionBar", () => {
 
     expect(wrapper.find(".app-dropdown__trigger").exists()).toBe(false);
   });
+
+  test("编辑模式显示文本字符数而不是文件数量", () => {
+    const wrapper = shallowMount(BottomActionBar, {
+      props: {
+        canConvert: true,
+        fileCount: 1,
+        isConverting: false,
+        sourceLabel: "128 个字符",
+      },
+    });
+
+    expect(wrapper.find(".action-bar__count").text()).toBe("128 个字符");
+    expect(wrapper.find("svg").exists()).toBe(false);
+  });
 });

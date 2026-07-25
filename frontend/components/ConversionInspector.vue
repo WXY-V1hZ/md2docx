@@ -258,11 +258,7 @@ function messageFrom(error: unknown, fallback: string) {
         <ConversionSettingsForm :model="model" />
       </div>
 
-      <footer
-        v-if="validationError || saveError"
-        class="inspector-footer"
-        aria-live="polite"
-      >
+      <footer v-if="validationError || saveError" class="inspector-footer" aria-live="polite">
         <span>{{ statusText }}</span>
         <button v-if="saveError && valid" type="button" @click="persist">重试</button>
       </footer>

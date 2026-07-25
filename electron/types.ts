@@ -13,6 +13,7 @@ export interface ConversionRecord {
 export interface DesktopConversionFile {
   id: string;
   path: string;
+  editor?: boolean;
   outputPath?: string;
 }
 

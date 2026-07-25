@@ -248,6 +248,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="settings-overlay" @mousedown.self="requestExit('close')">
     <aside
+      id="settings-dialog"
       ref="panel"
       class="settings-panel"
       :class="{ 'settings-panel--editor': editorRequest }"
@@ -454,6 +455,10 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: var(--app-titlebar-height) 0 0;
   z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
   background: rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
@@ -461,26 +466,29 @@ onBeforeUnmount(() => {
 }
 
 .settings-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   display: flex;
-  width: 380px;
-  max-width: 100vw;
+  width: min(640px, calc(100vw - 48px));
+  height: min(680px, calc(100vh - var(--app-titlebar-height) - 48px));
+  max-height: 100%;
   flex-direction: column;
-  border-left: 0.5px solid var(--app-border-strong);
-  background: color-mix(in srgb, var(--app-surface-raised) 94%, transparent);
-  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--app-surface-raised) 97%, transparent);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(28px) saturate(1.25);
   -webkit-backdrop-filter: blur(28px) saturate(1.25);
   transition:
-    width 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease-out,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .settings-panel--editor {
-  width: 460px;
+  width: min(760px, calc(100vw - 48px));
+  height: min(720px, calc(100vh - var(--app-titlebar-height) - 48px));
 }
 
 .settings-panel__header {
@@ -847,9 +855,20 @@ onBeforeUnmount(() => {
   -webkit-backdrop-filter: blur(0);
 }
 
-.settings-enter-from .settings-panel,
+.settings-enter-active {
+  transition:
+    background 0.18s ease-out,
+    backdrop-filter 0.22s ease-out,
+    -webkit-backdrop-filter 0.22s ease-out;
+}
+
+.settings-enter-active .settings-panel {
+  animation: settings-panel-open 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .settings-leave-to .settings-panel {
-  transform: translateX(100%);
+  opacity: 0;
+  transform: translateY(10px) scale(0.975);
 }
 
 .settings-leave-active,
@@ -864,15 +883,44 @@ onBeforeUnmount(() => {
   }
 }
 
+@media (max-width: 700px), (max-height: 620px) {
+  .settings-overlay {
+    padding: 12px;
+  }
+
+  .settings-panel,
+  .settings-panel--editor {
+    width: calc(100vw - 24px);
+    height: calc(100vh - var(--app-titlebar-height) - 24px);
+  }
+}
+
 @keyframes settings-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+@keyframes settings-panel-open {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.965);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .settings-overlay,
   .settings-panel {
     transition: none;
+  }
+
+  .settings-enter-active .settings-panel {
+    animation: none;
   }
 }
 </style>

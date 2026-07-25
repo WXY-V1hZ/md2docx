@@ -64,13 +64,52 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
   async function startConversion(settings: ConversionWorkspaceSettings, openAfterConvert: boolean) {
     const idle = queue.value.filter(({ status }) => status === "idle");
     if (idle.length === 0) return;
+    await startEntries(idle, settings, openAfterConvert);
+  }
 
+  async function startEditorConversion(
+    content: string,
+    name: string,
+    settings: ConversionWorkspaceSettings,
+    openAfterConvert: boolean,
+  ): Promise<{ error?: string }> {
+    if (!window.md2docx?.createEditorSource) {
+      return { error: "桌面编辑器服务不可用" };
+    }
+    let source: { path: string; name: string };
+    try {
+      source = await window.md2docx.createEditorSource({ content, name });
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    const entry: FileEntry = {
+      path: source.path,
+      name: source.name,
+      status: "idle",
+      editor: true,
+    };
+    queue.value.push(entry);
+    await startEntries([entry], settings, openAfterConvert);
+    const remaining = queue.value.find(
+      ({ path, editor }) => editor === true && path === source.path,
+    );
+    const error = remaining?.error;
+    queue.value = queue.value.filter(({ path, editor }) => editor !== true || path !== source.path);
+    return error ? { error } : {};
+  }
+
+  async function startEntries(
+    idle: FileEntry[],
+    settings: ConversionWorkspaceSettings,
+    openAfterConvert: boolean,
+  ) {
     const files = idle.map((file) => {
       const id = crypto.randomUUID();
       file.status = "converting";
       file.recordId = id;
       file.error = undefined;
-      return { id, path: file.path };
+      return { id, path: file.path, ...(file.editor ? { editor: true } : {}) };
     });
 
     const startedAt = Date.now();
@@ -296,6 +335,7 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     clearQueue,
     retryFile,
     startConversion,
+    startEditorConversion,
     requeueRecord,
     markHistoryRead,
     removeRecord,

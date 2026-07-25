@@ -26,7 +26,9 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
       typeof file.id === "string" &&
       file.id.length > 0 &&
       typeof file.path === "string" &&
-      file.path.length > 0,
+      file.path.length > 0 &&
+      (file.editor === undefined || typeof file.editor === "boolean") &&
+      Object.keys(file).every((key) => ["id", "path", "editor"].includes(key)),
   );
   if (!legacyFiles && !structuredFiles) throw new Error("转换文件列表无效");
 
@@ -43,6 +45,7 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
     : rawFiles.map((file) => ({
         id: String((file as Record<string, unknown>).id),
         path: String((file as Record<string, unknown>).path),
+        ...((file as Record<string, unknown>).editor === true ? { editor: true } : {}),
       }));
 
   const fileIds = files.map((file) => String((file as Record<string, unknown>).id));
