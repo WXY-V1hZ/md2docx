@@ -166,7 +166,7 @@ const emit = defineEmits<{
 .file-list--drag .file-list__items {
   box-shadow:
     var(--app-shadow-card),
-    0 0 0 3px color-mix(in srgb, var(--app-accent) 14%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--app-accent) 18%, transparent);
   transform: translateY(-1px) scale(0.997);
 }
 .file-list--drag .file-list__tip {
@@ -239,12 +239,7 @@ const emit = defineEmits<{
   border-top: 0.5px solid var(--app-border);
 }
 .file-item:hover {
-  background: rgba(0, 0, 0, 0.02);
-}
-@media (prefers-color-scheme: dark) {
-  .file-item:hover {
-    background: rgba(255, 255, 255, 0.03);
-  }
+  background: color-mix(in srgb, var(--app-text) 2%, transparent);
 }
 .file-item--converting {
   pointer-events: none;
@@ -284,25 +279,25 @@ const emit = defineEmits<{
 }
 .file-item__badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.3;
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 1.4;
 }
 .file-item__badge--active {
-  background: rgba(52, 120, 246, 0.12);
-  color: #3478f6;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  color: var(--app-accent);
 }
 .file-item__badge--error {
-  background: rgba(255, 59, 48, 0.12);
+  background: color-mix(in srgb, #ff3b30 12%, transparent);
   color: #ff3b30;
 }
 .file-item__spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(52, 120, 246, 0.2);
-  border-top-color: #3478f6;
+  border: 2px solid color-mix(in srgb, var(--app-accent) 20%, transparent);
+  border-top-color: var(--app-accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -329,13 +324,7 @@ const emit = defineEmits<{
 }
 :deep(.app-icon-button:hover),
 .file-item__remove:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--app-text) 6%, transparent);
   color: var(--app-text);
-}
-@media (prefers-color-scheme: dark) {
-  :deep(.app-icon-button:hover),
-  .file-item__remove:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
 }
 </style>

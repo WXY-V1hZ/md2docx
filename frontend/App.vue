@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { PanelRight } from "lucide-vue-next";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
 import AppTitleBar from "./components/AppTitleBar.vue";
 import BottomActionBar from "./components/BottomActionBar.vue";
+import ConversionInspector from "./components/ConversionInspector.vue";
 import ConversionFlight from "./components/ConversionFlight.vue";
 import ConversionHistoryPopover from "./components/ConversionHistoryPopover.vue";
 import FileDropZone from "./components/FileDropZone.vue";
@@ -11,6 +13,7 @@ import SettingsPanel from "./components/SettingsPanel.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
 import { useAutoUpdate } from "./composables/useAutoUpdate";
 import { useConversionManager } from "./composables/useConversionManager";
+import type { ConversionWorkspaceSettings } from "./conversion-settings";
 
 const showHistory = ref(false);
 
@@ -27,7 +30,7 @@ const {
   retryFile,
   startConversion,
   markHistoryRead,
-  regenerateRecord,
+  requeueRecord,
   removeRecord,
   clearHistory,
 } = useConversionManager(showHistory);
@@ -44,6 +47,9 @@ const {
 const dragOver = ref(false);
 const showSettings = ref(false);
 const settingsInitialSection = ref<"presets" | undefined>();
+const conversionSettings = ref<ConversionWorkspaceSettings | null>(null);
+const conversionSettingsValid = ref(false);
+const inspectorCollapsed = ref(true);
 
 function toggleHistory() {
   showSettings.value = false;
@@ -90,8 +96,23 @@ async function selectFiles() {
   if (paths && paths.length > 0) addFiles(paths);
 }
 
-async function handleConvert(options: { preset: string; openAfterConvert: boolean }) {
-  await startConversion(options.preset, options.openAfterConvert);
+async function handleConvert(options: { openAfterConvert: boolean }) {
+  if (!conversionSettings.value || !conversionSettingsValid.value) return;
+  await startConversion(conversionSettings.value, options.openAfterConvert);
+}
+
+function updateConversionSettings(settings: ConversionWorkspaceSettings | null, valid: boolean) {
+  conversionSettings.value = settings;
+  conversionSettingsValid.value = valid;
+}
+
+function toggleInspector() {
+  inspectorCollapsed.value = !inspectorCollapsed.value;
+}
+
+function handleRequeue(recordId: string) {
+  if (!requeueRecord(recordId)) return;
+  closeHistory();
 }
 
 function onListDragOver(e: DragEvent) {
@@ -119,6 +140,17 @@ function onListDrop(e: DragEvent) {
 }
 
 function onDocumentKeydown(event: KeyboardEvent) {
+  if (
+    event.ctrlKey &&
+    event.altKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    event.key.toLowerCase() === "b"
+  ) {
+    event.preventDefault();
+    toggleInspector();
+    return;
+  }
   if (event.key !== "Escape" || !showHistory.value) return;
   closeHistory();
   focusHistoryButton();
@@ -164,49 +196,69 @@ onBeforeUnmount(() => {
         />
       </Transition>
 
-      <main
-        class="workspace flex min-h-0 flex-1 flex-col items-center overflow-auto px-8 py-10"
-        :class="{ 'justify-center': queue.length === 0 }"
-        @dragover="onListDragOver"
-        @dragleave="onListDragLeave"
-        @drop="onListDrop"
-      >
-        <Transition name="popover">
-          <div v-if="showHistory" class="history-anchor" data-history-surface>
-            <ConversionHistoryPopover
-              :records="history"
-              @open-file="openFile"
-              @show-in-folder="showInFolder"
-              @regenerate="regenerateRecord"
-              @remove-record="removeRecord"
-              @clear="clearHistory"
-            />
-          </div>
-        </Transition>
+      <div class="workspace-shell flex min-h-0 flex-1">
+        <button
+          type="button"
+          class="workspace-inspector-toggle"
+          :title="`${inspectorCollapsed ? '显示' : '隐藏'}侧边栏  Ctrl+Alt+B`"
+          :aria-label="`${inspectorCollapsed ? '显示' : '隐藏'}转换设置侧边栏`"
+          :aria-pressed="!inspectorCollapsed"
+          aria-controls="conversion-inspector"
+          data-inspector-btn
+          @click="toggleInspector"
+        >
+          <PanelRight :size="17" stroke-width="1.6" />
+        </button>
 
-        <Transition name="fade-scale" mode="out-in">
-          <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
-          <FileQueue
-            v-else
-            key="queue"
-            :files="queue"
-            :drag-over="dragOver"
-            :is-converting="isConverting"
-            @select-files="selectFiles"
-            @clear="clearQueue"
-            @remove="removeFile"
-            @retry="retryFile"
-          />
-        </Transition>
-      </main>
+        <main
+          class="workspace flex min-h-0 min-w-0 flex-1 flex-col items-center overflow-auto px-7 py-8"
+          :class="{ 'justify-center': queue.length === 0 }"
+          @dragover="onListDragOver"
+          @dragleave="onListDragLeave"
+          @drop="onListDrop"
+        >
+          <Transition name="popover">
+            <div v-if="showHistory" class="history-anchor" data-history-surface>
+              <ConversionHistoryPopover
+                :records="history"
+                @open-file="openFile"
+                @show-in-folder="showInFolder"
+                @requeue="handleRequeue"
+                @remove-record="removeRecord"
+                @clear="clearHistory"
+              />
+            </div>
+          </Transition>
+
+          <Transition name="fade-scale" mode="out-in">
+            <FileDropZone v-if="queue.length === 0" key="empty" @files-added="addFiles" />
+            <FileQueue
+              v-else
+              key="queue"
+              :files="queue"
+              :drag-over="dragOver"
+              :is-converting="isConverting"
+              @select-files="selectFiles"
+              @clear="clearQueue"
+              @remove="removeFile"
+              @retry="retryFile"
+            />
+          </Transition>
+        </main>
+
+        <ConversionInspector
+          v-model:collapsed="inspectorCollapsed"
+          @change="updateConversionSettings"
+          @manage-presets="openSettings('presets')"
+        />
+      </div>
     </div>
 
     <BottomActionBar
-      :can-convert="readyCount > 0"
+      :can-convert="readyCount > 0 && conversionSettingsValid"
       :file-count="readyCount"
       :is-converting="isConverting"
       @convert="handleConvert"
-      @manage-presets="openSettings('presets')"
     />
 
     <ConversionFlight :flights="flights" />
@@ -243,6 +295,45 @@ onBeforeUnmount(() => {
       transparent 38%
     ),
     var(--app-bg);
+}
+
+.workspace-shell {
+  position: relative;
+}
+
+.workspace-inspector-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 16;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-secondary);
+  cursor: default;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.2s ease;
+}
+
+.workspace-inspector-toggle:hover {
+  background: color-mix(in srgb, var(--app-text) 5%, transparent);
+  color: var(--app-text);
+}
+
+.workspace-inspector-toggle:active {
+  background: color-mix(in srgb, var(--app-text) 10%, transparent);
+}
+
+.workspace-inspector-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 72%, transparent);
+  outline-offset: 1px;
 }
 
 .history-anchor {

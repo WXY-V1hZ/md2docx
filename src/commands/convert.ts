@@ -3,16 +3,25 @@ import { spawn } from "node:child_process";
 import { dirname, parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../cli";
-import { type ImageSizeConfig, loadConfig } from "../config";
+import { type AppConfig, type ImageSizeConfig, loadConfig, validateConfigValue } from "../config";
 import { formattedMdPath, preprocessDir } from "../paths";
 import { resolvePreset } from "../preset";
 import { prepareOutput, resolveInputPath, resolveOutputPath } from "../output";
 import { preprocess } from "../preprocess/index";
 import { materializeImageSizeFilter, materializeInlineCodeFilter } from "../resources";
 import { resolveEffectiveStyles } from "../style/compiler";
+import { type StyleConfig, validateStyleConfig } from "../style/config";
 import { ensureTemplateDocx } from "../style/generate";
 
-export async function convertMarkdown(options: ConvertOptions): Promise<void> {
+export interface ConvertOverrides {
+  config?: AppConfig;
+  styleConfig?: StyleConfig;
+}
+
+export async function convertMarkdown(
+  options: ConvertOptions,
+  overrides: ConvertOverrides = {},
+): Promise<void> {
   if (!options.file) throw new Error("缺少必填参数：--file");
   const input = resolveInputPath(options.file, [".md", ".markdown"], "Markdown 文件");
   const preset = await resolvePreset(options.preset);
@@ -29,7 +38,9 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   const output = resolveOutputPath(options.output, `${baseName}.docx`, [".docx"], "DOCX 输出文件");
   prepareOutput(output);
 
-  const config = await loadConfig(configPath);
+  const config = overrides.config
+    ? validateConfigValue(structuredClone(overrides.config), "桌面转换设置")
+    : await loadConfig(configPath);
   const outDir = preprocessDir(input);
   mkdirSync(outDir, { recursive: true });
   const formatted = await preprocess(input, config, outDir);
@@ -37,7 +48,18 @@ export async function convertMarkdown(options: ConvertOptions): Promise<void> {
   writeFileSync(markdownOutput, formatted, "utf-8");
 
   const effectiveStyles = resolveEffectiveStyles(
-    { styleRawPath, styleConfigPath },
+    {
+      styleRawPath,
+      styleConfigPath,
+      ...(overrides.styleConfig
+        ? {
+            styleConfig: validateStyleConfig(
+              structuredClone(overrides.styleConfig),
+              "桌面转换样式",
+            ),
+          }
+        : {}),
+    },
     { styleRawPath: preset.styleRawPath, styleConfigPath: preset.styleConfigPath },
   );
   const templatePath = await ensureTemplateDocx(effectiveStyles);

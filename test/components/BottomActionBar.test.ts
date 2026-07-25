@@ -2,26 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { shallowMount } from "@vue/test-utils";
 import BottomActionBar from "../../frontend/components/BottomActionBar.vue";
 
-/**
- * Register window.md2docx as the Electron preload bridge.
- * The component calls getPresets() on mount to populate the preset selector.
- */
-function mockMd2docx() {
-  Object.defineProperty(window, "md2docx", {
-    value: {
-      getPresets: () =>
-        Promise.resolve([
-          { name: "default", current: true },
-          { name: "academic", current: false },
-        ]),
-    },
-    configurable: true,
-  });
-}
-
 describe("BottomActionBar", () => {
   test("autoOpen 默认为 false（开关未切换）", () => {
-    mockMd2docx();
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: false, fileCount: 0, isConverting: false },
     });
@@ -32,7 +14,6 @@ describe("BottomActionBar", () => {
   });
 
   test("禁用状态：canConvert=false fileCount=0 → 按钮禁用，文字为『转换』", () => {
-    mockMd2docx();
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: false, fileCount: 0, isConverting: false },
     });
@@ -44,7 +25,6 @@ describe("BottomActionBar", () => {
   });
 
   test("可转换状态：canConvert=true fileCount=3 → 按钮启用，文字含『转换 3 个文件』", () => {
-    mockMd2docx();
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: true, fileCount: 3, isConverting: false },
     });
@@ -55,7 +35,6 @@ describe("BottomActionBar", () => {
   });
 
   test("转换中状态：isConverting=true → 按钮禁用，文字为『转换中…』", () => {
-    mockMd2docx();
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: true, fileCount: 2, isConverting: true },
     });
@@ -65,8 +44,7 @@ describe("BottomActionBar", () => {
     expect(btn.text()).toContain("转换中…");
   });
 
-  test("点击转换按钮触发 convert 事件，携带当前预设与 autoOpen 状态", async () => {
-    mockMd2docx();
+  test("点击转换按钮触发 convert 事件并携带 autoOpen 状态", async () => {
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: true, fileCount: 1, isConverting: false },
     });
@@ -76,26 +54,15 @@ describe("BottomActionBar", () => {
 
     const emitted = wrapper.emitted("convert");
     expect(emitted).toHaveLength(1);
-    const payload = emitted![0]![0] as {
-      preset: string;
-      openAfterConvert: boolean;
-    };
-    expect(payload).toEqual({ preset: "default", openAfterConvert: false });
+    const payload = emitted![0]![0] as { openAfterConvert: boolean };
+    expect(payload).toEqual({ openAfterConvert: false });
   });
 
-  test("管理预设菜单项可点击并触发事件", async () => {
-    mockMd2docx();
+  test("底部操作栏不再包含预设菜单", () => {
     const wrapper = shallowMount(BottomActionBar, {
       props: { canConvert: false, fileCount: 0, isConverting: false },
     });
 
-    await wrapper.get(".app-dropdown__trigger").trigger("click");
-    const manage = wrapper
-      .findAll<HTMLButtonElement>(".app-dropdown__item")
-      .find((item) => item.text().includes("管理预设"));
-    expect(manage?.attributes("disabled")).toBeUndefined();
-    await manage!.trigger("click");
-
-    expect(wrapper.emitted("managePresets")).toHaveLength(1);
+    expect(wrapper.find(".app-dropdown__trigger").exists()).toBe(false);
   });
 });

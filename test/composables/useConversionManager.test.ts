@@ -2,6 +2,18 @@ import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { createApp, ref, type Ref } from "vue";
 import { useConversionManager } from "../../frontend/composables/useConversionManager";
 import type { FileEntry } from "../../frontend/file-entry";
+import defaultConfig from "../../config/default/config.json" with { type: "json" };
+import defaultStyleConfig from "../../config/default/style-config.json" with { type: "json" };
+
+function workspace(preset: string) {
+  return {
+    schemaVersion: 1 as const,
+    preset,
+    config: structuredClone(defaultConfig) as PresetAppConfig,
+    styleConfig: structuredClone(defaultStyleConfig) as PresetStyleConfig,
+    collapsed: false,
+  };
+}
 
 let onFileDoneCb: ((data: any) => void) | undefined;
 let onFileErrorCb: ((data: any) => void) | undefined;
@@ -32,7 +44,6 @@ beforeEach(() => {
   Object.defineProperty(window, "md2docx", {
     value: {
       convert: mock(() => Promise.resolve()),
-      regenerate: mock(() => Promise.resolve()),
       getHistory: mock(() => Promise.resolve([])),
       clearHistory: mock(() => Promise.resolve()),
       removeHistoryRecord: mock(() => Promise.resolve()),
@@ -110,7 +121,7 @@ describe("useConversionManager", () => {
     const { queue, history, addFiles, startConversion } = createManager();
 
     addFiles(["a.md", "b.md"]);
-    await startConversion("my-preset", true);
+    await startConversion(workspace("my-preset"), true);
 
     // queue items are now converting
     expect(queue.value[0]!.status).toBe("converting");
@@ -135,6 +146,8 @@ describe("useConversionManager", () => {
         { id: queue.value[1]!.recordId, path: "b.md" },
       ],
       preset: "my-preset",
+      config: defaultConfig,
+      styleConfig: defaultStyleConfig,
       openAfterConvert: true,
     });
   });
@@ -144,7 +157,7 @@ describe("useConversionManager", () => {
     expect(onFileDoneCb).toBeDefined();
 
     addFiles(["a.md"]);
-    await startConversion("preset", false);
+    await startConversion(workspace("preset"), false);
 
     const recordId = queue.value[0]!.recordId!;
 
@@ -173,7 +186,7 @@ describe("useConversionManager", () => {
     expect(onFileErrorCb).toBeDefined();
 
     addFiles(["a.md"]);
-    await startConversion("preset", false);
+    await startConversion(workspace("preset"), false);
 
     const recordId = queue.value[0]!.recordId!;
 
@@ -200,7 +213,7 @@ describe("useConversionManager", () => {
     const paths = Array.from({ length: 35 }, (_, i) => `${i}.md`);
 
     addFiles(paths);
-    await startConversion("preset", false);
+    await startConversion(workspace("preset"), false);
 
     // startConversion already slices pending to 30 — verify
     expect(history.value.length).toBe(30);
@@ -249,6 +262,25 @@ describe("useConversionManager", () => {
 
     markHistoryRead();
     expect(history.value.every((r) => r.unread === false)).toBe(true);
+  });
+
+  test("requeueRecord 将历史源文件去重放回列表且不立即转换", () => {
+    const { history, queue, requeueRecord } = createManager();
+    history.value.push({
+      id: "history-1",
+      sourcePath: "report.md",
+      sourceName: "report.md",
+      preset: "academic",
+      status: "success",
+      startedAt: Date.now(),
+      unread: false,
+    });
+
+    expect(requeueRecord("history-1")).toBe(true);
+    expect(queue.value.map(({ path }) => path)).toEqual(["report.md"]);
+    expect(requeueRecord("history-1")).toBe(true);
+    expect(queue.value).toHaveLength(1);
+    expect(window.md2docx!.convert).not.toHaveBeenCalled();
   });
 
   test("removeRecord calls window.md2docx.removeHistoryRecord and removes from history", async () => {

@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
 import { dirname, parse, resolve } from "node:path";
 
 import { type ConvertOptions } from "../src/cli";
-import { convertMarkdown } from "../src/commands/convert";
+import { type ConvertOverrides, convertMarkdown } from "../src/commands/convert";
+import { validateConfigValue } from "../src/config";
+import { validateStyleConfig } from "../src/style/config";
 import { createRecord } from "./conversion-history";
 import type { ConversionRecord, DesktopConversionRequest, DesktopConversionResult } from "./types";
 
-type ConvertMarkdown = (options: ConvertOptions) => Promise<void>;
+type ConvertMarkdown = (options: ConvertOptions, overrides?: ConvertOverrides) => Promise<void>;
 type ResultHandler = (result: DesktopConversionResult) => void | Promise<void>;
 
 export function parseConversionRequest(value: unknown): DesktopConversionRequest {
@@ -48,7 +49,7 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
   if (new Set(fileIds).size !== fileIds.length) {
     throw new Error("转换记录 ID 重复");
   }
-  if (value.preset !== undefined && typeof value.preset !== "string") {
+  if (typeof value.preset !== "string" || value.preset.length === 0) {
     throw new Error("预设名称无效");
   }
   if (typeof value.openAfterConvert !== "boolean") {
@@ -57,13 +58,15 @@ export function parseConversionRequest(value: unknown): DesktopConversionRequest
   return {
     files,
     preset: value.preset,
+    config: validateConfigValue(structuredClone(value.config), "桌面转换设置"),
+    styleConfig: validateStyleConfig(structuredClone(value.styleConfig), "桌面转换样式"),
     openAfterConvert: value.openAfterConvert,
     ...(legacyJobId ? { legacyJobId } : {}),
   };
 }
 
 export function createRecordsFromRequest(request: DesktopConversionRequest): ConversionRecord[] {
-  return request.files.map(({ id, path }) => createRecord(id, path, request.preset ?? "default"));
+  return request.files.map(({ id, path }) => createRecord(id, path, request.preset));
 }
 
 export async function convertDesktopFiles(
@@ -76,7 +79,10 @@ export async function convertDesktopFiles(
       requestedOutputPath ?? resolve(dirname(filePath), `${parse(filePath).name}.docx`);
     let result: DesktopConversionResult;
     try {
-      await convert({ file: filePath, output: outputPath, preset: request.preset });
+      await convert(
+        { file: filePath, output: outputPath, preset: request.preset },
+        { config: request.config, styleConfig: request.styleConfig },
+      );
       result = {
         status: "done",
         path: filePath,
@@ -95,15 +101,6 @@ export async function convertDesktopFiles(
     }
     await onResult(result);
   }
-}
-
-export function regenerateRecord(record: ConversionRecord): DesktopConversionRequest | null {
-  if (!existsSync(record.sourcePath)) return null;
-  return {
-    files: [{ id: record.id, path: record.sourcePath, outputPath: record.outputPath }],
-    preset: record.preset,
-    openAfterConvert: false,
-  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

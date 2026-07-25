@@ -12,11 +12,22 @@ import { dirname, isAbsolute, join, parse, resolve } from "node:path";
 
 import { SETTINGS_PATH } from "../src/paths";
 import { readCurrentPresetName } from "../src/preset";
+import { type AppConfig, validateConfigValue } from "../src/config";
+import { type StyleConfig, validateStyleConfig } from "../src/style/config";
 
 export interface DesktopSettings {
   outputMode: "source" | "folder" | "ask";
   outputFolder: string;
   conflictAction: "overwrite" | "rename" | "ask";
+  conversion?: DesktopConversionSettings;
+}
+
+export interface DesktopConversionSettings {
+  schemaVersion: 1;
+  preset: string;
+  config: AppConfig;
+  styleConfig: StyleConfig;
+  collapsed: boolean;
 }
 
 export const DEFAULT_DESKTOP_SETTINGS: DesktopSettings = {
@@ -46,6 +57,31 @@ export function loadDesktopSettings(settingsPath = SETTINGS_PATH): DesktopSettin
 
 export function saveDesktopSettings(value: unknown, settingsPath = SETTINGS_PATH): DesktopSettings {
   const settings = parseDesktopSettings(value);
+  if (!settings.conversion) {
+    const existing = loadDesktopSettings(settingsPath);
+    if (existing.conversion) settings.conversion = existing.conversion;
+  }
+  return writeDesktopSettings(settings, settingsPath);
+}
+
+export function loadDesktopConversionSettings(
+  settingsPath = SETTINGS_PATH,
+): DesktopConversionSettings | undefined {
+  return loadDesktopSettings(settingsPath).conversion;
+}
+
+export function saveDesktopConversionSettings(
+  value: unknown,
+  settingsPath = SETTINGS_PATH,
+): DesktopConversionSettings {
+  const conversion = parseDesktopConversionSettings(value);
+  const settings = loadDesktopSettings(settingsPath);
+  settings.conversion = conversion;
+  writeDesktopSettings(settings, settingsPath);
+  return conversion;
+}
+
+function writeDesktopSettings(settings: DesktopSettings, settingsPath: string): DesktopSettings {
   const preset = readPresetForMerge(settingsPath);
   const document = {
     schemaVersion: 1,
@@ -98,7 +134,7 @@ export function pathKey(path: string): string {
 function parseDesktopSettings(value: unknown): DesktopSettings {
   if (!isRecord(value)) throw new Error("设置数据无效");
   const unknownKeys = Object.keys(value).filter(
-    (key) => !["outputMode", "outputFolder", "conflictAction"].includes(key),
+    (key) => !["outputMode", "outputFolder", "conflictAction", "conversion"].includes(key),
   );
   if (unknownKeys.length > 0) {
     throw new Error(`设置数据无效：未知字段 ${unknownKeys.join(", ")}`);
@@ -114,6 +150,31 @@ function parseDesktopSettings(value: unknown): DesktopSettings {
     outputMode: value.outputMode as DesktopSettings["outputMode"],
     outputFolder: value.outputFolder,
     conflictAction: value.conflictAction as DesktopSettings["conflictAction"],
+    ...(value.conversion === undefined
+      ? {}
+      : { conversion: parseDesktopConversionSettings(value.conversion) }),
+  };
+}
+
+function parseDesktopConversionSettings(value: unknown): DesktopConversionSettings {
+  if (!isRecord(value)) throw new Error("转换工作区设置无效");
+  const unknownKeys = Object.keys(value).filter(
+    (key) => !["schemaVersion", "preset", "config", "styleConfig", "collapsed"].includes(key),
+  );
+  if (unknownKeys.length > 0) {
+    throw new Error(`转换工作区设置无效：未知字段 ${unknownKeys.join(", ")}`);
+  }
+  if (value.schemaVersion !== 1) throw new Error("转换工作区设置版本无效");
+  if (typeof value.preset !== "string" || value.preset.length === 0) {
+    throw new Error("转换工作区预设无效");
+  }
+  if (typeof value.collapsed !== "boolean") throw new Error("侧边栏状态无效");
+  return {
+    schemaVersion: 1,
+    preset: value.preset,
+    config: validateConfigValue(structuredClone(value.config), "转换工作区设置"),
+    styleConfig: validateStyleConfig(structuredClone(value.styleConfig), "转换工作区样式"),
+    collapsed: value.collapsed,
   };
 }
 

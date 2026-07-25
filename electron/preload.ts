@@ -2,7 +2,9 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 interface ConversionRequest {
   files: { id: string; path: string }[];
-  preset?: string;
+  preset: string;
+  config: Record<string, unknown>;
+  styleConfig: Record<string, unknown>;
   openAfterConvert: boolean;
 }
 
@@ -82,9 +84,6 @@ contextBridge.exposeInMainWorld("md2docx", {
   convert: (request: ConversionRequest): Promise<void> =>
     ipcRenderer.invoke("convert:start", request),
 
-  regenerate: (recordId: string): Promise<void> =>
-    ipcRenderer.invoke("convert:regenerate", recordId),
-
   getHistory: (): Promise<unknown[]> => ipcRenderer.invoke("history:list"),
 
   clearHistory: (): Promise<void> => ipcRenderer.invoke("history:clear"),
@@ -115,6 +114,11 @@ contextBridge.exposeInMainWorld("md2docx", {
     outputFolder: string;
     conflictAction: "overwrite" | "rename" | "ask";
   }): Promise<void> => ipcRenderer.invoke("settings:save", settings),
+
+  loadConversionSettings: (): Promise<unknown> => ipcRenderer.invoke("conversion-settings:load"),
+
+  saveConversionSettings: (settings: unknown): Promise<void> =>
+    ipcRenderer.invoke("conversion-settings:save", settings),
 
   onFileDone: (callback: (data: FileDoneEvent) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: FileDoneEvent) => callback(data);

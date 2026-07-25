@@ -228,17 +228,15 @@ onBeforeUnmount(() => {
 .app-select__trigger {
   display: inline-flex;
   min-width: 92px;
-  height: 28px;
+  height: 26px;
   align-items: center;
   justify-content: space-between;
-  gap: 9px;
-  padding: 0 7px 0 9px;
+  gap: 7px;
+  padding: 0 6px 0 9px;
   border: 0.5px solid var(--app-border-strong);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--app-surface-raised) 96%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent),
-    0 1px 1px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--app-surface-raised) 92%, var(--app-fill));
+  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.04);
   color: var(--app-text);
   font: inherit;
   font-size: 11.5px;
@@ -323,12 +321,17 @@ onBeforeUnmount(() => {
 }
 
 .app-select__option.is-selected {
-  background: var(--app-accent);
-  color: #fff;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  color: var(--app-accent);
+  font-weight: 550;
 }
 
 .app-select__option .is-hidden {
   visibility: hidden;
+}
+
+.app-select__option.is-selected .is-hidden {
+  visibility: visible;
 }
 
 .app-select-menu-enter-active,

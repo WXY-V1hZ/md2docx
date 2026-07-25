@@ -8,6 +8,12 @@ import {
 } from "../electron/conversion";
 import { selectHistoryToPersist } from "../electron/conversion-history";
 import { type DesktopConversionResult } from "../electron/types";
+import defaultConfig from "../config/default/config.json" with { type: "json" };
+import defaultStyleConfig from "../config/default/style-config.json" with { type: "json" };
+
+const config = structuredClone(defaultConfig) as PresetAppConfig & { $schema?: string };
+delete config.$schema;
+const styleConfig = defaultStyleConfig as PresetStyleConfig;
 
 describe("Electron 桌面转换", () => {
   test("校验来自 renderer 的转换请求", () => {
@@ -17,6 +23,9 @@ describe("Electron 桌面转换", () => {
     expect(() =>
       parseConversionRequest({
         files: [{ id: "report", path: "report.md" }],
+        preset: "default",
+        config,
+        styleConfig,
         openAfterConvert: "yes",
       }),
     ).toThrow("转换后打开设置无效");
@@ -25,11 +34,15 @@ describe("Electron 桌面转换", () => {
       parseConversionRequest({
         files: [{ id: "report", path: "report.md" }],
         preset: "academic",
+        config,
+        styleConfig,
         openAfterConvert: false,
       }),
     ).toEqual({
       files: [{ id: "report", path: "report.md" }],
       preset: "academic",
+      config,
+      styleConfig,
       openAfterConvert: false,
     });
 
@@ -42,6 +55,26 @@ describe("Electron 桌面转换", () => {
         openAfterConvert: false,
       }),
     ).toThrow("转换记录 ID 重复");
+
+    expect(() =>
+      parseConversionRequest({
+        files: [{ id: "report", path: "report.md" }],
+        preset: "default",
+        config: { ...config, unexpected: true },
+        styleConfig,
+        openAfterConvert: false,
+      }),
+    ).toThrow("不是支持的配置项");
+
+    expect(() =>
+      parseConversionRequest({
+        files: [{ id: "report", path: "report.md" }],
+        preset: "default",
+        config,
+        styleConfig: { ...styleConfig, unexpected: true },
+        openAfterConvert: false,
+      }),
+    ).toThrow("不是支持的配置项");
   });
 
   test("兼容开发期 HMR 尚未刷新的旧版文件请求", () => {
@@ -50,6 +83,8 @@ describe("Electron 桌面转换", () => {
         jobId: "legacy-batch",
         files: ["first.md", "second.md"],
         preset: "default",
+        config,
+        styleConfig,
         openAfterConvert: true,
       }),
     ).toEqual({
@@ -58,6 +93,8 @@ describe("Electron 桌面转换", () => {
         { id: "legacy-batch:1", path: "second.md" },
       ],
       preset: "default",
+      config,
+      styleConfig,
       openAfterConvert: true,
       legacyJobId: "legacy-batch",
     });
@@ -70,6 +107,8 @@ describe("Electron 桌面转换", () => {
         { id: "second-record", path: "second.md" },
       ],
       preset: "academic",
+      config,
+      styleConfig,
       openAfterConvert: false,
     });
 
@@ -82,6 +121,9 @@ describe("Electron 桌面转换", () => {
         { id: "active-1", path: "active-1.md" },
         { id: "active-2", path: "active-2.md" },
       ],
+      preset: "default",
+      config,
+      styleConfig,
       openAfterConvert: false,
     });
     const completed = Array.from({ length: 32 }, (_, index) => ({
@@ -104,7 +146,10 @@ describe("Electron 桌面转换", () => {
     const first = join(process.cwd(), "documents", "first.md");
     const second = join(process.cwd(), "documents", "second.markdown");
     const customOutput = join(process.cwd(), "output", "first.docx");
-    const calls: { file?: string; output?: string; preset?: string }[] = [];
+    const calls: {
+      options: { file?: string; output?: string; preset?: string };
+      overrides: unknown;
+    }[] = [];
     const results: DesktopConversionResult[] = [];
 
     await convertDesktopFiles(
@@ -114,27 +159,35 @@ describe("Electron 桌面转换", () => {
           { id: "second-record", path: second },
         ],
         preset: "academic",
+        config,
+        styleConfig,
         openAfterConvert: true,
       },
       (result) => {
         results.push(result);
       },
-      async (options) => {
-        calls.push(options);
+      async (options, overrides) => {
+        calls.push({ options, overrides });
         if (options.file === second) throw new Error("测试转换失败");
       },
     );
 
     expect(calls).toEqual([
       {
-        file: first,
-        output: customOutput,
-        preset: "academic",
+        options: {
+          file: first,
+          output: customOutput,
+          preset: "academic",
+        },
+        overrides: { config, styleConfig },
       },
       {
-        file: second,
-        output: resolve(dirname(second), `${parse(second).name}.docx`),
-        preset: "academic",
+        options: {
+          file: second,
+          output: resolve(dirname(second), `${parse(second).name}.docx`),
+          preset: "academic",
+        },
+        overrides: { config, styleConfig },
       },
     ]);
     expect(results).toEqual([

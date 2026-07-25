@@ -80,6 +80,14 @@ interface EditablePreset {
   styleConfig: PresetStyleConfig;
 }
 
+interface DesktopConversionSettings {
+  schemaVersion: 1;
+  preset: string;
+  config: PresetAppConfig;
+  styleConfig: PresetStyleConfig;
+  collapsed: boolean;
+}
+
 interface UpdateSnapshot {
   state: "idle" | "checking" | "available" | "downloading" | "downloaded" | "error";
   revision?: number;
@@ -128,10 +136,11 @@ interface Window {
     openExternal: (url: string) => Promise<void>;
     convert: (request: {
       files: { id: string; path: string }[];
-      preset?: string;
+      preset: string;
+      config: PresetAppConfig;
+      styleConfig: PresetStyleConfig;
       openAfterConvert: boolean;
     }) => Promise<void>;
-    regenerate: (recordId: string) => Promise<void>;
     getHistory: () => Promise<ConversionRecord[]>;
     clearHistory: () => Promise<void>;
     removeHistoryRecord: (recordId: string) => Promise<void>;
@@ -151,6 +160,8 @@ interface Window {
       outputFolder: string;
       conflictAction: "overwrite" | "rename" | "ask";
     }) => Promise<void>;
+    loadConversionSettings: () => Promise<DesktopConversionSettings | undefined>;
+    saveConversionSettings: (settings: DesktopConversionSettings) => Promise<void>;
     onFileDone: (callback: (data: FileDoneEvent) => void) => () => void;
     onFileError: (callback: (data: FileErrorEvent) => void) => () => void;
     getUpdateState: () => Promise<UpdateSnapshot>;

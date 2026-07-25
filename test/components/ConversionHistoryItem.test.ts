@@ -156,7 +156,7 @@ describe("ConversionHistoryItem", () => {
     expect(wrapper.find(".item__spinner").exists()).toBe(true);
 
     expect(wrapper.find('[aria-label="显示文件位置"]').exists()).toBe(false);
-    expect(wrapper.find('[aria-label="重新生成"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="重新加入文件列表"]').exists()).toBe(false);
     expect(wrapper.find('[aria-label="删除记录"]').exists()).toBe(false);
   });
 
@@ -172,16 +172,16 @@ describe("ConversionHistoryItem", () => {
     expect(wrapper.emitted("showInFolder")![0]).toEqual(["/out/report.docx"]);
   });
 
-  test('clicking RefreshCw button emits "regenerate" with record.id', async () => {
+  test('clicking RefreshCw button emits "requeue" with record.id', async () => {
     const record = createRecord({ status: "success", id: "rec-42" });
     const wrapper = mountComponent({ record });
 
-    const btn = wrapper.find('[aria-label="重新生成"]');
+    const btn = wrapper.find('[aria-label="重新加入文件列表"]');
     expect(btn.exists()).toBe(true);
 
     await btn.trigger("click");
-    expect(wrapper.emitted("regenerate")).toHaveLength(1);
-    expect(wrapper.emitted("regenerate")![0]).toEqual(["rec-42"]);
+    expect(wrapper.emitted("requeue")).toHaveLength(1);
+    expect(wrapper.emitted("requeue")![0]).toEqual(["rec-42"]);
   });
 
   test('clicking X button emits "remove" with record.id', async () => {
@@ -201,7 +201,7 @@ describe("ConversionHistoryItem", () => {
     const wrapper = mountComponent({ record });
 
     expect(wrapper.find('[aria-label="显示文件位置"]').exists()).toBe(true);
-    expect(wrapper.find('[aria-label="重新生成"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="重新加入文件列表"]').exists()).toBe(true);
   });
 
   test("missing record does NOT show RefreshCw button", () => {
@@ -211,7 +211,7 @@ describe("ConversionHistoryItem", () => {
     });
     const wrapper = mountComponent({ record });
 
-    expect(wrapper.find('[aria-label="重新生成"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="重新加入文件列表"]').exists()).toBe(false);
     // 删除按钮仍应显示（status !== "converting"）
     expect(wrapper.find('[aria-label="删除记录"]').exists()).toBe(true);
   });

@@ -18,7 +18,9 @@ export interface DesktopConversionFile {
 
 export interface DesktopConversionRequest {
   files: DesktopConversionFile[];
-  preset?: string;
+  preset: string;
+  config: AppConfig;
+  styleConfig: StyleConfig;
   openAfterConvert: boolean;
   legacyJobId?: string;
 }
@@ -39,3 +41,5 @@ export type DesktopConversionResult =
       jobId?: string;
       missing?: boolean;
     };
+import type { AppConfig } from "../src/config";
+import type { StyleConfig } from "../src/style/config";

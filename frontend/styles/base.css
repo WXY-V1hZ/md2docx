@@ -3,12 +3,14 @@
 @theme inline {
   --color-app-bg: var(--app-bg);
   --color-app-surface: var(--app-surface);
+  --color-app-surface-raised: var(--app-surface-raised);
   --color-app-text: var(--app-text);
   --color-app-secondary: var(--app-secondary);
   --color-app-tertiary: var(--app-tertiary);
   --color-app-border: var(--app-border);
-  --color-app-accent: #3478f6;
-  --color-app-accent-hover: #2563eb;
+  --color-app-border-strong: var(--app-border-strong);
+  --color-app-accent: #0a84ff;
+  --color-app-accent-hover: #0071e3;
   --color-app-destructive: #ff3b30;
   --color-app-success: #34c759;
 
@@ -30,13 +32,13 @@
   --app-text: #1d1d1f;
   --app-secondary: #86868b;
   --app-tertiary: #aeaeb2;
-  --app-border: rgba(0, 0, 0, 0.06);
-  --app-border-strong: rgba(0, 0, 0, 0.1);
-  --app-fill: rgba(0, 0, 0, 0.04);
+  --app-border: rgba(0, 0, 0, 0.05);
+  --app-border-strong: rgba(0, 0, 0, 0.08);
+  --app-fill: rgba(0, 0, 0, 0.035);
   --app-accent: #0a84ff;
   --app-success: #30d158;
-  --app-shadow-card: 0 12px 36px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --app-shadow-floating: 0 18px 48px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.08);
+  --app-shadow-card: 0 8px 28px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.035);
+  --app-shadow-floating: 0 16px 42px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
   --app-titlebar-height: 48px;
 }
 
@@ -105,7 +107,7 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid #3478f6;
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 72%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -255,12 +257,12 @@ textarea {
 }
 
 .app-toggle__input:focus-visible + .app-toggle__track {
-  outline: 2px solid var(--app-accent);
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 72%, transparent);
   outline-offset: 2px;
 }
 
 .app-toggle__track--on {
-  background: #3478f6;
+  background: var(--app-accent);
 }
 
 .app-toggle__thumb {
@@ -270,8 +272,10 @@ textarea {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background: var(--app-surface-raised);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0.5px 1px rgba(0, 0, 0, 0.06);
   transition: left 0.2s ease;
 }
 

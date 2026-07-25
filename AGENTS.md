@@ -69,6 +69,7 @@ bun run electron                 # 构建前端并启动 Electron
 - `assets/logo.svg` 同时服务 README 与标题栏，修改时必须保持 512×512 方形 viewBox，并检查 64px 小尺寸辨识度；避免依赖系统字体或外部位图
 - Electron 32+ 不再提供 `File.path`；拖入文件路径由 preload 使用 `webUtils.getPathForFile()` 获取
 - `settings.json` 由 CLI 与桌面端共享，结构保持 `{ schemaVersion: 1, preset, desktop? }`；桌面设置写入必须保留 `preset`，切换预设必须保留 `desktop`
+- `desktop.conversion` 保存主界面转换工作区快照 `{ schemaVersion: 1, preset, config, styleConfig, collapsed }`；输出设置与工作区设置写入必须互相保留
 - 兼容旧版扁平桌面设置 `{ outputMode, outputFolder, conflictAction }`，读取时视为 `default` 预设，下次保存时迁移到共享结构
 - 预设复制、重命名和删除统一由 `src/preset.ts` 实现；主进程不得直接拼接 renderer 提供的名称执行文件操作，当前预设被重命名或删除时必须同步 `settings.json`
 - 内置 `default` 不可直接改写；桌面端可视化编辑它时必须另存为用户预设并自动切换，用户预设可原地编辑。编辑只暴露 AppConfig 与语义化 StyleConfig，必须保留有效 `style-raw.json`，并以临时目录原子替换
@@ -78,7 +79,11 @@ bun run electron                 # 构建前端并启动 Electron
 - Pandoc 检测只搜索系统 `PATH`，调用必须设置超时并限制输出大小
 - Electron 运行前先由 Bun 将 `electron/main.ts` 打包到 `dist-electron/main.js`，并将 sandbox preload 编译为 `dist-electron/preload.cjs`
 - 桌面转换必须调用 `convertMarkdown()` 复用完整 CLI 流水线，不得单独执行裸 `pandoc`
-- 完成项目从队列移除后进入标题栏转换记录；每个文件保留独立记录，可打开输出、定位文件并基于最新源文件重新生成
+- 主界面右侧始终挂载转换设置 Inspector；主界面右上角无边框固定按钮与 `Ctrl+Alt+B` 控制显示/隐藏，按钮不得随 Inspector 展开移动，状态跨启动保留。字段必须复用预设编辑器的共享表单，选择预设会重置工作区并同步默认预设，直接调整不得写回预设
+- `bun run dev` 必须为每次开发会话隔离 Electron `sessionData`，避免并行或残留实例争用 Chromium 缓存；正式构建继续使用默认会话目录
+- Inspector 配置与语义化样式随转换请求发送并在主进程严格校验；转换使用请求快照，底层样式仍来自所选预设
+- 完成项目从队列移除后进入标题栏转换记录；每个文件保留独立记录，可打开输出、定位文件或重新加入队列
+- 转换记录的再次操作只把源文件去重加入当前队列，不得直接开始转换；后续转换使用当前 Inspector 设置
 - 转换记录保存到 `~/.md2docx/conversion-history.json`，最多 30 条；清除记录不得影响转换中的任务或删除实际文件
 - 转换记录面板只由点击标题栏按钮触发，不使用悬停自动展开
 - 面板遮罩与面板本体分别过渡；动效使用短时长和减速曲线，并遵守 `prefers-reduced-motion`

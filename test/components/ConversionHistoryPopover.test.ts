@@ -189,10 +189,10 @@ describe("ConversionHistoryPopover", () => {
     expect(wrapper.emitted("showInFolder")).toBeDefined();
     expect(wrapper.emitted("showInFolder")![0]).toEqual([records[1]!.outputPath!]);
 
-    // regenerate 冒泡
-    items[1]!.vm.$emit("regenerate", records[1]!.id);
-    expect(wrapper.emitted("regenerate")).toBeDefined();
-    expect(wrapper.emitted("regenerate")![0]).toEqual([records[1]!.id]);
+    // requeue 冒泡
+    items[1]!.vm.$emit("requeue", records[1]!.id);
+    expect(wrapper.emitted("requeue")).toBeDefined();
+    expect(wrapper.emitted("requeue")![0]).toEqual([records[1]!.id]);
 
     // removeRecord 冒泡（子组件 emit 'remove'，父组件 re-emit 为 'removeRecord'）
     items[0]!.vm.$emit("remove", records[0]!.id);

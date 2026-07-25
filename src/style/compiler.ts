@@ -8,6 +8,7 @@ export type RawStyleDefinition = Record<string, unknown>;
 export interface StyleSources {
   styleRawPath?: string;
   styleConfigPath?: string;
+  styleConfig?: StyleConfig;
 }
 
 export interface DefaultStyleSources {
@@ -36,6 +37,9 @@ export function resolveEffectiveStyles(
   const rawPath = sources.styleRawPath ?? defaults?.styleRawPath ?? materializeDefaultStyleRaw();
   const rawStyle = loadStyleRaw(rawPath);
 
+  if (sources.styleConfig) {
+    return compileStyleConfig(rawStyle, sources.styleConfig);
+  }
   if (sources.styleConfigPath) {
     return compileStyleConfig(rawStyle, loadStyleConfig(sources.styleConfigPath));
   }

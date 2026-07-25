@@ -11,7 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   openFile: [path: string];
   showInFolder: [path: string];
-  regenerate: [id: string];
+  requeue: [id: string];
   removeRecord: [id: string];
   clear: [];
 }>();
@@ -40,7 +40,7 @@ const canClear = computed(() => props.records.some(({ status }) => status !== "c
         :record="record"
         @open-file="emit('openFile', $event)"
         @show-in-folder="emit('showInFolder', $event)"
-        @regenerate="emit('regenerate', $event)"
+        @requeue="emit('requeue', $event)"
         @remove="emit('removeRecord', $event)"
       />
     </TransitionGroup>

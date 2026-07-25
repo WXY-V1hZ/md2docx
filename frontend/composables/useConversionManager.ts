@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, type Ref } from "vue";
 
 import type { FileEntry } from "../file-entry";
+import { cloneJson, type ConversionWorkspaceSettings } from "../conversion-settings";
 
 export interface HistoryRecord extends ConversionRecord {
   unread: boolean;
@@ -60,7 +61,7 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     file.error = undefined;
   }
 
-  async function startConversion(preset: string, openAfterConvert: boolean) {
+  async function startConversion(settings: ConversionWorkspaceSettings, openAfterConvert: boolean) {
     const idle = queue.value.filter(({ status }) => status === "idle");
     if (idle.length === 0) return;
 
@@ -77,7 +78,7 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
       id: files[index]!.id,
       sourcePath: file.path,
       sourceName: file.name,
-      preset,
+      preset: settings.preset,
       status: "converting",
       startedAt,
       unread: false,
@@ -90,7 +91,13 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     }
 
     try {
-      await window.md2docx.convert({ files, preset, openAfterConvert });
+      await window.md2docx.convert({
+        files,
+        preset: settings.preset,
+        config: cloneJson(settings.config),
+        styleConfig: cloneJson(settings.styleConfig),
+        openAfterConvert,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("已取消")) {
@@ -101,26 +108,11 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     }
   }
 
-  async function regenerateRecord(recordId: string) {
+  function requeueRecord(recordId: string): boolean {
     const record = history.value.find(({ id }) => id === recordId);
-    if (!record || record.status === "converting" || record.status === "missing") return;
-    if (!window.md2docx?.regenerate) return;
-
-    record.status = "converting";
-    record.error = undefined;
-    record.startedAt = Date.now();
-    record.unread = false;
-    moveRecordToTop(recordId);
-
-    try {
-      await window.md2docx.regenerate(recordId);
-    } catch (error) {
-      if (record.status !== "converting") return;
-      record.status = "error";
-      record.error = error instanceof Error ? error.message : String(error);
-      record.completedAt = Date.now();
-      record.unread = !historyVisible.value;
-    }
+    if (!record || record.status === "converting" || record.status === "missing") return false;
+    addFiles([record.sourcePath]);
+    return true;
   }
 
   function markHistoryRead() {
@@ -304,7 +296,7 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     clearQueue,
     retryFile,
     startConversion,
-    regenerateRecord,
+    requeueRecord,
     markHistoryRead,
     removeRecord,
     clearHistory,

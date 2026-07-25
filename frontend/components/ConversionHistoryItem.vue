@@ -11,7 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   openFile: [path: string];
   showInFolder: [path: string];
-  regenerate: [id: string];
+  requeue: [id: string];
   remove: [id: string];
 }>();
 
@@ -85,9 +85,9 @@ function formatRelativeTime(timestamp?: number): string {
         v-if="record.status !== 'converting' && record.status !== 'missing'"
         type="button"
         class="item__button"
-        title="使用最新源文件重新生成"
-        aria-label="重新生成"
-        @click="emit('regenerate', record.id)"
+        title="重新加入文件列表"
+        aria-label="重新加入文件列表"
+        @click="emit('requeue', record.id)"
       >
         <RefreshCw :size="14" stroke-width="1.8" />
       </button>

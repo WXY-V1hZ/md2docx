@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import { spawn } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { delimiter, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,7 +18,6 @@ import {
   convertDesktopFiles,
   createRecordsFromRequest,
   parseConversionRequest,
-  regenerateRecord,
 } from "./conversion";
 import {
   clearCompletedHistory,
@@ -29,10 +28,12 @@ import {
 } from "./conversion-history";
 import {
   availableOutputPath,
+  loadDesktopConversionSettings,
   loadDesktopSettings,
   outputPathFor,
   pathKey,
   requireOutputFolder,
+  saveDesktopConversionSettings,
   saveDesktopSettings,
   type DesktopSettings,
 } from "./settings";
@@ -53,6 +54,16 @@ let updateManager: UpdateManager | null = null;
 
 const SURFACE = { light: "#ffffff", dark: "#2c2c2e" };
 const BG = { light: "#f5f5f7", dark: "#1c1c1e" };
+
+function configureDevelopmentSessionData(): void {
+  const sessionId = process.env.MD2DOCX_DEV_SESSION_ID;
+  if (!sessionId || !/^\d+$/.test(sessionId)) return;
+  const sessionDataPath = join(app.getPath("temp"), "md2docx-dev", sessionId);
+  mkdirSync(sessionDataPath, { recursive: true });
+  app.setPath("sessionData", sessionDataPath);
+}
+
+configureDevelopmentSessionData();
 
 function getTitleBarOverlayOptions() {
   const isDark = nativeTheme.shouldUseDarkColors;
@@ -126,14 +137,29 @@ function registerIpcHandlers() {
 
   ipcMain.handle("preset:delete", async (_event, name: unknown) => {
     if (typeof name !== "string" || name.length === 0) throw new Error("预设名称无效");
+    const workspace = loadDesktopConversionSettings();
     await deletePreset(name);
+    if (workspace?.preset === name) {
+      const fallback = await readEditablePreset("default");
+      saveDesktopConversionSettings({
+        schemaVersion: 1,
+        preset: "default",
+        config: fallback.config,
+        styleConfig: fallback.styleConfig,
+        collapsed: workspace.collapsed,
+      });
+    }
   });
 
   ipcMain.handle("preset:rename", async (_event, value: unknown) => {
     if (!isRecord(value)) throw new Error("参数无效");
     const { oldName, newName } = value;
     if (typeof oldName !== "string" || typeof newName !== "string") throw new Error("名称无效");
+    const workspace = loadDesktopConversionSettings();
     await renamePreset(oldName, newName);
+    if (workspace?.preset === oldName) {
+      saveDesktopConversionSettings({ ...workspace, preset: newName });
+    }
   });
 
   ipcMain.handle("preset:copy", async (_event, value: unknown) => {
@@ -217,45 +243,15 @@ function registerIpcHandlers() {
     });
   });
 
-  ipcMain.handle("convert:regenerate", async (event, recordId: unknown) => {
-    if (typeof recordId !== "string") throw new Error("记录 ID 无效");
-    const history = loadHistory();
-    const record = history.find((r) => r.id === recordId);
-    if (!record) throw new Error("找不到转换记录");
-    const request = regenerateRecord(record);
-    if (!request) {
-      record.status = "missing";
-      record.error = undefined;
-      saveHistory(history);
-      event.sender.send("convert:file-error", {
-        recordId,
-        path: record.sourcePath,
-        error: "源文件不存在",
-        missing: true,
-      });
-      return;
-    }
-    record.status = "converting";
-    record.error = undefined;
-    record.startedAt = Date.now();
-    saveHistory(history);
-
-    await convertDesktopFiles(request, async (result: DesktopConversionResult) => {
-      const cur = loadHistory();
-      updateHistoryFromResult(cur, result);
-      saveHistory(cur);
-
-      if (event.sender.isDestroyed()) return;
-      event.sender.send(
-        result.status === "done" ? "convert:file-done" : "convert:file-error",
-        result,
-      );
-    });
-  });
-
   ipcMain.handle("settings:load", () => loadDesktopSettings());
 
   ipcMain.handle("settings:save", (_event, value: unknown) => saveDesktopSettings(value));
+
+  ipcMain.handle("conversion-settings:load", () => loadDesktopConversionSettings());
+
+  ipcMain.handle("conversion-settings:save", (_event, value: unknown) =>
+    saveDesktopConversionSettings(value),
+  );
 
   ipcMain.handle("pandoc:detect", async () => {
     const executable = findExecutableOnPath("pandoc");

@@ -5,11 +5,15 @@ import { join } from "node:path";
 
 import {
   availableOutputPath,
+  loadDesktopConversionSettings,
   loadDesktopSettings,
   pathKey,
+  saveDesktopConversionSettings,
   saveDesktopSettings,
 } from "../electron/settings";
 import { readCurrentPresetName, usePreset } from "../src/preset";
+import defaultConfig from "../config/default/config.json" with { type: "json" };
+import defaultStyleConfig from "../config/default/style-config.json" with { type: "json" };
 
 const tempDirs: string[] = [];
 
@@ -147,6 +151,36 @@ describe("Electron 桌面设置", () => {
         outputFolder: "",
         conflictAction: "overwrite",
       },
+    });
+  });
+
+  test("输出设置与转换工作区设置互相保留", () => {
+    const storage = createStorage();
+    const config = structuredClone(defaultConfig) as PresetAppConfig & { $schema?: string };
+    delete config.$schema;
+    const conversion = {
+      schemaVersion: 1 as const,
+      preset: "default",
+      config,
+      styleConfig: defaultStyleConfig as PresetStyleConfig,
+      collapsed: true,
+    };
+
+    saveDesktopConversionSettings(conversion, storage.settingsPath);
+    saveDesktopSettings(
+      {
+        outputMode: "ask",
+        outputFolder: "",
+        conflictAction: "rename",
+      },
+      storage.settingsPath,
+    );
+
+    expect(loadDesktopConversionSettings(storage.settingsPath)).toEqual(conversion);
+    expect(loadDesktopSettings(storage.settingsPath)).toMatchObject({
+      outputMode: "ask",
+      conflictAction: "rename",
+      conversion,
     });
   });
 });

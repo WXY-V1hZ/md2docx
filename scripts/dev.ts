@@ -1,13 +1,23 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 
 const VITE_PORT = 5173;
 const URL = `http://localhost:${VITE_PORT}`;
 
-const vite = spawn("bun", ["run", "dev:frontend"], {
+let electron: ChildProcess | undefined;
+let stopping = false;
+
+const vite = spawn(process.execPath, ["run", "dev:frontend"], {
   stdio: "inherit",
-  shell: true,
   env: { ...process.env, FORCE_COLOR: "1" },
 });
+
+function stop(exitCode: number) {
+  if (stopping) return;
+  stopping = true;
+  electron?.kill();
+  vite.kill();
+  process.exitCode = exitCode;
+}
 
 async function waitForVite() {
   for (let i = 0; i < 30; i++) {
@@ -23,24 +33,30 @@ async function waitForVite() {
 
 waitForVite()
   .then(() => {
-    const electron = spawn("bun", ["run", "dev:electron"], {
+    electron = spawn(process.execPath, ["run", "dev:electron"], {
       stdio: "inherit",
-      shell: true,
-      env: { ...process.env, VITE_DEV_SERVER_URL: URL, FORCE_COLOR: "1" },
+      env: {
+        ...process.env,
+        VITE_DEV_SERVER_URL: URL,
+        MD2DOCX_DEV_SESSION_ID: String(process.pid),
+        FORCE_COLOR: "1",
+      },
     });
 
-    electron.on("close", () => {
-      vite.kill();
-      process.exit();
+    electron.on("error", (error) => {
+      console.error(error.message);
+      stop(1);
+    });
+    electron.on("close", (code) => {
+      stop(code ?? 0);
     });
   })
   .catch((err) => {
     console.error(err.message);
-    vite.kill();
-    process.exit(1);
+    stop(1);
   });
 
 process.on("SIGINT", () => {
-  vite.kill();
-  process.exit();
+  stop(0);
 });
+process.on("SIGTERM", () => stop(0));
