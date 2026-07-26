@@ -10,6 +10,7 @@ import ConversionHistoryPopover from "./components/ConversionHistoryPopover.vue"
 import FileDropZone from "./components/FileDropZone.vue";
 import FileQueue from "./components/FileQueue.vue";
 import MarkdownEditor from "./components/MarkdownEditor.vue";
+import PandocStatusCard from "./components/PandocStatusCard.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 import UpdateBanner from "./components/UpdateBanner.vue";
 import { useAutoUpdate } from "./composables/useAutoUpdate";
@@ -22,6 +23,7 @@ const {
   queue,
   history,
   flights,
+  showPandocDialog,
   readyCount,
   isConverting,
   unreadCount,
@@ -326,6 +328,30 @@ onBeforeUnmount(() => {
         @close="showSettings = false"
       />
     </Transition>
+
+    <Transition name="preset-dialog">
+      <div
+        v-if="showPandocDialog"
+        class="pandoc-error-overlay"
+        @mousedown.self="showPandocDialog = false"
+      >
+        <div
+          class="pandoc-error-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="pandoc-error-title"
+        >
+          <strong id="pandoc-error-title">转换失败：未检测到 Pandoc</strong>
+          <p>转换需要 Pandoc，请安装后重新检测。</p>
+          <PandocStatusCard />
+          <div>
+            <button type="button" class="app-button" @click="showPandocDialog = false">
+              我知道了
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -467,5 +493,143 @@ onBeforeUnmount(() => {
 .update-banner-leave-to {
   opacity: 0;
   transform: translateY(-100%);
+}
+
+.pandoc-error-overlay {
+  position: fixed;
+  inset: var(--app-titlebar-height) 0 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.pandoc-error-dialog {
+  display: flex;
+  width: 320px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 0.5px solid var(--app-border-strong);
+  border-radius: 15px;
+  background: var(--app-surface-raised);
+  box-shadow: var(--app-shadow-floating);
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pandoc-error-dialog strong {
+  color: var(--app-text);
+  font-size: 14px;
+}
+
+.pandoc-error-dialog p {
+  margin: 0;
+  color: var(--app-secondary);
+  font-size: 12px;
+}
+
+.pandoc-error-dialog > div {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pandoc-error-dialog .app-button {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  padding: 0 14px;
+  border: none;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--app-accent) 66%, transparent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: default;
+  transition: background 0.12s ease;
+}
+
+.pandoc-error-dialog .app-button:hover {
+  background: var(--app-accent);
+}
+
+/* === Overlay enter/leave (matches SettingsPanel) === */
+.preset-dialog-enter-from,
+.preset-dialog-leave-to {
+  background: transparent;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+}
+
+.preset-dialog-enter-active {
+  animation: pandoc-overlay-in 0.32s ease-out forwards;
+}
+.preset-dialog-leave-active {
+  animation: pandoc-overlay-out 0.2s ease-in forwards;
+}
+
+@keyframes pandoc-overlay-in {
+  from {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+}
+@keyframes pandoc-overlay-out {
+  to {
+    background: transparent;
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+}
+
+/* === Dialog enter: slide up + scale === */
+.preset-dialog-enter-from .pandoc-error-dialog {
+  opacity: 0;
+  transform: translateY(14px) scale(0.965);
+}
+.preset-dialog-enter-active .pandoc-error-dialog {
+  animation: pandoc-dialog-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes pandoc-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.965);
+  }
+}
+
+/* === Dialog leave: fade + shrink === */
+.preset-dialog-leave-to .pandoc-error-dialog {
+  opacity: 0;
+  transform: translateY(10px) scale(0.975);
+}
+.preset-dialog-leave-active .pandoc-error-dialog {
+  animation: pandoc-dialog-out 0.2s ease-in forwards;
+}
+@keyframes pandoc-dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.975);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .pandoc-error-overlay {
+    background: rgba(0, 0, 0, 0.46);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preset-dialog-enter-active,
+  .preset-dialog-leave-active,
+  .preset-dialog-enter-active .pandoc-error-dialog,
+  .preset-dialog-leave-active .pandoc-error-dialog {
+    animation: none !important;
+  }
 }
 </style>

@@ -1,17 +1,9 @@
 <script setup lang="ts">
-import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  ExternalLink,
-  Folder,
-  RefreshCw,
-  ShieldCheck,
-  X,
-} from "lucide-vue-next";
+import { ArrowLeft, Folder, X } from "lucide-vue-next";
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import AppSelect, { type AppSelectOption } from "./AppSelect.vue";
+import PandocStatusCard from "./PandocStatusCard.vue";
 import PresetManager from "./PresetManager.vue";
 import PresetEditor from "./PresetEditor.vue";
 import pkg from "../../package.json" with { type: "json" };
@@ -30,13 +22,6 @@ const conflictActionOptions = [
 
 const panel = ref<HTMLElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
-const pandocState = ref<{
-  available: boolean;
-  version: string | null;
-  path: string | null;
-} | null>(null);
-const pandocChecking = ref(false);
-const pandocError = ref("");
 const outputMode = ref<OutputMode>("source");
 const outputFolder = ref("");
 const conflictAction = ref<ConflictAction>("overwrite");
@@ -51,31 +36,6 @@ const updateCheckStatus = ref("");
 
 let previousFocus: HTMLElement | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
-
-async function checkPandoc() {
-  pandocChecking.value = true;
-  pandocError.value = "";
-  try {
-    pandocState.value = (await window.md2docx?.detectPandoc()) ?? {
-      available: false,
-      version: null,
-      path: null,
-    };
-  } catch {
-    pandocState.value = { available: false, version: null, path: null };
-  } finally {
-    pandocChecking.value = false;
-  }
-}
-
-async function openPandocWebsite() {
-  try {
-    await window.md2docx?.openExternal("https://pandoc.org/installing.html");
-    pandocError.value = "";
-  } catch {
-    pandocError.value = "无法打开安装页面";
-  }
-}
 
 async function selectOutputFolder(): Promise<boolean> {
   try {
@@ -228,7 +188,7 @@ onMounted(() => {
   previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   document.addEventListener("keydown", onKeydown);
   void nextTick(() => closeButton.value?.focus());
-  void Promise.all([checkPandoc(), loadSettings()]);
+  void loadSettings();
   if (props.initialSection === "presets") {
     void nextTick(() => {
       const manager = panel.value?.querySelector<HTMLElement>("[data-preset-manager]");
@@ -293,56 +253,7 @@ onBeforeUnmount(() => {
       <div v-else class="settings-panel__body">
         <section class="settings-section" aria-labelledby="pandoc-settings">
           <h3 id="pandoc-settings" class="settings-section__label">Pandoc</h3>
-          <div
-            class="pandoc-card"
-            :class="{
-              'pandoc-card--available': pandocState?.available,
-              'pandoc-card--missing': pandocState && !pandocState.available,
-            }"
-            role="status"
-            aria-live="polite"
-          >
-            <span class="pandoc-card__status" aria-hidden="true">
-              <span v-if="!pandocState || pandocChecking" class="pandoc-card__spinner" />
-              <CheckCircle2 v-else-if="pandocState.available" :size="17" stroke-width="1.8" />
-              <AlertCircle v-else :size="17" stroke-width="1.8" />
-            </span>
-            <div class="pandoc-card__copy">
-              <strong v-if="!pandocState">正在检测…</strong>
-              <strong v-else-if="pandocState.available">
-                Pandoc {{ pandocState.version || "已安装" }}
-              </strong>
-              <strong v-else>未检测到 Pandoc</strong>
-              <small v-if="pandocState?.available">{{ pandocState.path }}</small>
-              <small v-else-if="pandocState">安装后重新检测</small>
-            </div>
-            <div class="pandoc-card__actions">
-              <button
-                type="button"
-                class="settings-icon-button"
-                :disabled="pandocChecking"
-                aria-label="重新检测 Pandoc"
-                title="重新检测"
-                @click="checkPandoc"
-              >
-                <RefreshCw
-                  :size="14"
-                  stroke-width="1.8"
-                  :class="{ 'is-spinning': pandocChecking }"
-                />
-              </button>
-              <button
-                v-if="pandocState && !pandocState.available"
-                type="button"
-                class="settings-link-button"
-                @click="openPandocWebsite"
-              >
-                安装
-                <ExternalLink :size="12" stroke-width="1.8" />
-              </button>
-            </div>
-          </div>
-          <p v-if="pandocError" class="settings-error" role="alert">{{ pandocError }}</p>
+          <PandocStatusCard />
         </section>
 
         <section class="settings-section" aria-labelledby="output-settings">
@@ -534,89 +445,6 @@ onBeforeUnmount(() => {
   font-weight: 650;
   letter-spacing: 0.025em;
   text-transform: uppercase;
-}
-
-.pandoc-card {
-  display: flex;
-  min-height: 58px;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 11px;
-  border: 0.5px solid var(--app-border);
-  border-radius: 12px;
-  background: var(--app-fill);
-}
-
-.pandoc-card--available {
-  border-color: color-mix(in srgb, var(--app-success) 20%, var(--app-border));
-}
-
-.pandoc-card--missing {
-  border-color: color-mix(in srgb, #ff3b30 18%, var(--app-border));
-}
-
-.pandoc-card__status {
-  display: inline-flex;
-  width: 26px;
-  height: 26px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--app-fill);
-  color: var(--app-tertiary);
-}
-
-.pandoc-card--available .pandoc-card__status {
-  background: color-mix(in srgb, var(--app-success) 12%, transparent);
-  color: var(--app-success);
-}
-
-.pandoc-card--missing .pandoc-card__status {
-  background: color-mix(in srgb, #ff3b30 10%, transparent);
-  color: #ff3b30;
-}
-
-.pandoc-card__spinner {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid color-mix(in srgb, var(--app-accent) 18%, transparent);
-  border-top-color: var(--app-accent);
-  border-radius: 50%;
-  animation: settings-spin 0.7s linear infinite;
-}
-
-.pandoc-card__copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pandoc-card__copy strong,
-.privacy-card strong {
-  overflow: hidden;
-  color: var(--app-text);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pandoc-card__copy small {
-  overflow: hidden;
-  color: var(--app-secondary);
-  font-size: 10.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pandoc-card__actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 2px;
 }
 
 .settings-group {

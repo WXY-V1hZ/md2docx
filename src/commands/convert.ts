@@ -76,9 +76,24 @@ export async function convertMarkdown(
     ...(existsSync(inlineCodeFilter) ? [`--lua-filter=${inlineCodeFilter}`] : []),
     ...imageSizeArgs,
   ];
-  const { exitCode, stderr } = await runProcess("pandoc", pandocArgs);
-  if (exitCode !== 0) {
-    throw new Error(`pandoc 转换失败 (exit code ${exitCode})：${stderr.trim()}`);
+  try {
+    const { exitCode, stderr } = await runProcess("pandoc", pandocArgs);
+    if (exitCode !== 0) {
+      throw new Error(`pandoc 转换失败 (exit code ${exitCode})：${stderr.trim()}`);
+    }
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      throw new Error(
+        "未找到 pandoc，请安装 pandoc (https://pandoc.org/installing.html) " +
+          "并将其添加到系统 PATH 环境变量后重试",
+      );
+    }
+    throw error;
   }
   console.log(`已生成：${output}`);
 }

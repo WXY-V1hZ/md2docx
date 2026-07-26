@@ -22,6 +22,8 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
   const queue = ref<FileEntry[]>([]);
   const history = ref<HistoryRecord[]>([]);
   const flights = ref<FlightAnimation[]>([]);
+  const showPandocDialog = ref(false);
+  const lastEditor = ref<{ content: string; name: string; path: string } | null>(null);
 
   let cleanupDone: (() => void) | undefined;
   let cleanupError: (() => void) | undefined;
@@ -77,10 +79,19 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
       return { error: "桌面编辑器服务不可用" };
     }
     let source: { path: string; name: string };
-    try {
-      source = await window.md2docx.createEditorSource({ content, name });
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : String(error) };
+    if (
+      lastEditor.value &&
+      lastEditor.value.content === content &&
+      lastEditor.value.name === name
+    ) {
+      source = { path: lastEditor.value.path, name: lastEditor.value.name };
+    } else {
+      try {
+        source = await window.md2docx.createEditorSource({ content, name });
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error) };
+      }
+      lastEditor.value = { content, name, path: source.path };
     }
 
     const entry: FileEntry = {
@@ -113,6 +124,10 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     });
 
     const startedAt = Date.now();
+    // 清理该批次文件已有的历史记录，避免重复
+    const sourcePaths = new Set(files.map((f) => f.path));
+    history.value = history.value.filter((r) => !sourcePaths.has(r.sourcePath));
+
     const pendingRecords = idle.map<HistoryRecord>((file, index) => ({
       id: files[index]!.id,
       sourcePath: file.path,
@@ -126,6 +141,19 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
 
     if (!window.md2docx?.convert) {
       failPendingFiles(files, "桌面转换服务不可用");
+      return;
+    }
+
+    // 转换前检测 pandoc 是否可用
+    try {
+      const pandoc = await window.md2docx.detectPandoc();
+      if (!pandoc.available) {
+        failPendingFiles(files, "未检测到 Pandoc，请安装后重试");
+        showPandocDialog.value = true;
+        return;
+      }
+    } catch {
+      failPendingFiles(files, "无法检测 Pandoc 状态");
       return;
     }
 
@@ -327,6 +355,7 @@ export function useConversionManager(historyVisible: Ref<boolean>) {
     queue,
     history,
     flights,
+    showPandocDialog,
     readyCount,
     isConverting,
     unreadCount,

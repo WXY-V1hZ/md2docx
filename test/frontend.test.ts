@@ -105,8 +105,9 @@ describe("Electron 前端构建", () => {
   });
 
   test("设置面板通过受控 IPC 管理 Pandoc、输出和预设", async () => {
-    const [settings, presets, editor, form, inspector, preload] = await Promise.all([
+    const [settings, pandocCard, presets, editor, form, inspector, preload] = await Promise.all([
       readFile(new URL("../frontend/components/SettingsPanel.vue", import.meta.url), "utf8"),
+      readFile(new URL("../frontend/components/PandocStatusCard.vue", import.meta.url), "utf8"),
       readFile(new URL("../frontend/components/PresetManager.vue", import.meta.url), "utf8"),
       readFile(new URL("../frontend/components/PresetEditor.vue", import.meta.url), "utf8"),
       readFile(
@@ -117,7 +118,8 @@ describe("Electron 前端构建", () => {
       readFile(new URL("../electron/preload.ts", import.meta.url), "utf8"),
     ]);
 
-    expect(settings).toContain("detectPandoc");
+    expect(settings).toContain("PandocStatusCard");
+    expect(pandocCard).toContain("detectPandoc");
     expect(settings).toContain("selectOutputFolder");
     expect(settings).toContain("PresetManager");
     expect(presets).toContain("usePreset");

@@ -47,6 +47,9 @@ beforeEach(() => {
       createEditorSource: mock(() =>
         Promise.resolve({ path: "C:\\temp\\editor\\实验报告.md", name: "实验报告.md" }),
       ),
+      detectPandoc: mock(() =>
+        Promise.resolve({ available: true, version: "3.6", path: "C:\\pandoc\\pandoc.exe" }),
+      ),
       getHistory: mock(() => Promise.resolve([])),
       clearHistory: mock(() => Promise.resolve()),
       removeHistoryRecord: mock(() => Promise.resolve()),
@@ -190,6 +193,30 @@ describe("useConversionManager", () => {
       status: "success",
       outputPath: "C:\\output\\实验报告.docx",
     });
+  });
+
+  test("编辑器内容未变时复用已有源文件，不新建且历史不重复", async () => {
+    const api = window.md2docx!;
+    (api.convert as ReturnType<typeof mock>).mockImplementation(async (request: any) => {
+      const file = request.files[0];
+      onFileDoneCb?.({ recordId: file.id, path: file.path, outputPath: "/out/doc.docx" });
+    });
+    const { history, startEditorConversion } = createManager();
+
+    await startEditorConversion("# 标题", "文档", workspace("academic"), false);
+    const firstCall = (api.createEditorSource as any).mock.calls.length;
+    const historyAfterFirst = history.value.length;
+
+    await startEditorConversion("# 标题", "文档", workspace("academic"), false);
+    const secondCall = (api.createEditorSource as any).mock.calls.length;
+
+    // 不应创建新文件
+    expect(firstCall).toBe(1);
+    expect(secondCall).toBe(1);
+    // 历史记录仅保留最近一次（不叠加）
+    expect(historyAfterFirst).toBe(1);
+    expect(history.value.length).toBe(1);
+    expect(api.convert).toHaveBeenCalledTimes(2);
   });
 
   test("onFileDone removes queue item and updates history", async () => {
@@ -395,5 +422,23 @@ describe("useConversionManager", () => {
     expect(history.value).toHaveLength(1);
     expect(history.value[0]!.id).toBe("1");
     expect(history.value[0]!.status).toBe("converting");
+  });
+
+  test("PANDOC_NOT_FOUND 错误设置 showPandocDialog 并标记文件失败", async () => {
+    (window.md2docx!.detectPandoc as ReturnType<typeof mock>).mockImplementation(async () =>
+      Promise.resolve({ available: false, version: null, path: null }),
+    );
+
+    const { queue, history, showPandocDialog, addFiles, startConversion } = createManager();
+
+    addFiles(["a.md", "b.md"]);
+    await startConversion(workspace("preset"), false);
+
+    expect(showPandocDialog.value).toBe(true);
+    expect(queue.value[0]!.status).toBe("error");
+    expect(queue.value[1]!.status).toBe("error");
+    expect(history.value[0]!.status).toBe("error");
+    expect(history.value[1]!.status).toBe("error");
+    expect(window.md2docx!.convert).not.toHaveBeenCalled();
   });
 });

@@ -223,6 +223,10 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("convert:start", async (event, value: unknown) => {
+    const pandoc = await detectPandoc();
+    if (!pandoc.available) {
+      throw new Error("PANDOC_NOT_FOUND");
+    }
     const request = await applyDesktopOutputSettings(parseConversionRequest(value));
     const records = createRecordsFromRequest(request);
     const history = loadHistory();
@@ -256,18 +260,7 @@ function registerIpcHandlers() {
     saveDesktopConversionSettings(value),
   );
 
-  ipcMain.handle("pandoc:detect", async () => {
-    const executable = findExecutableOnPath("pandoc");
-    if (!executable) return { available: false, version: null, path: null };
-    try {
-      const { stdout } = await runCommand(executable, ["--version"]);
-      const firstLine = stdout.trim().split(/\r?\n/, 1)[0] ?? "";
-      const version = /^pandoc\s+(.+)$/i.exec(firstLine)?.[1]?.trim() || firstLine || null;
-      return { available: true, version, path: executable };
-    } catch {
-      return { available: false, version: null, path: null };
-    }
-  });
+  ipcMain.handle("pandoc:detect", async () => detectPandoc());
 
   ipcMain.handle("dialog:selectFolder", async () => {
     if (!mainWindow) return null;
@@ -324,6 +317,23 @@ function runCommand(
       });
     });
   });
+}
+
+async function detectPandoc(): Promise<{
+  available: boolean;
+  version: string | null;
+  path: string | null;
+}> {
+  const executable = findExecutableOnPath("pandoc");
+  if (!executable) return { available: false, version: null, path: null };
+  try {
+    const { stdout } = await runCommand(executable, ["--version"]);
+    const firstLine = stdout.trim().split(/\r?\n/, 1)[0] ?? "";
+    const version = /^pandoc\s+(.+)$/i.exec(firstLine)?.[1]?.trim() || firstLine || null;
+    return { available: true, version, path: executable };
+  } catch {
+    return { available: false, version: null, path: null };
+  }
 }
 
 function findExecutableOnPath(command: string): string | null {
