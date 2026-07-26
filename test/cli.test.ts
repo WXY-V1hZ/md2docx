@@ -3,6 +3,7 @@ import { Command, CommanderError } from "commander";
 
 import {
   type CliActions,
+  type CleanOptions,
   type ConvertOptions,
   type ExportConfigOptions,
   type ExportStyleConfigOptions,
@@ -21,7 +22,7 @@ interface Calls {
   presetList: number;
   presetUse: string[];
   presetSave: PresetSaveOptions[];
-  clean: number;
+  clean: CleanOptions[];
 }
 
 function setup() {
@@ -34,7 +35,7 @@ function setup() {
     presetList: 0,
     presetUse: [],
     presetSave: [],
-    clean: 0,
+    clean: [],
   };
   const output: string[] = [];
   const actions: CliActions = {
@@ -46,7 +47,7 @@ function setup() {
     presetList: async () => void calls.presetList++,
     presetUse: async (name) => void calls.presetUse.push(name),
     presetSave: async (options) => void calls.presetSave.push(options),
-    clean: () => void calls.clean++,
+    clean: async (options) => void calls.clean.push(options),
   };
   const program = createProgram("1.2.3", actions);
   function configure(command: Command): void {
@@ -190,7 +191,14 @@ describe("CLI 命令解析", () => {
     const { program, calls } = setup();
     await program.parseAsync(["clean"], { from: "user" });
 
-    expect(calls.clean).toBe(1);
+    expect(calls.clean).toEqual([{ all: false }]);
+  });
+
+  it("解析 clean --all", async () => {
+    const { program, calls } = setup();
+    await program.parseAsync(["clean", "--all"], { from: "user" });
+
+    expect(calls.clean).toEqual([{ all: true }]);
   });
 
   it("无参数时显示顶层帮助", async () => {

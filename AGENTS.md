@@ -36,6 +36,7 @@ bun run electron                 # 构建前端并启动 Electron
 
 | 路径                      | 职责                                                 |
 | ------------------------- | ---------------------------------------------------- |
+| `build/`                  | NSIS 卸载器自定义脚本                                |
 | `src/index.ts`            | 入口、action 绑定                                    |
 | `src/cli.ts`              | Commander 命令树                                     |
 | `src/commands/convert.ts` | Markdown→DOCX + Pandoc 子进程                        |
@@ -118,7 +119,7 @@ md2docx clean
 
 **preset**：`list` 每行一个名称，当前项加绿色 `*`。`use <name>` 校验并持久化。`save --name <name>` 至少需 `--config`/`--style-raw`/`--style-config` 之一，同名完整替换。`default` 为保留名称。
 
-**clean**：只删 `preprocess/`、`resources/`、`style/`，保留 `presets/` 和 `settings.json`。删除前校验目标严格等于 `<home>/.md2docx`，根目录为符号链时拒绝，缓存子目录为符号链时只 unlink。
+**clean**：不带 `--all` 时只删 `preprocess/`、`resources/`、`style/`，保留 `presets/` 和 `settings.json`。加 `--all` 时删除整个 `~/.md2docx`（含预设和设置）。删除前校验目标严格等于 `<home>/.md2docx`，根目录为符号链时拒绝，缓存子目录为符号链时只 unlink。
 
 **默认输出**：
 
@@ -234,6 +235,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 - `bun run build`：`dist/index.js` + `dist/index_bg.wasm`。Node 目标必须捆绑 JS 依赖，不能 `--packages=external`
 - `bun run build:exe`：`dist/md2docx.exe`
 - `bun run pack`：Windows NSIS 安装版，生成 `latest.yml` 供自动更新；`bun run pack:portable`：便携版，不支持自动安装
+- NSIS 卸载器自定义脚本位于 `build/nsis-uninstall-cleanup.nsh`，在卸载时提供"清除用户数据"复选框；修改此脚本或 `electron-builder.yml` 中的 `nsis.include` 时需同步更新本文件
 - 发布前：`bun test && bun check && bun run build && node dist/index.js -v && npm pack --dry-run && git status`
 - npm 已发布版本不可覆盖
 - npm 发 Node CLI，GitHub Releases 发 EXE

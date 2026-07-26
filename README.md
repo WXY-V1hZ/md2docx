@@ -75,15 +75,15 @@ md2docx preset list|use <name>|save --name <name> [选项]
 md2docx clean
 ```
 
-| 参数                    | 说明                                    |
-| ----------------------- | --------------------------------------- |
-| `<markdown>`            | 位置参数，仅无其他选项时可用            |
-| `-f, --file <path>`     | Markdown 输入                           |
-| `--preset <name>`       | 本次指定预设                            |
-| `-c, --config <path>`   | 配置 JSON                               |
-| `--style-raw <path>`    | 底层 Word 样式 JSON                     |
-| `--style-config <path>` | 语义化样式配置 JSON                     |
-| `-o, --output <path>`   | DOCX 输出（format 为 `.md`）            |
+| 参数                    | 说明                         |
+| ----------------------- | ---------------------------- |
+| `<markdown>`            | 位置参数，仅无其他选项时可用 |
+| `-f, --file <path>`     | Markdown 输入                |
+| `--preset <name>`       | 本次指定预设                 |
+| `-c, --config <path>`   | 配置 JSON                    |
+| `--style-raw <path>`    | 底层 Word 样式 JSON          |
+| `--style-config <path>` | 语义化样式配置 JSON          |
+| `-o, --output <path>`   | DOCX 输出（format 为 `.md`） |
 
 位置参数不能与 `--file` 或其他选项混用。`format` 必须提供 `--file`，不接受样式参数，不调用 Pandoc。
 
@@ -133,8 +133,8 @@ md2docx -f report.md -c config.json
 | --------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- |
 | `detectTitle.enabled / strategy`                          | 自动设置标题 / first-h1/single-h1/filename/none | `true` / `"first-h1"`                  |
 | `numberHeadings.{enabled,detectExisting,useBuiltinRules}` | 标题编号 / 剥离已有编号                         | `true` / `true` / `true`               |
-| `figureCaption.{enabled,format,separator}`                | 图片题注 / `"图 {n}"` / `"："`                   | `true`                                 |
-| `tableCaption.{enabled,format,separator}`                 | 表格题注 / `"表 {n}"` / `" "`                    | `true`                                 |
+| `figureCaption.{enabled,format,separator}`                | 图片题注 / `"图 {n}"` / `"："`                  | `true`                                 |
+| `tableCaption.{enabled,format,separator}`                 | 表格题注 / `"表 {n}"` / `" "`                   | `true`                                 |
 | `renderMermaid.{enabled,theme,density}`                   | Mermaid 渲染 / 主题 / DPI（≥72）                | `true` / `"tokyo-night-light"` / `200` |
 | `imageSize.{enabled,maxWidthCm,maxHeightCm}`              | 图片尺寸限制（厘米）                            | `true` / `12` / `12`                   |
 | `removeThematicBreaks.enabled`                            | 移除分隔符行                                    | `true`                                 |

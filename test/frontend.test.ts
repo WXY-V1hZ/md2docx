@@ -139,7 +139,9 @@ describe("Electron 前端构建", () => {
     expect(settings).not.toContain("transform: translateX(100%)");
     expect(settings).toContain("animation: panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1)");
     expect(settings).toContain("@keyframes panel-in");
-    expect(settings).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none !important;/);
+    expect(settings).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none !important;/,
+    );
     expect(settings).toContain("放弃更改");
     expect(settings).not.toContain("<select");
     expect(preload).toContain('"settings:save"');

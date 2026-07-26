@@ -141,6 +141,36 @@ describe("clean 命令", () => {
     expect(existsSync(join(target, "style"))).toBe(false);
     expect(readFileSync(join(external, "keep.txt"), "utf-8")).toBe("keep");
   });
+
+  it("clean --all 删除全部用户数据（含预设和设置）", () => {
+    const home = createTempDir();
+    const target = join(home, ".md2docx");
+    mkdirSync(join(target, "preprocess", "example"), { recursive: true });
+    mkdirSync(join(target, "presets", "academic"), { recursive: true });
+    writeFileSync(join(target, "preprocess", "example", "input.md"), "test", "utf-8");
+    writeFileSync(join(target, "settings.json"), "{}", "utf-8");
+    writeFileSync(join(target, "presets", "academic", "config.json"), "{}", "utf-8");
+
+    cleanIntermediateFiles({ targetDir: target, homeDir: home, all: true });
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("clean --all 跳过不存在的目录", () => {
+    const home = createTempDir();
+    const target = join(home, ".md2docx");
+
+    cleanIntermediateFiles({ targetDir: target, homeDir: home, all: true });
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("clean --all 的安全校验与普通 clean 一致", () => {
+    const home = createTempDir();
+    const target = join(home, "other");
+
+    expect(() => cleanIntermediateFiles({ targetDir: target, homeDir: home, all: true })).toThrow(
+      "拒绝清理非预期目录",
+    );
+  });
 });
 
 describe("preset list 输出", () => {

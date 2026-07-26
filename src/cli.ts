@@ -36,6 +36,10 @@ export interface PresetSaveOptions {
   styleConfig?: string;
 }
 
+export interface CleanOptions {
+  all?: boolean;
+}
+
 export interface CliActions {
   convert(options: ConvertOptions): Promise<void>;
   format(options: FormatOptions): Promise<void>;
@@ -45,7 +49,7 @@ export interface CliActions {
   presetList(): Promise<void>;
   presetUse(name: string): Promise<void>;
   presetSave(options: PresetSaveOptions): Promise<void>;
-  clean(): void | Promise<void>;
+  clean(options: CleanOptions): void | Promise<void>;
 }
 
 export function createProgram(version: string, actions: CliActions): Command {
@@ -180,9 +184,10 @@ export function createProgram(version: string, actions: CliActions): Command {
   const cleanCommand = program
     .command("clean")
     .description("清除 ~/.md2docx 中的预处理文件和样式缓存")
+    .option("--all", "清除所有用户数据（预设、设置和缓存）")
     .helpOption("-h, --help", "显示帮助")
-    .action(async () => {
-      await actions.clean();
+    .action(async (options) => {
+      await actions.clean({ all: options.all ?? false });
     });
   cleanCommand.exitOverride();
 

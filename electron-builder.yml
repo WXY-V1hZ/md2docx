@@ -22,6 +22,7 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   artifactName: md2docx-${version}-setup.exe
+  include: build/nsis-uninstall-cleanup.nsh
 publish:
   provider: generic
   url: https://github.com/WXY-V1hZ/md2docx/releases/latest/download
