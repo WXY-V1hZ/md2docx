@@ -1,5 +1,6 @@
 report.md
 output/
+report.pdf
 
 # dependencies (bun install)
 node_modules
