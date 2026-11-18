@@ -55,6 +55,9 @@ function textContent(node: unknown): string {
   if ((value.type === "text" || value.type === "inlineCode") && typeof value.value === "string") {
     return value.value;
   }
+  if (value.type === "inlineMath" && typeof value.value === "string") {
+    return `$${value.value}$`;
+  }
   if (
     (value.type === "image" || value.type === "imageReference") &&
     typeof value.alt === "string"
@@ -113,7 +116,7 @@ export function numberHeadings(nodes: Heading[], config: HeadingNumberingConfig)
     } else {
       node.children.unshift({
         type: "text",
-        value: prefix,
+        value: first?.type === "inlineMath" ? `${prefix} ` : prefix,
       });
     }
   }

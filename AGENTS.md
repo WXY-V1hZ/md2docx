@@ -167,6 +167,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 
 ### 各步骤行为
 
+- **公式**：使用 `remark-math` 解析和序列化 `$…$` 与 `$$…$$`，保留 LaTeX 供 Pandoc 生成 DOCX 公式。提取 H1 为 YAML title 时保留行内公式和定界符。
 - **addTitle**：保留已有 YAML title；按策略 first-h1/single-h1/filename/none 查找 H1，回退到文件名（不含路径）
 - **normalizeHeadings**：最浅标题 → H1，消除层级跳跃
 - **numberHeadings**：生成层级编号，剥离已有编号（剥离顺序：顿号多级 → 中文括号 → 中文单级 → 数字点分；数字点分至少两段防误判版本号）
@@ -184,7 +185,7 @@ Markdown → AST → addTitle() → removeThematicBreaks() → normalizeHeadings
 
 **DPI**：`fitTo.zoom = density / 72` 控制像素尺寸。resvg 默认 pHYs 不准确，必须用 `setPngDensity()` 写入 `pHYs` 块（`round(dpi / 0.0254)` ppm），需重新计算 CRC32。
 
-**字体**：按进程缓存一次。Windows: msyh.ttc/msyhbd.ttc/arial.ttf/consola.ttf；macOS: PingFang/Helvetica/Menlo；Linux: Noto Sans CJK/DejaVu Sans/DejaVu Sans Mono。需覆盖中文和等宽场景，容错字体缺失。
+**字体**：按进程缓存一次。Windows 加载 Microsoft YaHei、Arial 和 Consolas。macOS 加载 PingFang、Helvetica 和 Menlo。Linux 通过带超时的 `fc-match` 查找中文、通用无衬线和等宽字体，同时检查常见字体路径。跳过不可读取的字体，未加载到字体文件时按单图失败处理。
 
 **错误**：单图失败输出错误信息并 `continue`，保留代码块，不中断整个文档。
 

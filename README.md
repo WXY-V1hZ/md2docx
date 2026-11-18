@@ -22,6 +22,7 @@
 - **标题编号** — `1`、`1.1`、`1.1.1`，可剥离已有中英文编号
 - **表格与图片题注** — "表 1"、"图 1：标题"
 - **图片尺寸限制** — 等比缩小超限图片
+- **数学公式** — 保留 `$…$` 行内公式和 `$$…$$` 块级公式，由 Pandoc 生成可编辑的 DOCX 公式
 - **Mermaid 渲染** — beautiful-mermaid + resvg-wasm → 高 DPI PNG
 - **Word 样式** — 语义化配置 / 完整底层样式 / 从 DOCX 提取
 - **预设系统** — 可切换、可继承默认值的配置与样式预设
@@ -141,6 +142,8 @@ md2docx -f report.md -c config.json
 | `normalizeHeadings.enabled`                               | 修正标题层级                                    | `true`                                 |
 
 图片尺寸限制：超限等比缩小，不放大小图；已显式设 width/height 时不应用；读取失败时警告并继续。
+
+Linux 上的 Mermaid 渲染通过 Fontconfig（`fc-match`）查找已安装的字体，并支持常见字体路径。中文标签需要安装中文字体，例如 Noto Sans CJK。找不到字体文件时会提示渲染失败并保留 Mermaid 代码块。
 
 ---
 

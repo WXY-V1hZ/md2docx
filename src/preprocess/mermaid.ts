@@ -1,13 +1,16 @@
 import { type Root } from "mdast";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Resvg, initWasm, type CustomFontsOptions } from "@resvg/resvg-wasm";
 import resvgWasmPath from "@resvg/resvg-wasm/index_bg.wasm" with { type: "file" };
 import { renderMermaidSVG, THEMES } from "beautiful-mermaid";
 
+const execFileAsync = promisify(execFile);
 let wasmInitialization: Promise<void> | undefined;
 let fontLoading: Promise<CustomFontsOptions> | undefined;
 const RESVG_WASM_PATH = isAbsolute(resvgWasmPath)
@@ -26,6 +29,23 @@ function initializeResvg(): Promise<void> {
 function loadSystemFonts(): Promise<CustomFontsOptions> {
   fontLoading ??= loadSystemFontsUncached();
   return fontLoading;
+}
+
+async function findFontconfigFonts(): Promise<string[]> {
+  const matches = await Promise.all(
+    ["sans-serif:lang=zh-cn", "sans-serif", "monospace"].map(async (pattern) => {
+      try {
+        const { stdout } = await execFileAsync("fc-match", ["-f", "%{file}", pattern], {
+          timeout: 3000,
+          maxBuffer: 8192,
+        });
+        return stdout.trimEnd();
+      } catch {
+        return "";
+      }
+    }),
+  );
+  return matches.filter((path) => isAbsolute(path));
 }
 
 async function loadSystemFontsUncached(): Promise<CustomFontsOptions> {
@@ -47,9 +67,13 @@ async function loadSystemFontsUncached(): Promise<CustomFontsOptions> {
             "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
             join(homedir(), ".local/share/fonts/NotoSansCJK-Regular.ttc"),
           ];
-  const fontBuffers = await Promise.all(fontPaths.filter(existsSync).map((path) => readFile(path)));
+  const discoveredPaths = process.platform === "linux" ? await findFontconfigFonts() : [];
+  const candidates = new Set([...discoveredPaths, ...fontPaths]);
+  const buffers = await Promise.all(
+    Array.from(candidates, (path) => readFile(path).catch(() => undefined)),
+  );
   return {
-    fontBuffers,
+    fontBuffers: buffers.filter((buffer) => buffer !== undefined),
     ...(process.platform === "win32"
       ? { defaultFontFamily: "Microsoft YaHei", sansSerifFamily: "Microsoft YaHei" }
       : {}),
@@ -78,8 +102,11 @@ export async function renderMermaid(
     try {
       let svg = renderMermaidSVG(child.value, mermaidTheme);
       svg = resolveCSSVars(svg);
-      await initializeResvg();
       const font = await loadSystemFonts();
+      if (font.fontBuffers.length === 0) {
+        throw new Error("未找到可用于 Mermaid 渲染的系统字体");
+      }
+      await initializeResvg();
       const renderer = new Resvg(svg, {
         dpi: density,
         fitTo: { mode: "zoom", value: density / 72 },

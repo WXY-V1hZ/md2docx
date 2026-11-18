@@ -1,3 +1,6 @@
+report.md
+output/
+
 # dependencies (bun install)
 node_modules
 

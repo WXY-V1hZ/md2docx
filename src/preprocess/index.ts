@@ -5,6 +5,7 @@ import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
+import remarkMath from "remark-math";
 import { visit } from "unist-util-visit";
 
 import { type AppConfig } from "../config";
@@ -25,7 +26,21 @@ export async function preprocess(
     .use(remarkParse)
     .use(remarkFrontmatter, ["yaml"])
     .use(remarkGfm)
-    .use(remarkStringify, { resourceLink: true, bullet: "-" });
+    .use(remarkMath)
+    .use(remarkStringify, {
+      resourceLink: true,
+      bullet: "-",
+      handlers: {
+        inlineMath(node) {
+          const position = node.position;
+          const original = position ? md.slice(position.start.offset, position.end.offset) : "";
+          // Pandoc treats two dollar signs as display math even on a single line.
+          if (original && !/[\r\n]/.test(original)) return original;
+          const delimiter = original.match(/^\$+/)?.[0] ?? "$";
+          return delimiter + node.value.replace(/\r\n?|\n/g, " ") + delimiter;
+        },
+      },
+    });
   const ast = processor.parse(md);
 
   const headings: Heading[] = [];

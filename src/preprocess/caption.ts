@@ -1,4 +1,4 @@
-import { type Image, type Paragraph, type Root, type Text } from "mdast";
+import { type Image, type Paragraph, type Root, type RootContent, type Text } from "mdast";
 import { type AppConfig } from "../config";
 
 export function numberTables(root: Root, config: AppConfig) {
@@ -21,7 +21,7 @@ export function numberTables(root: Root, config: AppConfig) {
       used.add(prevIdx);
       const existing = stripTableNum(captionText(prev), format);
       const first = prev.children[0] as Text;
-      first.value = `Table: ${label}${existing ? `${separator}${existing}` : ""}`;
+      first.value = `Table: ${label}${existing || prev.children.length > 1 ? `${separator}${existing}` : ""}`;
       continue;
     }
 
@@ -31,7 +31,7 @@ export function numberTables(root: Root, config: AppConfig) {
       used.add(nextIdx);
       const existing = stripTableNum(captionText(next), format);
       const first = next.children[0] as Text;
-      first.value = `Table: ${label}${existing ? `${separator}${existing}` : ""}`;
+      first.value = `Table: ${label}${existing || next.children.length > 1 ? `${separator}${existing}` : ""}`;
       continue;
     }
 
@@ -75,16 +75,12 @@ function fileNameFromUrl(url: string): string | null {
   return match ? match[1]! : null;
 }
 
-function isCaption(node: unknown): node is Paragraph {
+function isCaption(node: RootContent): node is Paragraph {
   return (
-    node != null &&
-    typeof node === "object" &&
-    (node as { type?: string }).type === "paragraph" &&
-    (node as { children?: { type?: string; value?: string }[] }).children?.length === 1 &&
-    (node as { children: { type?: string; value?: string }[] }).children[0]?.type === "text" &&
-    (
-      (node as { children: { type?: string; value?: string }[] }).children[0]?.value ?? ""
-    ).startsWith("Table: ")
+    node.type === "paragraph" &&
+    node.children[0]?.type === "text" &&
+    node.children[0].value.startsWith("Table: ") &&
+    node.children.every((child) => child.type === "text" || child.type === "inlineMath")
   );
 }
 
